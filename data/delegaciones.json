@@ -1,0 +1,56 @@
+[
+    {
+        "nombre": "Delegación Centro",
+        "direccion": "Cienfuegos 226 esquina Colón, La Serena",
+        "encargado": "Alan Von Kretschmann",
+        "email": "centro@laserena.cl",
+        "telefono": "512 207861",
+        "celular": "+56 9 5770 3917",
+        "servicios": ["Atención de público", "Trámites municipales", "Información vecinal", "Reclamos y sugerencias"]
+    },
+    {
+        "nombre": "Delegación Av. del Mar",
+        "direccion": "Avenida del Mar 2500 esquina Florencio Sánchez, La Serena",
+        "encargado": "Rodrigo Fuenzalida Vásquez",
+        "email": "avenidadelmar@laserena.cl",
+        "telefono": "512 206518",
+        "celular": "+56 9 5771 7448",
+        "servicios": ["Fiscalización de paseos públicos", "Áreas verdes", "Control de comercio ambulante", "Atención de vecinos"]
+    },
+    {
+        "nombre": "Delegación La Pampa",
+        "direccion": "Larraín Alcalde 3505 esquina Cuatro Esquinas, La Serena",
+        "encargado": "María Soledad Rojas",
+        "email": "pampa@laserena.cl",
+        "telefono": "512 206788",
+        "celular": "+56 9 4718 9803",
+        "servicios": ["Asistencia social", "Trámites de subsidio", "Programas comunitarios", "Atención de público"]
+    },
+    {
+        "nombre": "Delegación Las Compañías",
+        "direccion": "Esmeralda 2422, costado Banco Estado, La Serena",
+        "encargado": "Carlos E. Rojas Poblete",
+        "email": "lascompanias@laserena.cl",
+        "telefono": "512 206527",
+        "celular": "+56 9 5771 6495",
+        "servicios": ["Registro civil", "Asesoría social", "Pago de contribuciones", "Actividades vecinales"]
+    },
+    {
+        "nombre": "Delegación Rural",
+        "direccion": "Carrera 281 esquina Brasil, La Serena",
+        "encargado": "Manuel Barraza Delgado",
+        "email": "rural@laserena.cl",
+        "telefono": "512 206687",
+        "celular": "+56 9 7420 874",
+        "servicios": ["Atención a comunidades rurales", "Gestión de agua potable rural", "Seguridad rural", "Trámites agropecuarios"]
+    },
+    {
+        "nombre": "Delegación La Antena - La Florida",
+        "direccion": "18 de Septiembre esquina Emilio Bello, La Serena",
+        "encargado": "Elizabeth Villanueva Oyarce",
+        "email": "antena@laserena.cl",
+        "telefono": "512 206618",
+        "celular": "+56 9 5772 3998",
+        "servicios": ["Fiscalización en terreno", "Áreas verdes", "Seguridad barrial", "Atención de vecinos"]
+    }
+]

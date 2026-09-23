@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block title %}Delegaciones - Listado{% endblock %}
+
+{% block content %}
+<h1 class="h3 text-primary mb-4">Listado de Delegaciones</h1>
+
+<div class="row">
+    {% for delegacion in delegaciones %}
+    <div class="col-md-6 mb-3">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white border-bottom">
+                <h5 class="card-title mb-0 text-primary">{{ delegacion.nombre }}</h5>
+            </div>
+            <div class="card-body">
+                <p class="card-text text-muted mb-2">{{ delegacion.direccion }}</p>
+
+                <p class="card-text mb-1">
+                    <span class="fw-semibold">Encargado:</span> {{ delegacion.encargado }}
+                </p>
+                <p class="card-text mb-1">
+                    <span class="fw-semibold">Email:</span> {{ delegacion.email }}
+                </p>
+                <p class="card-text mb-3">
+                    <span class="fw-semibold">Teléfono:</span> {{ delegacion.telefono }} /
+                    <span class="text-muted">{{ delegacion.celular }}</span>
+                </p>
+
+                <p class="mb-1 fw-semibold">Servicios:</p>
+                <div class="d-flex flex-wrap gap-1">
+                    {% for servicio in delegacion.servicios %}
+                    <span class="badge bg-primary bg-opacity-10 text-primary">{{ servicio }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

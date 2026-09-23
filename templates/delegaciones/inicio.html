@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Delegaciones - Inicio{% endblock %}
+
+{% block content %}
+<section class="hero bg-primary text-white rounded-4 shadow p-4 p-md-5 text-center">
+    <div class="row align-items-center">
+        <div class="col-md-4 mb-4 mb-md-0">
+            <img src="{% static 'images/Logo 2 municipoalidad (letras blancas).svg' %}" alt="Logo Municipalidad de La Serena" class="img-fluid" style="max-height: 200px;">
+        </div>
+        <div class="col-md-8">
+            <h1 class="display-4 fw-bold">Municipalidad de La Serena</h1>
+            <p class="lead mb-4">
+                Nuestra misión territorial es acercar la gestión municipal a cada barrio y comunidad,
+                garantizando una atención cercana, oportuna y equitativa a los vecinos de la comuna
+                a través de nuestras delegaciones.
+            </p>
+            <a href="{% url 'lista' %}" class="btn btn-light btn-lg px-4">Ver Delegaciones</a>
+        </div>
+    </div>
+</section>
+
+<section class="mt-5">
+    <h2 class="h4 text-primary mb-4">Nuestras Delegaciones Territoriales</h2>
+    <p class="text-muted">
+        Las delegaciones municipales operan como oficinas descentralizadas que acercan los servicios
+        municipales a los vecinos, atendiendo requerimientos que van desde seguridad y áreas verdes
+        hasta asistencia social en cada sector de la comuna.
+    </p>
+    <div class="row">
+        {% for delegacion in delegaciones %}
+        <div class="col-md-4 mb-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-primary me-2">{{ forloop.counter }}</span>
+                        <span class="fw-semibold">{{ delegacion.nombre }}</span>
+                    </div>
+                    <p class="card-text small text-muted mb-1">Encargado: {{ delegacion.encargado }}</p>
+                    <p class="card-text small text-muted mb-0">{{ delegacion.direccion }}</p>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    <div class="text-center mt-3">
+        <a href="{% url 'lista' %}" class="btn btn-outline-primary">Ver detalle de las delegaciones</a>
+    </div>
+</section>
+{% endblock %}
