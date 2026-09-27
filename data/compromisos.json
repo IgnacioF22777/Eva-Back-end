@@ -1,0 +1,22 @@
+[
+    {
+        "tarea": "Implementar plataforma de trámites en línea",
+        "cumplimiento": 60,
+        "estado": "amarillo"
+    },
+    {
+        "tarea": "Mejorar iluminación de espacios públicos del centro",
+        "cumplimiento": 90,
+        "estado": "verde"
+    },
+    {
+        "tarea": "Reposición de contenedores de basura en Las Compañías",
+        "cumplimiento": 100,
+        "estado": "verde"
+    },
+    {
+        "tarea": "Mejoramiento de áreas verdes en el sector La Antena",
+        "cumplimiento": 25,
+        "estado": "rojo"
+    }
+]

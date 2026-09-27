@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Tubo de Gestión - Inicio{% endblock %}
+
+{% block content %}
+<section class="p-4 p-md-5">
+    <div class="row align-items-center">
+        <div class="col-md-5 mb-4 mb-md-0 text-center">
+            <img src="{% static 'images/semaforo.png' %}" alt="Sistema de Semáforo" class="img-fluid" style="max-height: 260px;">
+        </div>
+        <div class="col-md-7">
+            <h1 class="display-5 fw-bold text-primary">Tubo de Trabajo y Sistema de Semáforo</h1>
+            <p class="lead">
+                El <strong>Tubo de Trabajo</strong> es el modelo de gestión que prioriza y ordena las metas
+                operativas de la municipalidad, permitiendo dar seguimiento continuo a cada compromiso.
+            </p>
+            <p>
+                El <strong>Sistema de Semáforo</strong> mide el estado de avance de cada meta mediante tres
+                estados: <span class="badge bg-success">Verde</span> (en curso y con buen avance),
+                <span class="badge bg-warning text-dark">Amarillo</span> (en riesgo o retraso moderado) y
+                <span class="badge bg-danger">Rojo</span> (crítico o detenido).
+            </p>
+            <a href="{% url 'tablero_metas' %}" class="btn btn-primary btn-lg px-4">Ver Tablero de Metas</a>
+        </div>
+    </div>
+</section>
+{% endblock %}
