@@ -32,11 +32,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'delegacionesAPP',
     'tubo_gestionAPP',
-<<<<<<< HEAD
-    'reportesCiudadanosAPP',
-    'emergenciasTerritorialesAPP',
-=======
->>>>>>> origin/main
 ]
 
 MIDDLEWARE = [
