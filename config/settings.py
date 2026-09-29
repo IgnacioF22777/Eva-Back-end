@@ -32,6 +32,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'delegacionesAPP',
     'tubo_gestionAPP',
+    'emergenciasTerritorialesAPP',
+    'reportesCiudadanosAPP',
 ]
 
 MIDDLEWARE = [
