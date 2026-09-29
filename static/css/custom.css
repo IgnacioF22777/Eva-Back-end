@@ -1,0 +1,59 @@
+/* Paleta institucional: blanco + Rojo Heráldico #C41230 */
+:root {
+    --heraldic-red: #C41230;
+    --heraldic-red-dark: #8B1D19;
+    --heraldic-red-light: #E8A6AF;
+    --bs-primary: #C41230;
+    --bs-primary-rgb: 196, 18, 48;
+    --bs-link-color: #C41230;
+    --bs-link-hover-color: #8B1D19;
+}
+
+/* Botones primarios */
+.btn-primary {
+    --bs-btn-bg: #C41230;
+    --bs-btn-border-color: #C41230;
+    --bs-btn-hover-bg: #A30F27;
+    --bs-btn-hover-border-color: #A30F27;
+    --bs-btn-active-bg: #8B1D19;
+    --bs-btn-active-border-color: #8B1D19;
+}
+
+.btn-outline-primary {
+    --bs-btn-color: #C41230;
+    --bs-btn-border-color: #C41230;
+    --bs-btn-hover-bg: #C41230;
+    --bs-btn-hover-border-color: #C41230;
+    --bs-btn-active-bg: #8B1D19;
+}
+
+/* Texto primario */
+.text-primary {
+    color: #C41230 !important;
+}
+
+/* Navbar: fondo rojo heráldico, texto blanco */
+.navbar-brand {
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+/* Header */
+.header-title {
+    color: #C41230;
+}
+
+/* Enlaces del navbar */
+.navbar-dark .navbar-nav .nav-link {
+    color: rgba(255, 255, 255, 0.9);
+    transition: color 0.2s ease;
+}
+.navbar-dark .navbar-nav .nav-link:hover {
+    color: #ffffff;
+    text-decoration: underline;
+}
+
+/* Sombra suave institucional */
+.shadow-brand {
+    box-shadow: 0 4px 12px rgba(196, 18, 48, 0.15);
+}
