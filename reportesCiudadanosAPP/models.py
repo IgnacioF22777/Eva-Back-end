@@ -26,8 +26,8 @@ class ReporteCiudadano(models.Model):
 
     delegacion = models.ForeignKey(Delegacion, on_delete=models.CASCADE, related_name='reportes')
     tipo = models.CharField(max_length=20, choices=TIPO_REPORTE)
-    descripcion = models.TextField()
-    ubicacion = models.CharField(max_length=255)
+    descripcion = models.TextField(max_length=500)
+    ubicacion = models.CharField(max_length=200)
     prioridad = models.CharField(max_length=10, choices=PRIORIDAD, default='media')
     estado = models.CharField(max_length=20, choices=ESTADO, default='pendiente')
     fecha_reporte = models.DateTimeField(auto_now_add=True)

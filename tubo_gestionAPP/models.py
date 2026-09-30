@@ -6,7 +6,7 @@ class Compromiso(models.Model):
         ('amarillo', 'Amarillo'),
         ('rojo', 'Rojo'),
     ]
-    tarea = models.CharField(max_length=500)
+    tarea = models.CharField(max_length=255)
     cumplimiento = models.IntegerField()
     estado = models.CharField(max_length=20, choices=ESTADOS)
 
