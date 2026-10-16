@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     'tubo_gestionAPP',
     'emergenciasTerritorialesAPP',
     'reportesCiudadanosAPP',
+    'sgr_maestrosAPP',
 ]
 
 MIDDLEWARE = [

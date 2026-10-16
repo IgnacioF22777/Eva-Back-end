@@ -1,0 +1,143 @@
+
+{% extends 'base.html' %}
+
+{% block title %}Catálogo de Actividades - SGR{% endblock %}
+
+{% block header %}
+Catálogo de Actividades Municipales
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="h4 mb-1">Gestión de Actividades</h2>
+        <p class="text-muted mb-0">
+            Sistema de Gestión de Resultados - Municipalidad de La Serena
+        </p>
+    </div>
+
+    <a href="{% url 'sgr_maestros:catalogo_crear' %}"
+       class="btn btn-primary">
+        + Nueva Actividad
+    </a>
+</div>
+
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show"
+             role="alert">
+            {{ message }}
+            <button type="button"
+                    class="btn-close"
+                    data-bs-dismiss="alert"
+                    aria-label="Cerrar">
+            </button>
+        </div>
+    {% endfor %}
+{% endif %}
+
+<div class="card shadow-sm border-0">
+
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">Listado de Actividades</h5>
+    </div>
+
+    <div class="card-body">
+
+        <div class="table-responsive">
+            <table class="table table-striped table-hover align-middle">
+
+                <thead class="table-dark">
+                    <tr>
+                        <th>Código</th>
+                        <th>Nombre</th>
+                        <th>Área</th>
+                        <th>Descripción</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for actividad in actividades %}
+
+                    <tr>
+                        <td>
+                            <strong>{{ actividad.codigo }}</strong>
+                        </td>
+
+                        <td>{{ actividad.nombre }}</td>
+
+                        <td>
+                            {{ actividad.area|default:"Sin área" }}
+                        </td>
+
+                        <td>
+                            {{ actividad.descripcion|default:"Sin descripción"|truncatechars:70 }}
+                        </td>
+
+                        <td>
+                            {% if actividad.activo %}
+                                <span class="badge bg-success">
+                                    Activa
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary">
+                                    Inactiva
+                                </span>
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            <div class="d-flex gap-2">
+
+                                <a href="{% url 'sgr_maestros:catalogo_editar' actividad.pk %}"
+                                   class="btn btn-warning btn-sm">
+                                    Editar
+                                </a>
+
+                                <form method="POST"
+                                      action="{% url 'sgr_maestros:catalogo_cambiar_estado' actividad.pk %}">
+                                    {% csrf_token %}
+
+                                    {% if actividad.activo %}
+                                        <button type="submit"
+                                                class="btn btn-outline-danger btn-sm">
+                                            Desactivar
+                                        </button>
+                                    {% else %}
+                                        <button type="submit"
+                                                class="btn btn-outline-success btn-sm">
+                                            Activar
+                                        </button>
+                                    {% endif %}
+
+                                </form>
+
+                            </div>
+                        </td>
+                    </tr>
+
+                    {% empty %}
+
+                    <tr>
+                        <td colspan="6"
+                            class="text-center text-muted py-5">
+                            <h5>No existen actividades registradas</h5>
+                            <p class="mb-0">
+                                Puedes comenzar registrando una nueva actividad.
+                            </p>
+                        </td>
+                    </tr>
+
+                    {% endfor %}
+                </tbody>
+
+            </table>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}
