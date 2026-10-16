@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block title %}Acceso denegado - SGR{% endblock %}
+
+{% block header %}
+Acceso denegado
+{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center">
+
+    <div class="col-md-8 col-lg-6 text-center py-5">
+
+        <h2 class="h4 mb-3">No tiene permisos para acceder a esta sección</h2>
+
+        <p class="text-muted">
+            Su rol no permite realizar esta operación.
+            Si cree que es un error, contacte al administrador del sistema.
+        </p>
+
+        <a href="{% url 'inicio' %}"
+           class="btn btn-primary">
+            Volver al inicio
+        </a>
+
+    </div>
+
+</div>
+
+{% endblock %}
