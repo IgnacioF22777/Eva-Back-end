@@ -41,6 +41,15 @@ Este proyecto es una plataforma web modular diseñada para la gestión de delega
 5. Aplicar migraciones e importar datos:
    `python manage.py migrate`
    `python manage.py import_data`
+6. Crear los roles del sistema (grupos y permisos):
+   `python manage.py crear_roles`
+
+## Seguridad: login, usuarios y roles (`seguridadAPP`)
+*   **Login con RUT o correo** (`/seguridad/login/`): backend propio `RutOCorreoBackend`; acepta el RUT con o sin puntos/guion o el correo. Mensaje de error genérico, bloqueo de 15 minutos tras 5 intentos fallidos y opción "Recordar sesión" (sin ella la sesión termina al cerrar el navegador).
+*   **CRUD de usuarios** (`/seguridad/usuarios/`): RUT validado con Módulo 11, correo y RUT únicos, delegación, cargo, uno o más roles, contraseña validada por las políticas de Django, baja lógica (activar/desactivar), restablecer contraseña y eliminación con confirmación.
+*   **CRUD de roles** (`/seguridad/roles/`): RBAC con los **Grupos y Permisos de Django**. Roles base: Administrador, Coordinador, Delegado, Funcionario, Verificador y Consulta. No se puede eliminar un rol con usuarios asignados.
+*   **Control de acceso en el servidor** con `@permission_required` (403 si el rol no tiene el permiso). Un usuario no puede cambiar sus propios roles ni desactivarse, y solo un superusuario puede modificar a otro superusuario.
+*   Pruebas: `python manage.py test seguridadAPP`
 
 ## Evidencia de IA
 Este proyecto ha sido desarrollado con el apoyo de herramientas de IA (OpenCode/Gemini) para la estructuración de la arquitectura, resolución de errores de despliegue en AWS, configuración de variables de entorno y optimización del panel administrativo.

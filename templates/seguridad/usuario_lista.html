@@ -1,0 +1,194 @@
+{% extends 'base.html' %}
+
+{% block title %}Usuarios - SGR{% endblock %}
+
+{% block header %}
+Administración de Usuarios
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="h4 mb-1">Gestión de Usuarios</h2>
+        <p class="text-muted mb-0">
+            Funcionarios, roles y delegación asignada
+        </p>
+    </div>
+
+    {% if perms.auth.add_user %}
+        <a href="{% url 'seguridad:usuario_crear' %}"
+           class="btn btn-primary">
+            + Nuevo Usuario
+        </a>
+    {% endif %}
+</div>
+
+{% include 'seguridad/_mensajes.html' %}
+
+<!-- FILTROS -->
+<form method="GET" class="row g-2 mb-4">
+
+    <div class="col-md-5">
+        <input type="text"
+               name="q"
+               value="{{ busqueda }}"
+               class="form-control"
+               placeholder="Buscar por nombre, RUT o correo">
+    </div>
+
+    <div class="col-md-3">
+        <select name="rol" class="form-select">
+            <option value="">Todos los roles</option>
+            {% for rol in roles %}
+                <option value="{{ rol.pk }}"
+                        {% if rol_seleccionado == rol.pk|stringformat:"s" %}selected{% endif %}>
+                    {{ rol.name }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="col-md-2">
+        <select name="estado" class="form-select">
+            <option value="">Todos</option>
+            <option value="activos" {% if estado == "activos" %}selected{% endif %}>Activos</option>
+            <option value="inactivos" {% if estado == "inactivos" %}selected{% endif %}>Inactivos</option>
+        </select>
+    </div>
+
+    <div class="col-md-2 d-grid">
+        <button type="submit" class="btn btn-outline-primary">
+            Filtrar
+        </button>
+    </div>
+
+</form>
+
+<div class="card shadow-sm border-0">
+
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">Listado de Usuarios</h5>
+    </div>
+
+    <div class="card-body">
+
+        <div class="table-responsive">
+            <table class="table table-striped table-hover align-middle">
+
+                <thead class="table-dark">
+                    <tr>
+                        <th>Nombre</th>
+                        <th>RUT</th>
+                        <th>Correo</th>
+                        <th>Rol(es)</th>
+                        <th>Delegación</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for usuario in usuarios %}
+
+                    <tr>
+                        <td>
+                            <strong>{{ usuario.get_full_name|default:usuario.username }}</strong>
+                            {% if usuario.perfil.cargo %}
+                                <div class="small text-muted">{{ usuario.perfil.cargo }}</div>
+                            {% endif %}
+                        </td>
+
+                        <td class="text-nowrap">{{ usuario.perfil.rut_formateado|default:"Sin RUT" }}</td>
+
+                        <td>{{ usuario.email|default:"Sin correo" }}</td>
+
+                        <td>
+                            {% for rol in usuario.groups.all %}
+                                <span class="badge bg-info text-dark">{{ rol.name }}</span>
+                            {% empty %}
+                                {% if usuario.is_superuser %}
+                                    <span class="badge bg-dark">Superusuario</span>
+                                {% else %}
+                                    <span class="text-muted small">Sin rol</span>
+                                {% endif %}
+                            {% endfor %}
+                        </td>
+
+                        <td>{{ usuario.perfil.delegacion|default:"Sin delegación" }}</td>
+
+                        <td>
+                            {% if usuario.is_active %}
+                                <span class="badge bg-success">Activo</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Inactivo</span>
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            <div class="d-flex flex-wrap gap-2">
+
+                                {% if perms.auth.change_user %}
+                                    <a href="{% url 'seguridad:usuario_editar' usuario.pk %}"
+                                       class="btn btn-warning btn-sm">
+                                        Editar
+                                    </a>
+
+                                    <a href="{% url 'seguridad:usuario_password' usuario.pk %}"
+                                       class="btn btn-outline-secondary btn-sm">
+                                        Contraseña
+                                    </a>
+
+                                    {% if usuario.pk != user.pk %}
+                                        <form method="POST"
+                                              action="{% url 'seguridad:usuario_cambiar_estado' usuario.pk %}">
+                                            {% csrf_token %}
+
+                                            {% if usuario.is_active %}
+                                                <button type="submit"
+                                                        class="btn btn-outline-danger btn-sm">
+                                                    Desactivar
+                                                </button>
+                                            {% else %}
+                                                <button type="submit"
+                                                        class="btn btn-outline-success btn-sm">
+                                                    Activar
+                                                </button>
+                                            {% endif %}
+                                        </form>
+                                    {% endif %}
+                                {% endif %}
+
+                                {% if perms.auth.delete_user and usuario.pk != user.pk %}
+                                    <a href="{% url 'seguridad:usuario_eliminar' usuario.pk %}"
+                                       class="btn btn-danger btn-sm">
+                                        Eliminar
+                                    </a>
+                                {% endif %}
+
+                            </div>
+                        </td>
+                    </tr>
+
+                    {% empty %}
+
+                    <tr>
+                        <td colspan="7"
+                            class="text-center text-muted py-5">
+                            <h5>No se encontraron usuarios</h5>
+                            <p class="mb-0">
+                                Ajuste los filtros o registre un nuevo usuario.
+                            </p>
+                        </td>
+                    </tr>
+
+                    {% endfor %}
+                </tbody>
+
+            </table>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}

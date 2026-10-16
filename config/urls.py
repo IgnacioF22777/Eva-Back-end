@@ -8,4 +8,7 @@ urlpatterns = [
 
     # Proyecto Integrado - CRUD de tablas maestras
     path('maestros/', include('sgr_maestrosAPP.urls')),
+
+    # Proyecto Integrado - Seguridad: login, usuarios y roles
+    path('seguridad/', include('seguridadAPP.urls')),
 ]
