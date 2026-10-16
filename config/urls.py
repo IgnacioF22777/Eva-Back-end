@@ -5,4 +5,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('delegacionesAPP.urls')),
     path('gestion/', include('tubo_gestionAPP.urls')),
+
+    # Proyecto Integrado - CRUD de tablas maestras
+    path('maestros/', include('sgr_maestrosAPP.urls')),
 ]
