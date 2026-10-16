@@ -1,0 +1,244 @@
+
+{% extends 'base.html' %}
+
+{% block title %}Gestión de Metas - SGR{% endblock %}
+
+{% block header %}
+Gestión de Metas Municipales
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+
+    <div>
+        <h2 class="h4 mb-1">Gestión de Metas</h2>
+
+        <p class="text-muted mb-0">
+            Sistema de Gestión de Resultados -
+            Municipalidad de La Serena
+        </p>
+    </div>
+
+    <a href="{% url 'sgr_maestros:meta_crear' %}"
+       class="btn btn-primary">
+        + Nueva Meta
+    </a>
+
+</div>
+
+
+<!-- MENSAJES DEL SISTEMA -->
+
+{% if messages %}
+
+    {% for message in messages %}
+
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show"
+             role="alert">
+
+            {{ message }}
+
+            <button type="button"
+                    class="btn-close"
+                    data-bs-dismiss="alert"
+                    aria-label="Cerrar">
+            </button>
+
+        </div>
+
+    {% endfor %}
+
+{% endif %}
+
+
+<!-- TABLA DE METAS -->
+
+<div class="card shadow-sm border-0">
+
+    <div class="card-header bg-primary text-white">
+
+        <h5 class="mb-0">
+            Listado de Metas
+        </h5>
+
+    </div>
+
+    <div class="card-body">
+
+        <div class="table-responsive">
+
+            <table class="table table-striped table-hover align-middle">
+
+                <thead class="table-dark">
+
+                    <tr>
+                        <th>Código</th>
+                        <th>Nombre</th>
+                        <th>Período</th>
+                        <th>Actividad</th>
+                        <th>Valor Objetivo</th>
+                        <th>Ponderación</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    {% for meta in metas %}
+
+                        <tr>
+
+                            <td>
+                                <strong>
+                                    {{ meta.codigo }}
+                                </strong>
+                            </td>
+
+                            <td>
+                                {{ meta.nombre }}
+                            </td>
+
+                            <td>
+                                {{ meta.periodo.nombre }}
+
+                                {% if meta.periodo.cerrado %}
+                                    <br>
+                                    <span class="badge bg-danger">
+                                        Período cerrado
+                                    </span>
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                {{ meta.actividad.nombre }}
+                            </td>
+
+                            <td>
+                                {{ meta.valor_objetivo|floatformat:2 }}
+                            </td>
+
+                            <td>
+                                <span class="badge bg-info text-dark">
+                                    {{ meta.ponderacion|floatformat:2 }}%
+                                </span>
+                            </td>
+
+                            <td>
+
+                                {% if meta.activo %}
+
+                                    <span class="badge bg-success">
+                                        Activa
+                                    </span>
+
+                                {% else %}
+
+                                    <span class="badge bg-secondary">
+                                        Inactiva
+                                    </span>
+
+                                {% endif %}
+
+                            </td>
+
+                            <td>
+
+                                {% if meta.periodo.cerrado %}
+
+                                    <span class="text-muted small">
+                                        Sin modificaciones
+                                    </span>
+
+                                {% else %}
+
+                                    <div class="d-flex gap-2">
+
+                                        <a href="{% url 'sgr_maestros:meta_editar' meta.pk %}"
+                                           class="btn btn-warning btn-sm">
+                                            Editar
+                                        </a>
+
+                                        <form method="POST"
+                                              action="{% url 'sgr_maestros:meta_cambiar_estado' meta.pk %}">
+
+                                            {% csrf_token %}
+
+                                            {% if meta.activo %}
+
+                                                <button type="submit"
+                                                        class="btn btn-outline-danger btn-sm">
+                                                    Desactivar
+                                                </button>
+
+                                            {% else %}
+
+                                                <button type="submit"
+                                                        class="btn btn-outline-success btn-sm">
+                                                    Activar
+                                                </button>
+
+                                            {% endif %}
+
+                                        </form>
+
+                                    </div>
+
+                                {% endif %}
+
+                            </td>
+
+                        </tr>
+
+                    {% empty %}
+
+                        <tr>
+
+                            <td colspan="8"
+                                class="text-center text-muted py-5">
+
+                                <h5>
+                                    No existen metas registradas
+                                </h5>
+
+                                <p class="mb-0">
+                                    Puedes comenzar registrando
+                                    una nueva meta municipal.
+                                </p>
+
+                            </td>
+
+                        </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ENLACES A OTROS MÓDULOS -->
+
+<div class="d-flex gap-2 mt-4">
+
+    <a href="{% url 'sgr_maestros:catalogo_lista' %}"
+       class="btn btn-outline-primary">
+        Catálogo de Actividades
+    </a>
+
+    <a href="{% url 'sgr_maestros:periodo_lista' %}"
+       class="btn btn-outline-secondary">
+        Gestión de Períodos
+    </a>
+
+</div>
+
+{% endblock %}
