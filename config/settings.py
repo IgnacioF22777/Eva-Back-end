@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     'emergenciasTerritorialesAPP',
     'reportesCiudadanosAPP',
     'sgr_maestrosAPP',
+    'seguridadAPP',
 ]
 
 MIDDLEWARE = [
@@ -102,6 +103,24 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
+
+
+# Autenticación: login con RUT o correo electrónico
+# https://docs.djangoproject.com/en/4.2/topics/auth/customizing/
+
+AUTHENTICATION_BACKENDS = [
+    'seguridadAPP.backends.RutOCorreoBackend',
+]
+
+LOGIN_URL = 'seguridad:login'
+LOGIN_REDIRECT_URL = 'inicio'
+LOGOUT_REDIRECT_URL = 'seguridad:login'
+
+# Sesiones protegidas: la cookie no es accesible desde JavaScript y
+# expira tras 8 horas (o al cerrar el navegador si no se marca "recordar").
+SESSION_COOKIE_AGE = 60 * 60 * 8
+SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = True
 
 
 # Internationalization

@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ titulo }} - SGR{% endblock %}
+
+{% block header %}
+{{ titulo }}
+{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center">
+
+    <div class="col-md-9 col-lg-8">
+
+        <div class="card shadow-sm border-0">
+
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    {{ titulo }}
+                </h5>
+            </div>
+
+            <div class="card-body p-4">
+
+                <p class="text-muted">
+                    Complete los datos del funcionario.
+                    Los campos marcados con * son obligatorios.
+                </p>
+
+                <form method="POST" novalidate>
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {{ form.non_field_errors }}
+                        </div>
+                    {% endif %}
+
+                    {% for field in form %}
+
+                        {% if field.name == 'is_active' %}
+
+                            <div class="form-check mb-3">
+
+                                {{ field }}
+
+                                <label class="form-check-label"
+                                       for="{{ field.id_for_label }}">
+                                    {{ field.label }}
+                                </label>
+
+                            </div>
+
+                        {% elif field.name == 'groups' %}
+
+                            <div class="mb-3">
+
+                                <label class="form-label fw-semibold d-block">
+                                    {{ field.label }}
+                                    <span class="text-danger">*</span>
+                                </label>
+
+                                {% for casilla in field %}
+                                    <div class="form-check form-check-inline">
+                                        {{ casilla.tag }}
+                                        <label class="form-check-label"
+                                               for="{{ casilla.id_for_label }}">
+                                            {{ casilla.choice_label }}
+                                        </label>
+                                    </div>
+                                {% empty %}
+                                    <div class="text-muted small">
+                                        No existen roles. Ejecute
+                                        <code>python manage.py crear_roles</code>.
+                                    </div>
+                                {% endfor %}
+
+                                {% if field.help_text %}
+                                    <div class="form-text">
+                                        {{ field.help_text }}
+                                    </div>
+                                {% endif %}
+
+                            </div>
+
+                        {% else %}
+
+                            <div class="mb-3">
+
+                                <label class="form-label fw-semibold"
+                                       for="{{ field.id_for_label }}">
+
+                                    {{ field.label }}
+
+                                    {% if field.field.required %}
+                                        <span class="text-danger">*</span>
+                                    {% endif %}
+
+                                </label>
+
+                                {{ field }}
+
+                                {% if field.help_text %}
+                                    <div class="form-text">
+                                        {{ field.help_text|safe }}
+                                    </div>
+                                {% endif %}
+
+                            </div>
+
+                        {% endif %}
+
+                        {% for error in field.errors %}
+                            <div class="text-danger small mb-3">
+                                {{ error }}
+                            </div>
+                        {% endfor %}
+
+                    {% endfor %}
+
+                    <hr>
+
+                    <div class="d-flex justify-content-end gap-2">
+
+                        <a href="{% url 'seguridad:usuario_lista' %}"
+                           class="btn btn-secondary">
+                            Cancelar
+                        </a>
+
+                        <button type="submit"
+                                class="btn btn-primary">
+                            Guardar Usuario
+                        </button>
+
+                    </div>
+
+                </form>
+
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

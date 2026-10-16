@@ -138,6 +138,96 @@
 
                     {% endif %}
 
+                    <!-- SEGURIDAD: SEGÚN PERMISOS DEL ROL -->
+                    {% if perms.auth.view_user or perms.auth.view_group %}
+
+                        <li class="nav-item dropdown">
+
+                            <a class="nav-link dropdown-toggle"
+                               href="#"
+                               id="menuSeguridad"
+                               role="button"
+                               data-bs-toggle="dropdown"
+                               aria-expanded="false">
+
+                                Seguridad
+
+                            </a>
+
+                            <ul class="dropdown-menu dropdown-menu-end"
+                                aria-labelledby="menuSeguridad">
+
+                                {% if perms.auth.view_user %}
+                                    <li>
+                                        <a class="dropdown-item"
+                                           href="{% url 'seguridad:usuario_lista' %}">
+                                            Usuarios
+                                        </a>
+                                    </li>
+                                {% endif %}
+
+                                {% if perms.auth.view_group %}
+                                    <li>
+                                        <a class="dropdown-item"
+                                           href="{% url 'seguridad:rol_lista' %}">
+                                            Roles y permisos
+                                        </a>
+                                    </li>
+                                {% endif %}
+
+                            </ul>
+
+                        </li>
+
+                    {% endif %}
+
+                    <!-- SESIÓN DEL USUARIO -->
+                    {% if user.is_authenticated %}
+
+                        <li class="nav-item dropdown">
+
+                            <a class="nav-link dropdown-toggle"
+                               href="#"
+                               id="menuUsuario"
+                               role="button"
+                               data-bs-toggle="dropdown"
+                               aria-expanded="false">
+
+                                {{ user.get_full_name|default:user.username }}
+
+                            </a>
+
+                            <ul class="dropdown-menu dropdown-menu-end"
+                                aria-labelledby="menuUsuario">
+
+                                <li>
+                                    <!-- El cierre de sesión se hace por POST (protegido con CSRF) -->
+                                    <form method="POST"
+                                          action="{% url 'seguridad:logout' %}">
+                                        {% csrf_token %}
+
+                                        <button type="submit"
+                                                class="dropdown-item">
+                                            Cerrar sesión
+                                        </button>
+                                    </form>
+                                </li>
+
+                            </ul>
+
+                        </li>
+
+                    {% else %}
+
+                        <li class="nav-item">
+                            <a class="nav-link"
+                               href="{% url 'seguridad:login' %}">
+                                Iniciar sesión
+                            </a>
+                        </li>
+
+                    {% endif %}
+
                 </ul>
 
             </div>
