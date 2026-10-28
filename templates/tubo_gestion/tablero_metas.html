@@ -1,55 +1,249 @@
 {% extends 'base.html' %}
 
-{% block title %}Tubo de Gestión - Tablero de Metas{% endblock %}
+{% block title %}Tubo de Gestión - Compromisos{% endblock %}
+
+{% block header %}
+Tubo de Gestión
+{% endblock %}
 
 {% block content %}
-<h1 class="h3 text-primary mb-4">Tablero de Metas Operativas</h1>
 
-<div class="card mb-4 shadow-sm">
-    <div class="card-body">
-        <h2 class="h6 text-muted mb-3">Leyenda del Sistema de Semáforo</h2>
-        <div class="d-flex flex-wrap gap-3">
-            <span class="badge bg-success fs-6">Verde (60% - 100%)</span>
-            <span class="badge bg-warning text-dark fs-6">Amarillo (&lt;60%, alerta)</span>
-            <span class="badge bg-danger fs-6">Rojo (crítico)</span>
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+    <div>
+        <h2 class="h4 mb-1">Mantención de compromisos</h2>
+        <p class="text-muted mb-0">
+            Crear, buscar, editar, dar de baja y reactivar compromisos.
+        </p>
+    </div>
+
+    {% if perms.tubo_gestionAPP.add_compromiso %}
+        <a href="{% url 'compromiso_crear' %}" class="btn btn-primary">
+            + Nuevo compromiso
+        </a>
+    {% endif %}
+</div>
+
+{% include 'seguridad/_mensajes.html' %}
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <p class="text-muted text-uppercase small mb-1">Verde</p>
+                <p class="display-6 fw-bold text-success mb-0">
+                    {{ resumen.verde }}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-6 col-lg-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <p class="text-muted text-uppercase small mb-1">Amarillo</p>
+                <p class="display-6 fw-bold text-warning mb-0">
+                    {{ resumen.amarillo }}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-6 col-lg-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <p class="text-muted text-uppercase small mb-1">Rojo</p>
+                <p class="display-6 fw-bold text-danger mb-0">
+                    {{ resumen.rojo }}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-6 col-lg-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <p class="text-muted text-uppercase small mb-1">Registros</p>
+                <p class="display-6 fw-bold mb-0">{{ total_activos }}</p>
+                <p class="text-muted small mb-0">
+                    activos · {{ total_inactivos }} inactivos
+                </p>
+            </div>
         </div>
     </div>
 </div>
 
-<div class="table-responsive">
-    <table class="table table-striped table-bordered align-middle">
-        <thead class="table-dark">
-            <tr>
-                <th scope="col">#</th>
-                <th scope="col">Tarea</th>
-                <th scope="col">Cumplimiento</th>
-                <th scope="col">Estado</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for compromiso in compromisos %}
-            <tr>
-                <td>{{ forloop.counter }}</td>
-                <td>{{ compromiso.tarea }}</td>
-                <td>{{ compromiso.cumplimiento }}%</td>
-                <td>
-                    {% if compromiso.estado == 'verde' %}
-                    <span class="badge bg-success">Verde</span>
-                    {% elif compromiso.estado == 'amarillo' %}
-                    <span class="badge bg-warning text-dark">Amarillo</span>
-                    {% elif compromiso.estado == 'rojo' %}
-                    <span class="badge bg-danger">Rojo</span>
-                    {% else %}
-                    <span class="badge bg-secondary">Sin estado</span>
-                    {% endif %}
-                </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="4" class="text-center text-muted">No hay compromisos registrados.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-2 align-items-end">
+            <div class="col-md-5">
+                <label class="form-label small fw-semibold" for="q">
+                    Buscar
+                </label>
+                <input type="search"
+                       id="q"
+                       name="q"
+                       value="{{ busqueda }}"
+                       class="form-control"
+                       placeholder="Tarea o delegación">
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label small fw-semibold" for="estado">
+                    Semáforo
+                </label>
+                <select id="estado" name="estado" class="form-select">
+                    <option value="">Todos</option>
+                    <option value="verde"
+                        {% if estado == 'verde' %}selected{% endif %}>
+                        Verde
+                    </option>
+                    <option value="amarillo"
+                        {% if estado == 'amarillo' %}selected{% endif %}>
+                        Amarillo
+                    </option>
+                    <option value="rojo"
+                        {% if estado == 'rojo' %}selected{% endif %}>
+                        Rojo
+                    </option>
+                </select>
+            </div>
+
+            <div class="col-md-2">
+                <label class="form-label small fw-semibold" for="situacion">
+                    Situación
+                </label>
+                <select id="situacion" name="situacion" class="form-select">
+                    <option value="activos"
+                        {% if situacion == 'activos' %}selected{% endif %}>
+                        Activos
+                    </option>
+                    <option value="inactivos"
+                        {% if situacion == 'inactivos' %}selected{% endif %}>
+                        Inactivos
+                    </option>
+                    <option value="todos"
+                        {% if situacion == 'todos' %}selected{% endif %}>
+                        Todos
+                    </option>
+                </select>
+            </div>
+
+            <div class="col-md-2 d-grid">
+                <button type="submit" class="btn btn-primary">
+                    Buscar
+                </button>
+            </div>
+        </form>
+    </div>
 </div>
+
+<div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-striped table-hover align-middle mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th>#</th>
+                    <th>Tarea</th>
+                    <th>Delegación</th>
+                    <th class="text-center">Cumplimiento</th>
+                    <th>Estado</th>
+                    <th>Situación</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for compromiso in compromisos %}
+                    <tr>
+                        <td class="text-muted">{{ compromiso.pk }}</td>
+
+                        <td class="fw-semibold">{{ compromiso.tarea }}</td>
+
+                        <td>
+                            {{ compromiso.delegacion.nombre|default:"Sin delegación" }}
+                        </td>
+
+                        <td class="text-center">
+                            {{ compromiso.cumplimiento }}%
+                        </td>
+
+                        <td>
+                            {% if compromiso.estado == 'verde' %}
+                                <span class="badge bg-success">Verde</span>
+                            {% elif compromiso.estado == 'amarillo' %}
+                                <span class="badge bg-warning text-dark">
+                                    Amarillo
+                                </span>
+                            {% else %}
+                                <span class="badge bg-danger">Rojo</span>
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            {% if compromiso.activo %}
+                                <span class="badge bg-success">Activo</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Inactivo</span>
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            <div class="d-flex flex-wrap gap-2">
+                                {% if perms.tubo_gestionAPP.change_compromiso %}
+                                    <a href="{% url 'compromiso_editar' compromiso.pk %}"
+                                       class="btn btn-warning btn-sm">
+                                        Editar
+                                    </a>
+                                {% endif %}
+
+                                {% if perms.tubo_gestionAPP.delete_compromiso %}
+                                    <form method="POST"
+                                          action="{% url 'compromiso_cambiar_estado' compromiso.pk %}"
+                                          onsubmit="return confirm('{% if compromiso.activo %}¿Dar de baja este compromiso? Se conservará el registro.{% else %}¿Reactivar este compromiso?{% endif %}');">
+                                        {% csrf_token %}
+
+                                        {% if compromiso.activo %}
+                                            <button type="submit"
+                                                    class="btn btn-outline-danger btn-sm">
+                                                Dar de baja
+                                            </button>
+                                        {% else %}
+                                            <button type="submit"
+                                                    class="btn btn-outline-success btn-sm">
+                                                Reactivar
+                                            </button>
+                                        {% endif %}
+                                    </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-5">
+                            <h5>No se encontraron compromisos</h5>
+                            <p class="mb-0">
+                                Ajuste la búsqueda o registre un nuevo compromiso.
+                            </p>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm mt-4">
+    <div class="card-body">
+        <h6 class="text-muted mb-2">Regla del semáforo</h6>
+        <div class="d-flex flex-wrap gap-3">
+            <span class="badge bg-success fs-6">Verde: 90% o más</span>
+            <span class="badge bg-warning text-dark fs-6">
+                Amarillo: 60% a 89%
+            </span>
+            <span class="badge bg-danger fs-6">Rojo: menos de 60%</span>
+        </div>
+    </div>
+</div>
+
 {% endblock %}

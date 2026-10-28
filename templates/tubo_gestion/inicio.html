@@ -22,6 +22,48 @@
                 <span class="badge bg-danger">Rojo</span> (crítico o detenido).
             </p>
             <a href="{% url 'tablero_metas' %}" class="btn btn-primary btn-lg px-4">Ver Tablero de Metas</a>
+
+            {% if perms.tubo_gestionAPP.add_compromiso %}
+                <a href="{% url 'compromiso_crear' %}"
+                   class="btn btn-outline-primary btn-lg px-4 ms-2">
+                    Registrar compromiso
+                </a>
+            {% endif %}
+
+            <div class="row g-3 mt-4">
+                <div class="col-4">
+                    <div class="card border-0 shadow-sm text-center">
+                        <div class="card-body">
+                            <p class="text-muted small mb-1">Verde</p>
+                            <p class="h4 text-success mb-0">
+                                {{ resumen.verde }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-4">
+                    <div class="card border-0 shadow-sm text-center">
+                        <div class="card-body">
+                            <p class="text-muted small mb-1">Amarillo</p>
+                            <p class="h4 text-warning mb-0">
+                                {{ resumen.amarillo }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-4">
+                    <div class="card border-0 shadow-sm text-center">
+                        <div class="card-body">
+                            <p class="text-muted small mb-1">Rojo</p>
+                            <p class="h4 text-danger mb-0">
+                                {{ resumen.rojo }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </section>
