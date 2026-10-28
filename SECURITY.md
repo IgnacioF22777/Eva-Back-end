@@ -60,7 +60,7 @@ implementados como grupos de Django con permisos explícitos.
 | Perfil | Permisos | Alcance |
 |---|---|---|
 | Administrador | 56 | Acceso total: usuarios, roles, catálogos y operación |
-| Supervisor | 20 | Operación, catálogos y lectura de usuarios |
+| Supervisor | 26 | Operación, catálogos y lectura de usuarios |
 | Administrativo | 8 | Consulta de operación y registro de compromisos |
 
 ### Reglas aplicadas
@@ -75,7 +75,8 @@ implementados como grupos de Django con permisos explícitos.
 4. **El menú se construye por permisos**, no por `is_staff`, de modo que un
    perfil no ve enlaces a secciones que no puede abrir.
 5. **Baja lógica, no borrado.** Los usuarios se desactivan (`is_active=False`);
-   la reactivación está disponible para el Administrador.
+   la reactivación está disponible para el Administrador. Los roles tampoco se
+   eliminan: se conservan para mantener el historial de acceso.
 6. **Los permisos usan el *app label* real** (`sgr_maestrosAPP`), distinto del
    *namespace* de URLs (`sgr_maestros`). Confundirlos produce `403` silenciosos.
 
@@ -138,7 +139,8 @@ workers de Gunicorn.
 
 ### Verificación ejecutada en producción
 
-- **71 pruebas automatizadas** en verde, incluidas las del flujo completo.
+- **71 pruebas automatizadas** en verde durante la Fase 2, incluidas las del
+  flujo completo. La suite se amplió a **136** en la Fase 3.
 - Prueba real de extremo a extremo: se solicitó el enlace, **el correo llegó**
   con las versiones de texto y HTML, se abrió el enlace, la contraseña débil
   fue rechazada, la nueva fue aceptada, la contraseña antigua dejó de servir y
@@ -160,7 +162,68 @@ workers de Gunicorn.
 > La contraseña de aplicación usada durante la evaluación debe **revocarse** al
 > finalizar.
 
-## 5. Servicios expuestos
+## 5. Mantenedores y baja lógica (Fase 3)
+
+### Django Admin fuera de servicio
+
+La pauta prohíbe usar Django Admin como mecanismo de administración. Por eso
+`config/urls.py` **no incluye** `admin.site.urls`:
+
+- `/admin/`, `/admin/login/` y `/admin/auth/user/` responden `404`, incluso para
+  el Administrador.
+- `django.contrib.admin` sigue en `INSTALLED_APPS` porque el modelo de usuarios
+  y grupos lo utiliza internamente, pero su panel no está publicado.
+- Toda operación se realiza desde interfaces propias con Django Templates.
+
+### Baja lógica generalizada
+
+| Entidad | Campo | Efecto |
+|---|---|---|
+| Delegación | `activo` | Se conserva; bloquea servicios y compromisos asociados |
+| Servicio | `activo` | Se conserva; se reactiva sin duplicar |
+| Compromiso | `activo` | Se conserva; el semáforo sigue calculándose |
+| Detalle de período | `activo` | Se conserva; bloqueado si el período está cerrado |
+| Usuario | `is_active` | Baja lógica con reactivación |
+| Rol | — | Nunca se elimina; se ajustan usuarios y permisos |
+
+Las acciones de baja y reactivación son **solo POST**, están protegidas con
+`@require_POST` y exigen el permiso `delete_*` del modelo correspondiente.
+
+### Reglas de integridad
+
+1. **`Servicio.delegacion` y `Compromiso.delegacion` usan `PROTECT`**: no se
+   puede eliminar una delegación con registros asociados.
+2. **Unicidad de servicios** por delegación mediante `UniqueConstraint`, además
+   de la validación de formulario.
+3. **Validación de duplicados** en delegaciones y detalles de período. Si el
+   registro equivalente está inactivo, se reactiva en lugar de crear otro.
+4. **Bloqueo de baja** de una delegación con servicios o compromisos activos.
+5. **Semáforo derivado en el servidor**: `Compromiso.estado` es
+   `editable=False` y se recalcula en `save()` desde `cumplimiento`. El cliente
+   no puede enviar un estado arbitrario.
+6. **Períodos cerrados**: sus detalles no se crean, editan ni dan de baja.
+
+### Permisos actualizados
+
+El perfil **Supervisor** recibió los permisos CRUD de Delegaciones y Servicios
+(además de Compromisos), alcanzando **26 permisos**. El perfil
+**Administrativo** mantiene **8**: consulta de la operación y registro de
+compromisos, sin edición ni baja.
+
+### Verificación ejecutada
+
+- **136 pruebas automatizadas en verde** con Django 4.2, en un clon aislado del
+  repositorio y con SQLite en memoria (sin tocar la base real).
+- `makemigrations --check` sin cambios pendientes antes y después del despliegue.
+- Migraciones aplicadas en producción con **respaldo previo** de la base
+  (`evaluacion_db_fase3_20261028_173908.sql.gz`, 22 tablas).
+- Smoke test de rutas y permisos con los tres perfiles en producción, ejecutado
+  **dentro de una transacción revertida**: no quedaron usuarios ni sesiones de
+  prueba.
+- Verificación de datos reales: 13 delegaciones, 48 servicios y 9 compromisos
+  conservados; `/admin/` responde `404`.
+
+## 6. Servicios expuestos
 
 | Servicio | Estado inicial | Medida |
 |---|---|---|
@@ -169,7 +232,7 @@ workers de Gunicorn.
 | MariaDB (3306) | `0.0.0.0` (todas las interfaces) | Restringido a `127.0.0.1` |
 | phpMyAdmin | Público en `/phpmyadmin` | Restringido a acceso local (túnel SSH) |
 
-## 6. Verificación
+## 7. Verificación
 
 ```bash
 # La llave antigua debe ser rechazada
@@ -183,4 +246,10 @@ ss -tln | grep 3306                             # 127.0.0.1:3306
 
 # El repositorio no debe rastrear llaves
 git ls-files | grep -E '\.(pem|key)$'           # sin resultados
+
+# Django Admin no debe estar expuesto
+curl -o /dev/null -s -w "%{http_code}\n" http://44.217.180.71/admin/   # 404
+
+# La suite completa debe pasar
+cd ~/Eva-Back-end && ./venv/bin/python manage.py test
 ```
