@@ -538,7 +538,10 @@ class PruebasRecuperacionPassword(TestCase):
         self.fail("El correo no contiene un enlace de recuperación.")
 
     def abrir_formulario(self):
-        """Sigue el enlace y devuelve la URL final del formulario."""
+        """Solicita el correo, sigue el enlace y devuelve el formulario."""
+        if not mail.outbox:
+            self.solicitar()
+
         enlace = self.enlace_del_correo()
 
         respuesta = self.client.get(enlace)
