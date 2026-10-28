@@ -18,10 +18,12 @@ Gestión de Detalles de Períodos
         </p>
     </div>
 
-    <a href="{% url 'sgr_maestros:detalle_periodo_crear' %}"
-       class="btn btn-primary">
-        + Nuevo Detalle
-    </a>
+    {% if perms.sgr_maestrosAPP.add_detalleperiodo %}
+        <a href="{% url 'sgr_maestros:detalle_periodo_crear' %}"
+           class="btn btn-primary">
+            + Nuevo Detalle
+        </a>
+    {% endif %}
 </div>
 
 {% if messages %}
@@ -38,6 +40,50 @@ Gestión de Detalles de Períodos
         </div>
     {% endfor %}
 {% endif %}
+
+<div class="card shadow-sm border-0 mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-2 align-items-end">
+            <div class="col-md-6">
+                <label class="form-label small fw-semibold" for="q">
+                    Buscar
+                </label>
+                <input type="search"
+                       id="q"
+                       name="q"
+                       value="{{ busqueda }}"
+                       class="form-control"
+                       placeholder="Nombre del detalle o código del período">
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label small fw-semibold" for="estado">
+                    Estado
+                </label>
+                <select id="estado" name="estado" class="form-select">
+                    <option value="activos"
+                        {% if estado == 'activos' %}selected{% endif %}>
+                        Activos ({{ total_activos }})
+                    </option>
+                    <option value="inactivos"
+                        {% if estado == 'inactivos' %}selected{% endif %}>
+                        Inactivos ({{ total_inactivos }})
+                    </option>
+                    <option value="todos"
+                        {% if estado == 'todos' %}selected{% endif %}>
+                        Todos
+                    </option>
+                </select>
+            </div>
+
+            <div class="col-md-2 d-grid">
+                <button type="submit" class="btn btn-primary">
+                    Buscar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 
 <div class="card shadow-sm border-0">
 
@@ -90,14 +136,14 @@ Gestión de Detalles de Períodos
                         </td>
 
                         <td>
-                            {% if detalle.periodo.cerrado %}
-                                <span class="badge bg-danger">
-                                    Cerrado
-                                </span>
+                            {% if detalle.activo %}
+                                <span class="badge bg-success">Activo</span>
                             {% else %}
-                                <span class="badge bg-success">
-                                    Abierto
-                                </span>
+                                <span class="badge bg-secondary">Inactivo</span>
+                            {% endif %}
+
+                            {% if detalle.periodo.cerrado %}
+                                <span class="badge bg-danger">Período cerrado</span>
                             {% endif %}
                         </td>
 
@@ -109,22 +155,33 @@ Gestión de Detalles de Períodos
                             {% else %}
                                 <div class="d-flex gap-2">
 
-                                    <a href="{% url 'sgr_maestros:detalle_periodo_editar' detalle.pk %}"
-                                       class="btn btn-warning btn-sm">
-                                        Editar
-                                    </a>
+                                    {% if perms.sgr_maestrosAPP.change_detalleperiodo %}
+                                        <a href="{% url 'sgr_maestros:detalle_periodo_editar' detalle.pk %}"
+                                           class="btn btn-warning btn-sm">
+                                            Editar
+                                        </a>
+                                    {% endif %}
 
-                                    <form method="POST"
-                                          action="{% url 'sgr_maestros:detalle_periodo_eliminar' detalle.pk %}"
-                                          onsubmit="return confirm('¿Eliminar este detalle definitivamente?');">
+                                    {% if perms.sgr_maestrosAPP.delete_detalleperiodo %}
+                                        <form method="POST"
+                                              action="{% url 'sgr_maestros:detalle_periodo_eliminar' detalle.pk %}"
+                                              onsubmit="return confirm('{% if detalle.activo %}¿Dar de baja este detalle? Se conservará el registro.{% else %}¿Reactivar este detalle?{% endif %}');">
 
-                                        {% csrf_token %}
+                                            {% csrf_token %}
 
-                                        <button type="submit"
-                                                class="btn btn-outline-danger btn-sm">
-                                            Eliminar
-                                        </button>
-                                    </form>
+                                            {% if detalle.activo %}
+                                                <button type="submit"
+                                                        class="btn btn-outline-danger btn-sm">
+                                                    Dar de baja
+                                                </button>
+                                            {% else %}
+                                                <button type="submit"
+                                                        class="btn btn-outline-success btn-sm">
+                                                    Reactivar
+                                                </button>
+                                            {% endif %}
+                                        </form>
+                                    {% endif %}
 
                                 </div>
                             {% endif %}

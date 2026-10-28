@@ -20,10 +20,12 @@ Gestión de Metas Municipales
         </p>
     </div>
 
-    <a href="{% url 'sgr_maestros:meta_crear' %}"
-       class="btn btn-primary">
-        + Nueva Meta
-    </a>
+    {% if perms.sgr_maestrosAPP.add_meta %}
+        <a href="{% url 'sgr_maestros:meta_crear' %}"
+           class="btn btn-primary">
+            + Nueva Meta
+        </a>
+    {% endif %}
 
 </div>
 
@@ -50,6 +52,53 @@ Gestión de Metas Municipales
     {% endfor %}
 
 {% endif %}
+
+
+<!-- BÚSQUEDA Y FILTRO -->
+
+<div class="card shadow-sm border-0 mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-2 align-items-end">
+            <div class="col-md-6">
+                <label class="form-label small fw-semibold" for="q">
+                    Buscar
+                </label>
+                <input type="search"
+                       id="q"
+                       name="q"
+                       value="{{ busqueda }}"
+                       class="form-control"
+                       placeholder="Código, nombre, período o actividad">
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label small fw-semibold" for="estado">
+                    Estado
+                </label>
+                <select id="estado" name="estado" class="form-select">
+                    <option value="activos"
+                        {% if estado == 'activos' %}selected{% endif %}>
+                        Activas ({{ total_activas }})
+                    </option>
+                    <option value="inactivos"
+                        {% if estado == 'inactivos' %}selected{% endif %}>
+                        Inactivas ({{ total_inactivas }})
+                    </option>
+                    <option value="todos"
+                        {% if estado == 'todos' %}selected{% endif %}>
+                        Todas
+                    </option>
+                </select>
+            </div>
+
+            <div class="col-md-2 d-grid">
+                <button type="submit" class="btn btn-primary">
+                    Buscar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 
 
 <!-- TABLA DE METAS -->
@@ -156,33 +205,35 @@ Gestión de Metas Municipales
 
                                     <div class="d-flex gap-2">
 
-                                        <a href="{% url 'sgr_maestros:meta_editar' meta.pk %}"
-                                           class="btn btn-warning btn-sm">
-                                            Editar
-                                        </a>
+                                        {% if perms.sgr_maestrosAPP.change_meta %}
+                                            <a href="{% url 'sgr_maestros:meta_editar' meta.pk %}"
+                                               class="btn btn-warning btn-sm">
+                                                Editar
+                                            </a>
 
-                                        <form method="POST"
-                                              action="{% url 'sgr_maestros:meta_cambiar_estado' meta.pk %}">
+                                            <form method="POST"
+                                                  action="{% url 'sgr_maestros:meta_cambiar_estado' meta.pk %}">
 
-                                            {% csrf_token %}
+                                                {% csrf_token %}
 
-                                            {% if meta.activo %}
+                                                {% if meta.activo %}
 
-                                                <button type="submit"
-                                                        class="btn btn-outline-danger btn-sm">
-                                                    Desactivar
-                                                </button>
+                                                    <button type="submit"
+                                                            class="btn btn-outline-danger btn-sm">
+                                                        Desactivar
+                                                    </button>
 
-                                            {% else %}
+                                                {% else %}
 
-                                                <button type="submit"
-                                                        class="btn btn-outline-success btn-sm">
-                                                    Activar
-                                                </button>
+                                                    <button type="submit"
+                                                            class="btn btn-outline-success btn-sm">
+                                                        Activar
+                                                    </button>
 
-                                            {% endif %}
+                                                {% endif %}
 
-                                        </form>
+                                            </form>
+                                        {% endif %}
 
                                     </div>
 

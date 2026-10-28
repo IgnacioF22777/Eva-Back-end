@@ -215,8 +215,25 @@ class DetallePeriodoForm(forms.ModelForm):
         cleaned_data = super().clean()
 
         periodo = cleaned_data.get("periodo")
+        nombre = (cleaned_data.get("nombre") or "").strip()
         fecha_inicio = cleaned_data.get("fecha_inicio")
         fecha_fin = cleaned_data.get("fecha_fin")
+
+        if periodo and nombre:
+            existentes = DetallePeriodo.objects.filter(
+                periodo=periodo,
+                nombre__iexact=nombre,
+            )
+
+            if self.instance.pk:
+                existentes = existentes.exclude(pk=self.instance.pk)
+
+            if existentes.filter(activo=True).exists():
+                self.add_error(
+                    "nombre",
+                    "Ya existe un detalle activo con este nombre "
+                    "en el período seleccionado."
+                )
 
         if fecha_inicio and fecha_fin:
             if fecha_fin < fecha_inicio:

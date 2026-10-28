@@ -2,6 +2,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
+from django.db import IntegrityError
+from django.db.models import Q
 from django.views.decorators.http import require_POST
 
 from .models import (
@@ -26,12 +28,38 @@ from .forms import (
 @login_required
 @permission_required("sgr_maestrosAPP.view_catalogoactividad", raise_exception=True)
 def catalogo_lista(request):
+    busqueda = request.GET.get("q", "").strip()
+    estado = request.GET.get("estado", "activos")
+
     actividades = CatalogoActividad.objects.all()
+
+    if busqueda:
+        actividades = actividades.filter(
+            Q(codigo__icontains=busqueda)
+            | Q(nombre__icontains=busqueda)
+            | Q(area__icontains=busqueda)
+            | Q(descripcion__icontains=busqueda)
+        )
+
+    if estado == "activos":
+        actividades = actividades.filter(activo=True)
+    elif estado == "inactivos":
+        actividades = actividades.filter(activo=False)
 
     return render(
         request,
         "sgr_maestros/catalogo_lista.html",
-        {"actividades": actividades}
+        {
+            "actividades": actividades,
+            "busqueda": busqueda,
+            "estado": estado,
+            "total_activas": CatalogoActividad.objects.filter(
+                activo=True
+            ).count(),
+            "total_inactivas": CatalogoActividad.objects.filter(
+                activo=False
+            ).count(),
+        }
     )
 
 
@@ -202,32 +230,92 @@ def periodo_editar(request, pk):
 @login_required
 @permission_required("sgr_maestrosAPP.view_detalleperiodo", raise_exception=True)
 def detalle_periodo_lista(request):
+    busqueda = request.GET.get("q", "").strip()
+    estado = request.GET.get("estado", "activos")
+
     detalles = DetallePeriodo.objects.select_related(
         "periodo"
     ).all()
 
+    if busqueda:
+        detalles = detalles.filter(
+            Q(nombre__icontains=busqueda)
+            | Q(periodo__codigo__icontains=busqueda)
+            | Q(periodo__nombre__icontains=busqueda)
+        )
+
+    if estado == "activos":
+        detalles = detalles.filter(activo=True)
+    elif estado == "inactivos":
+        detalles = detalles.filter(activo=False)
+
     return render(
         request,
         "sgr_maestros/detalle_periodo_lista.html",
-        {"detalles": detalles}
+        {
+            "detalles": detalles,
+            "busqueda": busqueda,
+            "estado": estado,
+            "total_activos": DetallePeriodo.objects.filter(
+                activo=True
+            ).count(),
+            "total_inactivos": DetallePeriodo.objects.filter(
+                activo=False
+            ).count(),
+        }
     )
 
 
 @login_required
 @permission_required("sgr_maestrosAPP.add_detalleperiodo", raise_exception=True)
 def detalle_periodo_crear(request):
+    # Si ya existe un detalle inactivo con el mismo nombre en el período,
+    # se reactiva ese registro en lugar de crear un duplicado. Se usa como
+    # instancia del formulario para que la validación de unicidad no lo
+    # rechace a sí mismo.
+    inactivo = None
+
     if request.method == "POST":
-        form = DetallePeriodoForm(request.POST)
+        nombre = (request.POST.get("nombre") or "").strip()
+        periodo_id = request.POST.get("periodo")
+
+        if nombre and periodo_id:
+            inactivo = DetallePeriodo.objects.filter(
+                periodo_id=periodo_id,
+                nombre__iexact=nombre,
+                activo=False,
+            ).first()
+
+        form = DetallePeriodoForm(request.POST, instance=inactivo)
 
         if form.is_valid():
-            form.save()
-            messages.success(
-                request,
-                "Detalle de período registrado correctamente."
-            )
-            return redirect(
-                "sgr_maestros:detalle_periodo_lista"
-            )
+            detalle = form.save(commit=False)
+            detalle.activo = True
+
+            try:
+                detalle.save()
+            except IntegrityError:
+                form.add_error(
+                    "nombre",
+                    "Ya existe un detalle con este nombre en el "
+                    "período seleccionado."
+                )
+            else:
+                if inactivo:
+                    messages.success(
+                        request,
+                        "Se reactivó el detalle existente en lugar de "
+                        "duplicarlo."
+                    )
+                else:
+                    messages.success(
+                        request,
+                        "Detalle de período registrado correctamente."
+                    )
+
+                return redirect(
+                    "sgr_maestros:detalle_periodo_lista"
+                )
     else:
         form = DetallePeriodoForm()
 
@@ -298,18 +386,28 @@ def detalle_periodo_eliminar(request, pk):
     if detalle.periodo.cerrado:
         messages.error(
             request,
-            "No puedes eliminar detalles de períodos cerrados."
+            "No se puede cambiar el estado de detalles de períodos "
+            "cerrados."
         )
         return redirect(
             "sgr_maestros:detalle_periodo_lista"
         )
 
-    detalle.delete()
+    # Baja lógica: el detalle se conserva para no perder trazabilidad.
+    detalle.activo = not detalle.activo
+    detalle.save(update_fields=["activo"])
 
-    messages.success(
-        request,
-        "Detalle de período eliminado correctamente."
-    )
+    if detalle.activo:
+        messages.success(
+            request,
+            "Detalle de período reactivado correctamente."
+        )
+    else:
+        messages.success(
+            request,
+            "Detalle de período dado de baja. Puede reactivarlo cuando "
+            "sea necesario."
+        )
 
     return redirect(
         "sgr_maestros:detalle_periodo_lista"
@@ -323,15 +421,37 @@ def detalle_periodo_eliminar(request, pk):
 @login_required
 @permission_required("sgr_maestrosAPP.view_meta", raise_exception=True)
 def meta_lista(request):
+    busqueda = request.GET.get("q", "").strip()
+    estado = request.GET.get("estado", "activos")
+
     metas = Meta.objects.select_related(
         "periodo",
         "actividad"
     ).all()
 
+    if busqueda:
+        metas = metas.filter(
+            Q(codigo__icontains=busqueda)
+            | Q(nombre__icontains=busqueda)
+            | Q(periodo__codigo__icontains=busqueda)
+            | Q(actividad__nombre__icontains=busqueda)
+        )
+
+    if estado == "activos":
+        metas = metas.filter(activo=True)
+    elif estado == "inactivos":
+        metas = metas.filter(activo=False)
+
     return render(
         request,
         "sgr_maestros/meta_lista.html",
-        {"metas": metas}
+        {
+            "metas": metas,
+            "busqueda": busqueda,
+            "estado": estado,
+            "total_activas": Meta.objects.filter(activo=True).count(),
+            "total_inactivas": Meta.objects.filter(activo=False).count(),
+        }
     )
 
 
