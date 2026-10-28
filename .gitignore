@@ -1,14 +1,16 @@
 venv/
-.env
+.venv/
 db.sqlite3
 __pycache__/
 *.pyc
 .vscode/
 .idea/
 
-.venv/
-
+# Secretos: NUNCA deben versionarse.
+# Incluye .env y cualquier copia (.env.backup, .env.local, etc.).
 .env
+.env.*
+!.env.example
 
 # Llaves y certificados: NUNCA deben versionarse.
 *.pem
