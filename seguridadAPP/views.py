@@ -1,12 +1,20 @@
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth.models import Group
-from django.contrib.auth.views import LoginView
+from django.contrib.auth.views import (
+    LoginView,
+    PasswordResetCompleteView,
+    PasswordResetConfirmView,
+    PasswordResetDoneView,
+    PasswordResetView,
+)
 from django.core.cache import cache
 from django.core.exceptions import PermissionDenied
 from django.db.models import Count, Q
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse_lazy
 from django.views.decorators.http import require_POST
 
 from delegacionesAPP.models import Delegacion
@@ -24,6 +32,7 @@ from .perfiles import (
 
 from .forms import (
     LoginForm,
+    RecuperarPasswordForm,
     UsuarioForm,
     RestablecerPasswordForm,
     RolForm,
@@ -100,6 +109,96 @@ class IniciarSesionView(LoginView):
         cache.set(clave, cache.get(clave, 0) + 1, MINUTOS_BLOQUEO * 60)
 
         return super().form_invalid(form)
+
+
+# ============================================================
+# RECUPERACIÓN DE CONTRASEÑA (FLUJO NATIVO DE DJANGO)
+# ============================================================
+# Flujo en cuatro pasos:
+#   1. El usuario escribe su correo institucional.
+#   2. Django genera un token firmado y envía el enlace por correo.
+#   3. El usuario abre el enlace y define una contraseña nueva.
+#   4. Se confirma el cambio y se le invita a iniciar sesión.
+#
+# El token vale PASSWORD_RESET_TIMEOUT segundos (1 hora), sirve una
+# sola vez y se invalida si la contraseña o el último acceso cambian.
+#
+# Por privacidad, el sistema nunca revela si el correo existe: la
+# respuesta es idéntica en ambos casos.
+
+MAX_SOLICITUDES_RECUPERACION = 5
+MINUTOS_BLOQUEO_RECUPERACION = 15
+
+TEXTO_BLOQUEO_RECUPERACION = (
+    "Ha solicitado demasiados enlaces de recuperación. "
+    f"Intente nuevamente en {MINUTOS_BLOQUEO_RECUPERACION} minutos."
+)
+
+
+def clave_intentos_recuperacion(request):
+    """
+    Cuenta las solicitudes por dirección IP. Se limita por IP y no por
+    correo para no revelar qué cuentas existen.
+    """
+    ip = request.META.get("HTTP_X_FORWARDED_FOR", "")
+    ip = ip.split(",")[0].strip() or request.META.get("REMOTE_ADDR", "")
+
+    return f"recuperacion_intentos:{ip or 'desconocida'}"
+
+
+class RecuperarPasswordView(PasswordResetView):
+    template_name = "seguridad/password_reset_form.html"
+    form_class = RecuperarPasswordForm
+    email_template_name = "seguridad/password_reset_email.txt"
+    html_email_template_name = "seguridad/password_reset_email.html"
+    subject_template_name = "seguridad/password_reset_subject.txt"
+    success_url = reverse_lazy("seguridad:password_reset_done")
+
+    extra_email_context = {
+        "nombre_sistema": "Sistema de Gestión de Resultados",
+        "nombre_institucion": "Municipalidad de La Serena",
+        "minutos_vigencia": max(1, settings.PASSWORD_RESET_TIMEOUT // 60),
+    }
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.method == "POST":
+            clave = clave_intentos_recuperacion(request)
+
+            if cache.get(clave, 0) >= MAX_SOLICITUDES_RECUPERACION:
+                return self.render_to_response(
+                    self.get_context_data(
+                        form=self.get_form_class()(request.POST),
+                        error_bloqueo=TEXTO_BLOQUEO_RECUPERACION,
+                    ),
+                    status=429,
+                )
+
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        clave = clave_intentos_recuperacion(self.request)
+        cache.set(
+            clave,
+            cache.get(clave, 0) + 1,
+            MINUTOS_BLOQUEO_RECUPERACION * 60,
+        )
+
+        return super().form_valid(form)
+
+
+class RecuperarPasswordEnviadoView(PasswordResetDoneView):
+    template_name = "seguridad/password_reset_done.html"
+
+
+class ConfirmarPasswordView(PasswordResetConfirmView):
+    template_name = "seguridad/password_reset_confirm.html"
+    form_class = RestablecerPasswordForm
+    success_url = reverse_lazy("seguridad:password_reset_complete")
+    post_reset_login = False
+
+
+class RecuperarPasswordCompletoView(PasswordResetCompleteView):
+    template_name = "seguridad/password_reset_complete.html"
 
 
 # ============================================================

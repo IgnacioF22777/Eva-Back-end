@@ -1,6 +1,10 @@
 from django import forms
 from django.contrib.auth import get_user_model, password_validation
-from django.contrib.auth.forms import AuthenticationForm, SetPasswordForm
+from django.contrib.auth.forms import (
+    AuthenticationForm,
+    PasswordResetForm,
+    SetPasswordForm,
+)
 from django.contrib.auth.models import Group, Permission
 from django.core.exceptions import ValidationError
 
@@ -349,6 +353,31 @@ class RestablecerPasswordForm(SetPasswordForm):
 
         for campo in self.fields.values():
             campo.widget.attrs["class"] = "form-control"
+
+
+# ============================================================
+# FORMULARIO 3B: SOLICITAR ENLACE DE RECUPERACIÓN
+# ============================================================
+
+class RecuperarPasswordForm(PasswordResetForm):
+    """
+    Django busca la cuenta por correo electrónico, no por RUT, así que
+    el campo se rotula de forma explícita para evitar confusión.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.fields["email"].label = "Correo institucional"
+        self.fields["email"].widget = forms.EmailInput(attrs={
+            "class": "form-control",
+            "placeholder": "nombre@laserena.cl",
+            "autocomplete": "email",
+            "autofocus": True,
+        })
+        self.fields["email"].help_text = (
+            "Le enviaremos un enlace para definir una nueva contraseña."
+        )
 
 
 # ============================================================

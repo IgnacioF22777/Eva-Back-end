@@ -25,6 +25,36 @@ urlpatterns = [
     ),
 
     # ========================================================
+    # RECUPERACIÓN DE CONTRASEÑA
+    # ========================================================
+    # Las rutas fijas van antes de la ruta con token: si no, "enviado"
+    # se interpretaría como un uidb64 válido.
+
+    path(
+        "password-reset/",
+        views.RecuperarPasswordView.as_view(),
+        name="password_reset"
+    ),
+
+    path(
+        "password-reset/enviado/",
+        views.RecuperarPasswordEnviadoView.as_view(),
+        name="password_reset_done"
+    ),
+
+    path(
+        "password-reset/completo/",
+        views.RecuperarPasswordCompletoView.as_view(),
+        name="password_reset_complete"
+    ),
+
+    path(
+        "password-reset/<uidb64>/<token>/",
+        views.ConfirmarPasswordView.as_view(),
+        name="password_reset_confirm"
+    ),
+
+    # ========================================================
     # PANELES POR PERFIL
     # ========================================================
 

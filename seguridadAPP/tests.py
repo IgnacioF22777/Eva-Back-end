@@ -1,7 +1,10 @@
+from urllib.parse import urlparse
+
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
+from django.core import mail
 from django.core.cache import cache
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from .models import PerfilUsuario, normalizar_rut, formatear_rut
@@ -494,3 +497,178 @@ class PruebasPerfilesYPaneles(TestCase):
 
         respuesta = self.client.get(reverse("sgr_maestros:catalogo_crear"))
         self.assertEqual(respuesta.status_code, 200)
+
+
+class PruebasRecuperacionPassword(TestCase):
+    """
+    Fase 2: recuperación de contraseña con el flujo nativo de Django.
+    """
+
+    NUEVA_CLAVE = "NuevaClave#2026"
+
+    @classmethod
+    def setUpTestData(cls):
+        sincronizar_roles()
+
+        cls.usuario = crear_usuario(
+            "12.345.678-5", "funcionario@laserena.cl", [ADMINISTRATIVO]
+        )
+        cls.inactivo = crear_usuario(
+            "22.222.222-2", "inactivo@laserena.cl", [ADMINISTRATIVO], activo=False
+        )
+
+    def setUp(self):
+        cache.clear()
+        mail.outbox = []
+
+    # --- UTILIDADES ---
+    def solicitar(self, email="funcionario@laserena.cl"):
+        return self.client.post(
+            reverse("seguridad:password_reset"), {"email": email}
+        )
+
+    def enlace_del_correo(self):
+        """Extrae la ruta del enlace de recuperación del último correo."""
+        cuerpo = mail.outbox[-1].body
+
+        for palabra in cuerpo.split():
+            if "/password-reset/" in palabra:
+                return urlparse(palabra).path
+
+        self.fail("El correo no contiene un enlace de recuperación.")
+
+    def abrir_formulario(self):
+        """Sigue el enlace y devuelve la URL final del formulario."""
+        enlace = self.enlace_del_correo()
+
+        respuesta = self.client.get(enlace)
+        self.assertEqual(respuesta.status_code, 302, enlace)
+
+        destino = respuesta["Location"]
+        respuesta = self.client.get(destino)
+
+        self.assertEqual(respuesta.status_code, 200, destino)
+
+        return destino, respuesta
+
+    # --- FORMULARIO ---
+    def test_el_login_ofrece_el_enlace_de_recuperacion(self):
+        respuesta = self.client.get(reverse("seguridad:login"))
+        self.assertContains(respuesta, "¿Olvidó su contraseña?")
+        self.assertContains(respuesta, reverse("seguridad:password_reset"))
+
+    def test_formulario_de_recuperacion_se_muestra(self):
+        respuesta = self.client.get(reverse("seguridad:password_reset"))
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, "Correo institucional")
+
+    # --- ENVÍO DEL CORREO ---
+    def test_envia_correo_con_enlace_a_usuario_existente(self):
+        respuesta = self.solicitar()
+
+        self.assertRedirects(
+            respuesta, reverse("seguridad:password_reset_done")
+        )
+        self.assertEqual(len(mail.outbox), 1)
+
+        correo = mail.outbox[0]
+        self.assertIn("funcionario@laserena.cl", correo.to)
+        self.assertIn("Municipalidad de La Serena", correo.body)
+        self.assertIn("/password-reset/", correo.body)
+        # El correo incluye versión HTML con el botón de validación.
+        self.assertEqual(len(correo.alternatives), 1)
+        self.assertIn("Validar y cambiar contraseña", correo.alternatives[0][0])
+
+    def test_correo_inexistente_no_envia_ni_revela(self):
+        respuesta = self.solicitar("nadie@laserena.cl")
+
+        self.assertRedirects(
+            respuesta, reverse("seguridad:password_reset_done")
+        )
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_usuario_inactivo_no_recibe_correo(self):
+        self.solicitar("inactivo@laserena.cl")
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_correo_vacio_es_rechazado(self):
+        respuesta = self.solicitar("")
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(len(mail.outbox), 0)
+
+    # --- CAMBIO DE CONTRASEÑA ---
+    def test_el_enlace_muestra_el_boton_de_validar(self):
+        _, respuesta = self.abrir_formulario()
+        self.assertContains(respuesta, "Validar y cambiar contraseña")
+
+    def test_el_enlace_permite_cambiar_la_contrasena(self):
+        destino, _ = self.abrir_formulario()
+
+        respuesta = self.client.post(destino, {
+            "new_password1": self.NUEVA_CLAVE,
+            "new_password2": self.NUEVA_CLAVE,
+        })
+
+        self.assertRedirects(
+            respuesta, reverse("seguridad:password_reset_complete")
+        )
+
+        self.usuario.refresh_from_db()
+        self.assertTrue(self.usuario.check_password(self.NUEVA_CLAVE))
+
+        # La contraseña nueva sirve para iniciar sesión.
+        self.assertTrue(
+            self.client.login(
+                username="12.345.678-5", password=self.NUEVA_CLAVE
+            )
+        )
+
+    def test_el_enlace_no_sirve_dos_veces(self):
+        destino, _ = self.abrir_formulario()
+
+        self.client.post(destino, {
+            "new_password1": self.NUEVA_CLAVE,
+            "new_password2": self.NUEVA_CLAVE,
+        })
+
+        enlace = self.enlace_del_correo()
+        respuesta = self.client.get(enlace)
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, "El enlace no es válido")
+
+    @override_settings(PASSWORD_RESET_TIMEOUT=-1)
+    def test_el_enlace_vencido_no_sirve(self):
+        self.solicitar()
+        enlace = self.enlace_del_correo()
+
+        respuesta = self.client.get(enlace)
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, "El enlace no es válido")
+
+    def test_contrasena_debil_es_rechazada(self):
+        destino, _ = self.abrir_formulario()
+
+        respuesta = self.client.post(destino, {
+            "new_password1": "123",
+            "new_password2": "123",
+        })
+
+        self.assertEqual(respuesta.status_code, 200)
+
+        self.usuario.refresh_from_db()
+        self.assertFalse(self.usuario.check_password("123"))
+        self.assertTrue(self.usuario.check_password(CLAVE))
+
+    # --- LÍMITE DE SOLICITUDES ---
+    def test_bloquea_tras_cinco_solicitudes(self):
+        for _ in range(5):
+            self.solicitar()
+
+        respuesta = self.solicitar()
+
+        self.assertEqual(respuesta.status_code, 429)
+        self.assertContains(
+            respuesta, "demasiados enlaces de recuperación", status_code=429
+        )
