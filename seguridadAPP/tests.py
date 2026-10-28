@@ -675,3 +675,22 @@ class PruebasRecuperacionPassword(TestCase):
         self.assertContains(
             respuesta, "demasiados enlaces de recuperación", status_code=429
         )
+
+    def test_el_limite_es_por_ip(self):
+        datos = {"email": "funcionario@laserena.cl"}
+
+        for _ in range(5):
+            self.client.post(
+                reverse("seguridad:password_reset"), datos,
+                HTTP_X_REAL_IP="10.0.0.1",
+            )
+
+        # Otra IP no debe quedar bloqueada por los intentos de la primera.
+        respuesta = self.client.post(
+            reverse("seguridad:password_reset"), datos,
+            HTTP_X_REAL_IP="10.0.0.2",
+        )
+
+        self.assertRedirects(
+            respuesta, reverse("seguridad:password_reset_done")
+        )

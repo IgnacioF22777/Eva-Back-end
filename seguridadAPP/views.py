@@ -139,9 +139,19 @@ def clave_intentos_recuperacion(request):
     """
     Cuenta las solicitudes por dirección IP. Se limita por IP y no por
     correo para no revelar qué cuentas existen.
+
+    La IP se toma de X-Real-IP, que Nginx sobrescribe y por lo tanto no
+    puede falsificar el cliente. Como respaldo se usa el último valor de
+    X-Forwarded-For (el que agrega nuestro proxy) y, por último, la
+    dirección de la conexión.
     """
-    ip = request.META.get("HTTP_X_FORWARDED_FOR", "")
-    ip = ip.split(",")[0].strip() or request.META.get("REMOTE_ADDR", "")
+    ip = request.META.get("HTTP_X_REAL_IP", "").strip()
+
+    if not ip:
+        reenviadas = request.META.get("HTTP_X_FORWARDED_FOR", "")
+        ip = reenviadas.split(",")[-1].strip()
+
+    ip = ip or request.META.get("REMOTE_ADDR", "")
 
     return f"recuperacion_intentos:{ip or 'desconocida'}"
 
