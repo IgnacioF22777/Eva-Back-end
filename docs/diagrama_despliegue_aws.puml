@@ -1,0 +1,72 @@
+@startuml DiagramaDespliegueAWS
+!theme plain
+skinparam shadowing false
+skinparam componentStyle rectangle
+skinparam nodesep 35
+skinparam ranksep 55
+skinparam defaultFontName "Segoe UI"
+skinparam ArrowColor #37474F
+skinparam NodeBorderColor #263238
+
+title Diagrama de Despliegue (Vista Física) — SGR Municipalidad de La Serena en AWS
+
+actor "Usuario / Funcionario\n(Navegador Web)" as usuario
+
+cloud "GitHub\nrepositorio Eva-Back-end" as github
+
+node "AWS Cloud" as aws {
+  node "Región: us-east-1" as region {
+    node "VPC por defecto" as vpc {
+      node "Subred pública\n(Security Group: SSH 22, HTTP 80)" as subnet {
+
+        node "Servidor Web — Amazon EC2\nInstancia: i-0f23821287dc77046\nt3.micro · Amazon Linux 2023\nElastic IP: 44.217.180.71" as ec2 {
+
+          node "Nginx 1.30.4\n(puerto 80)" as nginx {
+            artifact "eva.conf\nreverse proxy + estáticos + phpMyAdmin" as nginxconf
+          }
+
+          node "phpMyAdmin\n(PHP-FPM)" as pma
+
+          node "Gunicorn 23.0.0\n3 workers · servicio systemd" as gunicorn {
+            artifact "config.wsgi:application\n(WSGI)" as wsgi
+            artifact "Entorno virtual Python 3.9.25\nDjango 4.2.30 + mysqlclient" as venv
+
+            package "Aplicaciones Django" as apps {
+              component "delegacionesAPP" as a1
+              component "tubo_gestionAPP" as a2
+              component "emergenciasTerritorialesAPP" as a3
+              component "reportesCiudadanosAPP" as a4
+              component "sgr_maestrosAPP" as a5
+              component "seguridadAPP" as a6
+            }
+          }
+
+          database "MariaDB 10.5.29\nmariadbd · 127.0.0.1:3306\nBD: evaluacion_db" as db {
+            artifact "Tablas del SGR\n(delegaciones, compromisos, maestros,\nseguridad, emergencias, reportes)" as tablas
+          }
+
+          artifact "Socket Unix\nEva-Back-end.sock" as sock
+          folder "staticfiles\n(collectstatic)" as static
+        }
+      }
+    }
+  }
+}
+
+' --- Relaciones de comunicación ---
+usuario --> nginx : HTTP :80
+nginx --> sock : proxy_pass
+sock --> gunicorn : WSGI
+nginx --> static : /static/\n(archivos estáticos)
+nginx --> pma : /phpmyadmin\nFastCGI
+gunicorn --> db : MySQL\n(mysqlclient) :3306
+wsgi ..> apps : carga
+github ..> ec2 : git pull\n(despliegue)
+
+note right of ec2
+  Servidor único (monolito):
+  Nginx + Gunicorn + MariaDB + phpMyAdmin
+  conviven en la misma instancia EC2.
+end note
+
+@enduml
