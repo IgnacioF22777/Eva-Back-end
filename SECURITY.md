@@ -52,7 +52,47 @@ asignatura.
   `.env`, excluido del control de versiones y con permisos `600`.
 - `ALLOWED_HOSTS` restringido a la IP de la instancia y a `localhost`.
 
-## 3. Servicios expuestos
+## 3. Control de acceso por perfiles (Fase 1)
+
+El sistema migró de seis roles históricos a **tres perfiles obligatorios**,
+implementados como grupos de Django con permisos explícitos.
+
+| Perfil | Permisos | Alcance |
+|---|---|---|
+| Administrador | 56 | Acceso total: usuarios, roles, catálogos y operación |
+| Supervisor | 20 | Operación, catálogos y lectura de usuarios |
+| Administrativo | 8 | Consulta de operación y registro de compromisos |
+
+### Reglas aplicadas
+
+1. **Nadie ve el panel de otro perfil.** Cada panel vive en su propia ruta y
+   está protegido por `@perfil_requerido`. Un perfil distinto recibe `403`, no
+   una redirección silenciosa.
+2. **Sin perfil no hay acceso.** Un usuario autenticado sin ninguno de los tres
+   perfiles recibe `403` al entrar a `/seguridad/panel/`.
+3. **Toda la aplicación exige sesión.** Las vistas de Delegaciones, Tubo de
+   Gestión y Maestros dejaron de ser públicas.
+4. **El menú se construye por permisos**, no por `is_staff`, de modo que un
+   perfil no ve enlaces a secciones que no puede abrir.
+5. **Baja lógica, no borrado.** Los usuarios se desactivan (`is_active=False`);
+   la reactivación está disponible para el Administrador.
+6. **Los permisos usan el *app label* real** (`sgr_maestrosAPP`), distinto del
+   *namespace* de URLs (`sgr_maestros`). Confundirlos produce `403` silenciosos.
+
+### Verificación ejecutada en producción
+
+`58` pruebas automatizadas y una prueba de extremo a extremo con las tres
+cuentas, en la base real:
+
+```
+Administrador    -> panel/administrador 200 | supervisor 403 | administrativo 403
+Supervisor       -> panel/supervisor    200 | administrador 403 | administrativo 403
+Administrativo   -> panel/administrativo 200 | administrador 403 | supervisor 403
+Sin perfil       -> panel 403
+Anónimo          -> panel, usuarios y maestros 302 (redirige al login)
+```
+
+## 4. Servicios expuestos
 
 | Servicio | Estado inicial | Medida |
 |---|---|---|
@@ -61,7 +101,7 @@ asignatura.
 | MariaDB (3306) | `0.0.0.0` (todas las interfaces) | Restringido a `127.0.0.1` |
 | phpMyAdmin | Público en `/phpmyadmin` | Restringido a acceso local (túnel SSH) |
 
-## 4. Verificación
+## 5. Verificación
 
 ```bash
 # La llave antigua debe ser rechazada
