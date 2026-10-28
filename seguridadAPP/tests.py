@@ -288,13 +288,25 @@ class PruebasSeguridad(TestCase):
         self.funcionario.refresh_from_db()
         self.assertTrue(self.funcionario.check_password(nueva))
 
-    def test_eliminar_usuario(self):
+    def test_eliminar_usuario_aplica_baja_logica(self):
         self.client.force_login(self.admin)
         respuesta = self.client.post(
-            reverse("seguridad:usuario_eliminar", args=[self.inactivo.pk])
+            reverse("seguridad:usuario_eliminar", args=[self.funcionario.pk])
         )
         self.assertRedirects(respuesta, reverse("seguridad:usuario_lista"))
-        self.assertFalse(User.objects.filter(pk=self.inactivo.pk).exists())
+
+        self.funcionario.refresh_from_db()
+        self.assertFalse(self.funcionario.is_active)
+        # Nada se elimina definitivamente: el registro se conserva.
+        self.assertTrue(User.objects.filter(pk=self.funcionario.pk).exists())
+
+    def test_confirmacion_de_baja_avisa_que_no_se_elimina(self):
+        self.client.force_login(self.admin)
+        respuesta = self.client.get(
+            reverse("seguridad:usuario_eliminar", args=[self.funcionario.pk])
+        )
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, "no se eliminará")
 
     def test_admin_no_superusuario_no_modifica_superusuario(self):
         superusuario = User.objects.create_superuser(
@@ -334,11 +346,22 @@ class PruebasSeguridad(TestCase):
         self.client.post(reverse("seguridad:rol_eliminar", args=[rol.pk]))
         self.assertTrue(Group.objects.filter(pk=rol.pk).exists())
 
-    def test_elimina_rol_sin_usuarios(self):
+    def test_no_elimina_ningun_rol(self):
         self.client.force_login(self.admin)
         rol = Group.objects.create(name="Rol temporal")
-        self.client.post(reverse("seguridad:rol_eliminar", args=[rol.pk]))
-        self.assertFalse(Group.objects.filter(pk=rol.pk).exists())
+        respuesta = self.client.post(
+            reverse("seguridad:rol_eliminar", args=[rol.pk]), follow=True
+        )
+        self.assertTrue(Group.objects.filter(pk=rol.pk).exists())
+        self.assertContains(respuesta, "no se elimina")
+
+    def test_el_listado_de_roles_no_ofrece_eliminar(self):
+        self.client.force_login(self.admin)
+        respuesta = self.client.get(reverse("seguridad:rol_lista"))
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertNotContains(
+            respuesta, reverse("seguridad:rol_eliminar", args=[1])
+        )
 
     def test_formulario_de_rol_se_muestra(self):
         self.client.force_login(self.admin)
@@ -694,3 +717,124 @@ class PruebasRecuperacionPassword(TestCase):
         self.assertRedirects(
             respuesta, reverse("seguridad:password_reset_done")
         )
+
+
+class PruebasFase3Coherencia(TestCase):
+    """
+    Fase 3: /admin/ cerrado, baja lógica y accesos desde los paneles.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        sincronizar_roles()
+
+        cls.admin = crear_usuario(
+            "11.111.111-1", "admin@laserena.cl", [ADMINISTRADOR]
+        )
+        cls.supervisor = crear_usuario(
+            "12.345.678-5", "supervisor@laserena.cl", [SUPERVISOR]
+        )
+        cls.administrativo = crear_usuario(
+            "22.222.222-2", "administrativo@laserena.cl", [ADMINISTRATIVO]
+        )
+
+        from delegacionesAPP.models import Delegacion
+        from tubo_gestionAPP.models import Compromiso
+
+        cls.delegacion = Delegacion.objects.create(
+            nombre="Delegación Centro",
+            direccion="Av. Principal 123",
+            encargado="Ana Rojas",
+            email="centro@laserena.cl",
+            telefono="51 2 000 000",
+            celular="+56 9 0000 0000",
+        )
+        Compromiso.objects.create(
+            tarea="Mejorar luminarias",
+            cumplimiento=95,
+            delegacion=cls.delegacion,
+        )
+
+    def setUp(self):
+        cache.clear()
+
+    # --- DJANGO ADMIN CERRADO ---
+    def test_admin_no_esta_expuesto_para_anonimos(self):
+        respuesta = self.client.get("/admin/")
+        self.assertEqual(respuesta.status_code, 404)
+
+    def test_admin_no_esta_expuesto_ni_para_el_administrador(self):
+        self.client.force_login(self.admin)
+        respuesta = self.client.get("/admin/")
+        self.assertEqual(respuesta.status_code, 404)
+
+    def test_admin_no_esta_expuesto_para_otras_rutas(self):
+        self.client.force_login(self.admin)
+
+        for ruta in ["/admin/login/", "/admin/auth/user/"]:
+            respuesta = self.client.get(ruta)
+            self.assertEqual(respuesta.status_code, 404, ruta)
+
+    # --- PANELES ENLAZAN A LOS MANTENEDORES ---
+    def test_panel_administrador_enlaza_a_los_mantenedores(self):
+        self.client.force_login(self.admin)
+        respuesta = self.client.get(
+            reverse("seguridad:panel_administrador")
+        )
+
+        self.assertContains(respuesta, reverse("delegacion_lista"))
+        self.assertContains(respuesta, reverse("compromiso_lista"))
+
+    def test_panel_supervisor_enlaza_a_los_mantenedores(self):
+        self.client.force_login(self.supervisor)
+        respuesta = self.client.get(reverse("seguridad:panel_supervisor"))
+
+        self.assertContains(respuesta, reverse("tablero_metas"))
+        self.assertContains(respuesta, reverse("delegacion_lista"))
+
+    def test_panel_administrativo_enlaza_a_consulta_y_registro(self):
+        self.client.force_login(self.administrativo)
+        respuesta = self.client.get(
+            reverse("seguridad:panel_administrativo")
+        )
+
+        self.assertContains(respuesta, reverse("compromiso_lista"))
+        self.assertContains(respuesta, reverse("delegacion_lista"))
+
+    # --- PERMISOS POR PERFIL ---
+    def test_supervisor_gestiona_delegaciones_y_servicios(self):
+        self.assertTrue(
+            self.supervisor.has_perm("delegacionesAPP.add_delegacion")
+        )
+        self.assertTrue(
+            self.supervisor.has_perm("delegacionesAPP.delete_delegacion")
+        )
+        self.assertTrue(
+            self.supervisor.has_perm("delegacionesAPP.add_servicio")
+        )
+
+    def test_administrativo_solo_consulta_delegaciones(self):
+        self.assertTrue(
+            self.administrativo.has_perm("delegacionesAPP.view_delegacion")
+        )
+        self.assertFalse(
+            self.administrativo.has_perm("delegacionesAPP.add_delegacion")
+        )
+        self.assertFalse(
+            self.administrativo.has_perm("delegacionesAPP.delete_delegacion")
+        )
+        self.assertFalse(
+            self.administrativo.has_perm("delegacionesAPP.add_servicio")
+        )
+
+    def test_administrativo_solo_agrega_compromisos(self):
+        self.assertTrue(
+            self.administrativo.has_perm("tubo_gestionAPP.add_compromiso")
+        )
+        self.assertFalse(
+            self.administrativo.has_perm("tubo_gestionAPP.change_compromiso")
+        )
+        self.assertFalse(
+            self.administrativo.has_perm("tubo_gestionAPP.delete_compromiso")
+        )
+
