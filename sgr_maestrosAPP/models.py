@@ -163,6 +163,12 @@ class DetallePeriodo(models.Model):
         verbose_name="Observaciones"
     )
 
+    # Baja logica: el detalle se conserva para no perder trazabilidad.
+    activo = models.BooleanField(
+        default=True,
+        verbose_name="Activo"
+    )
+
     class Meta:
         verbose_name = "Detalle de período"
         verbose_name_plural = "Detalles de períodos"
