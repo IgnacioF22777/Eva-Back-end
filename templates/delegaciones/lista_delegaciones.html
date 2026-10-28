@@ -1,40 +1,207 @@
 {% extends 'base.html' %}
 
-{% block title %}Delegaciones - Listado{% endblock %}
+{% block title %}Delegaciones - SGR{% endblock %}
+
+{% block header %}
+Delegaciones Municipales
+{% endblock %}
 
 {% block content %}
-<h1 class="h3 text-primary mb-4">Listado de Delegaciones</h1>
 
-<div class="row">
-    {% for delegacion in delegaciones %}
-    <div class="col-md-6 mb-3">
-        <div class="card shadow-sm h-100">
-            <div class="card-header bg-white border-bottom">
-                <h5 class="card-title mb-0 text-primary">{{ delegacion.nombre }}</h5>
-            </div>
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+    <div>
+        <h2 class="h4 mb-1">Mantención de Delegaciones</h2>
+        <p class="text-muted mb-0">
+            Crear, buscar, editar, dar de baja y reactivar delegaciones.
+        </p>
+    </div>
+
+    {% if perms.delegacionesAPP.add_delegacion %}
+        <a href="{% url 'delegacion_crear' %}" class="btn btn-primary">
+            + Nueva delegación
+        </a>
+    {% endif %}
+</div>
+
+{% include 'seguridad/_mensajes.html' %}
+
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-3">
+        <div class="card border-0 shadow-sm h-100">
             <div class="card-body">
-                <p class="card-text text-muted mb-2">{{ delegacion.direccion }}</p>
-
-                <p class="card-text mb-1">
-                    <span class="fw-semibold">Encargado:</span> {{ delegacion.encargado }}
-                </p>
-                <p class="card-text mb-1">
-                    <span class="fw-semibold">Email:</span> {{ delegacion.email }}
-                </p>
-                <p class="card-text mb-3">
-                    <span class="fw-semibold">Teléfono:</span> {{ delegacion.telefono }} /
-                    <span class="text-muted">{{ delegacion.celular }}</span>
-                </p>
-
-                <p class="mb-1 fw-semibold">Servicios:</p>
-                <div class="d-flex flex-wrap gap-1">
-                    {% for servicio in delegacion.servicios.all %}
-                    <span class="badge bg-primary bg-opacity-10 text-primary">{{ servicio.nombre }}</span>
-                    {% endfor %}
-                </div>
+                <p class="text-muted text-uppercase small mb-1">Activas</p>
+                <p class="display-6 fw-bold mb-0">{{ total_activas }}</p>
             </div>
         </div>
     </div>
-    {% endfor %}
+
+    <div class="col-sm-6 col-lg-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <p class="text-muted text-uppercase small mb-1">Inactivas</p>
+                <p class="display-6 fw-bold mb-0">{{ total_inactivas }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <form method="GET" class="row g-2 align-items-end">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold"
+                               for="q">Buscar</label>
+                        <input type="search"
+                               id="q"
+                               name="q"
+                               value="{{ busqueda }}"
+                               class="form-control"
+                               placeholder="Nombre, encargado, correo o dirección">
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold"
+                               for="estado">Estado</label>
+                        <select id="estado" name="estado" class="form-select">
+                            <option value="activos"
+                                {% if estado == 'activos' %}selected{% endif %}>
+                                Activas
+                            </option>
+                            <option value="inactivos"
+                                {% if estado == 'inactivos' %}selected{% endif %}>
+                                Inactivas
+                            </option>
+                            <option value="todos"
+                                {% if estado == 'todos' %}selected{% endif %}>
+                                Todas
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-2 d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            Buscar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">Listado de delegaciones</h5>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-striped table-hover align-middle mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th>Delegación</th>
+                    <th>Encargado</th>
+                    <th>Contacto</th>
+                    <th class="text-center">Servicios</th>
+                    <th class="text-center">Compromisos</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for delegacion in delegaciones %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'delegacion_detalle' delegacion.pk %}"
+                               class="fw-semibold text-decoration-none">
+                                {{ delegacion.nombre }}
+                            </a>
+                            <div class="small text-muted">
+                                {{ delegacion.direccion }}
+                            </div>
+                        </td>
+
+                        <td>{{ delegacion.encargado }}</td>
+
+                        <td class="small">
+                            <div>{{ delegacion.email }}</div>
+                            <div class="text-muted">
+                                {{ delegacion.telefono }}
+                                {% if delegacion.celular %}
+                                    · {{ delegacion.celular }}
+                                {% endif %}
+                            </div>
+                        </td>
+
+                        <td class="text-center">
+                            <span class="badge bg-primary rounded-pill">
+                                {{ delegacion.total_servicios }}
+                            </span>
+                        </td>
+
+                        <td class="text-center">
+                            <span class="badge bg-secondary rounded-pill">
+                                {{ delegacion.total_compromisos }}
+                            </span>
+                        </td>
+
+                        <td>
+                            {% if delegacion.activo %}
+                                <span class="badge bg-success">Activa</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Inactiva</span>
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            <div class="d-flex flex-wrap gap-2">
+                                <a href="{% url 'delegacion_detalle' delegacion.pk %}"
+                                   class="btn btn-outline-primary btn-sm">
+                                    Ver
+                                </a>
+
+                                {% if perms.delegacionesAPP.change_delegacion %}
+                                    <a href="{% url 'delegacion_editar' delegacion.pk %}"
+                                       class="btn btn-warning btn-sm">
+                                        Editar
+                                    </a>
+                                {% endif %}
+
+                                {% if perms.delegacionesAPP.delete_delegacion %}
+                                    <form method="POST"
+                                          action="{% url 'delegacion_cambiar_estado' delegacion.pk %}"
+                                          onsubmit="return confirm('{% if delegacion.activo %}¿Dar de baja esta delegación? Se conservará el registro.{% else %}¿Reactivar esta delegación?{% endif %}');">
+                                        {% csrf_token %}
+
+                                        {% if delegacion.activo %}
+                                            <button type="submit"
+                                                    class="btn btn-outline-danger btn-sm">
+                                                Dar de baja
+                                            </button>
+                                        {% else %}
+                                            <button type="submit"
+                                                    class="btn btn-outline-success btn-sm">
+                                                Reactivar
+                                            </button>
+                                        {% endif %}
+                                    </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-5">
+                            <h5>No se encontraron delegaciones</h5>
+                            <p class="mb-0">
+                                Ajuste la búsqueda o registre una nueva delegación.
+                            </p>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
 {% endblock %}
