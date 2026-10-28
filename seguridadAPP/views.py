@@ -17,7 +17,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse_lazy
 from django.views.decorators.http import require_POST
 
-from delegacionesAPP.models import Delegacion
+from delegacionesAPP.models import Delegacion, Servicio
 from sgr_maestrosAPP.models import CatalogoActividad, Meta, Periodo
 from tubo_gestionAPP.models import Compromiso
 
@@ -399,11 +399,22 @@ def usuario_eliminar(request, pk):
         return redirect("seguridad:usuario_lista")
 
     if request.method == "POST":
-        usuario.delete()
-        messages.success(
-            request,
-            "Usuario eliminado correctamente."
-        )
+        # Baja lógica: el usuario se conserva para no perder su historial.
+        if usuario.is_active:
+            usuario.is_active = False
+            usuario.save(update_fields=["is_active"])
+
+            messages.success(
+                request,
+                "Usuario dado de baja. Puede reactivarlo desde el listado "
+                "cuando sea necesario."
+            )
+        else:
+            messages.info(
+                request,
+                "El usuario ya estaba dado de baja."
+            )
+
         return redirect("seguridad:usuario_lista")
 
     return render(
@@ -412,9 +423,10 @@ def usuario_eliminar(request, pk):
         {
             "objeto": usuario.get_full_name() or usuario.username,
             "tipo": "usuario",
+            "accion": "dar de baja",
             "aviso": (
-                "Se recomienda desactivar el usuario en lugar de "
-                "eliminarlo, para conservar su historial."
+                "El usuario no se eliminará: quedará inactivo y podrá "
+                "reactivarse más adelante. Su historial se conserva."
             ),
             "url_cancelar": "seguridad:usuario_lista",
         }
@@ -499,32 +511,17 @@ def rol_editar(request, pk):
 def rol_eliminar(request, pk):
     rol = get_object_or_404(Group, pk=pk)
 
-    # Igual que con los cargos: no se elimina un rol en uso.
-    if rol.user_set.exists():
-        messages.error(
-            request,
-            "No es posible eliminar el rol porque tiene "
-            "usuarios asignados."
-        )
-        return redirect("seguridad:rol_lista")
-
-    if request.method == "POST":
-        rol.delete()
-        messages.success(
-            request,
-            "Rol eliminado correctamente."
-        )
-        return redirect("seguridad:rol_lista")
-
-    return render(
+    # Los roles no se eliminan: se conservan para no perder el historial
+    # de acceso. Si un rol deja de usarse, se le quitan los usuarios y
+    # los permisos, pero el registro permanece.
+    messages.error(
         request,
-        "seguridad/confirmar_eliminar.html",
-        {
-            "objeto": rol.name,
-            "tipo": "rol",
-            "url_cancelar": "seguridad:rol_lista",
-        }
+        f"El rol '{rol.name}' no se elimina. Los roles se conservan "
+        "para mantener el historial; quite los usuarios asignados y "
+        "ajuste sus permisos si ya no se utiliza."
     )
+
+    return redirect("seguridad:rol_lista")
 
 
 # ============================================================
@@ -540,11 +537,14 @@ PANEL_POR_PERFIL = {
 }
 
 
-def resumen_compromisos():
+def resumen_compromisos(queryset=None):
     """Cantidad de compromisos por estado, sin consultas por fila."""
     resumen = {"verde": 0, "amarillo": 0, "rojo": 0, "total": 0}
 
-    for fila in Compromiso.objects.values("estado").annotate(
+    if queryset is None:
+        queryset = Compromiso.objects.all()
+
+    for fila in queryset.values("estado").annotate(
         total=Count("pk")
     ):
         if fila["estado"] in resumen:
@@ -581,14 +581,30 @@ def panel(request):
 
 @perfil_requerido(ADMINISTRADOR)
 def panel_administrador(request):
+    compromisos_activos = Compromiso.objects.filter(activo=True)
+
     return render(
         request,
         "seguridad/panel_administrador.html",
         {
-            "compromisos": resumen_compromisos(),
+            "compromisos": resumen_compromisos(compromisos_activos),
             "total_usuarios": User.objects.count(),
             "usuarios_activos": User.objects.filter(is_active=True).count(),
             "total_delegaciones": Delegacion.objects.count(),
+            "delegaciones_activas": Delegacion.objects.filter(
+                activo=True
+            ).count(),
+            "delegaciones_inactivas": Delegacion.objects.filter(
+                activo=False
+            ).count(),
+            "total_servicios": Servicio.objects.count(),
+            "servicios_activos": Servicio.objects.filter(
+                activo=True
+            ).count(),
+            "total_compromisos": Compromiso.objects.count(),
+            "compromisos_inactivos": Compromiso.objects.filter(
+                activo=False
+            ).count(),
             "total_actividades": CatalogoActividad.objects.count(),
             "actividades_activas": CatalogoActividad.objects.filter(
                 activo=True
@@ -602,6 +618,9 @@ def panel_administrador(request):
             "ultimos_usuarios": User.objects.select_related(
                 "perfil"
             ).order_by("-date_joined")[:5],
+            "ultimos_compromisos": compromisos_activos.select_related(
+                "delegacion"
+            ).order_by("-pk")[:5],
         }
     )
 
@@ -611,8 +630,13 @@ def panel_supervisor(request):
     contexto = datos_personales(request.user)
     delegacion = contexto["delegacion_usuario"]
 
+    compromisos = Compromiso.objects.filter(activo=True)
+
+    if delegacion:
+        compromisos = compromisos.filter(delegacion=delegacion)
+
     contexto.update({
-        "compromisos": resumen_compromisos(),
+        "compromisos": resumen_compromisos(compromisos),
         "funcionarios_delegacion": (
             User.objects.filter(
                 perfil__delegacion=delegacion,
@@ -625,7 +649,9 @@ def panel_supervisor(request):
         ).count(),
         "metas_activas": Meta.objects.filter(activo=True).count(),
         "periodos_abiertos": Periodo.objects.filter(cerrado=False).count(),
-        "ultimos_compromisos": Compromiso.objects.order_by("-pk")[:5],
+        "ultimos_compromisos": compromisos.select_related(
+            "delegacion"
+        ).order_by("-pk")[:5],
     })
 
     return render(
@@ -638,9 +664,15 @@ def panel_supervisor(request):
 @perfil_requerido(ADMINISTRATIVO)
 def panel_administrativo(request):
     contexto = datos_personales(request.user)
+    delegacion = contexto["delegacion_usuario"]
+
+    compromisos = Compromiso.objects.filter(activo=True)
+
+    if delegacion:
+        compromisos = compromisos.filter(delegacion=delegacion)
 
     contexto.update({
-        "compromisos": resumen_compromisos(),
+        "compromisos": resumen_compromisos(compromisos),
         "actividades": CatalogoActividad.objects.filter(
             activo=True
         ).order_by("nombre")[:6],
@@ -648,6 +680,9 @@ def panel_administrativo(request):
             activo=True
         ).count(),
         "periodos_abiertos": Periodo.objects.filter(cerrado=False).count(),
+        "ultimos_compromisos": compromisos.select_related(
+            "delegacion"
+        ).order_by("-pk")[:5],
     })
 
     return render(

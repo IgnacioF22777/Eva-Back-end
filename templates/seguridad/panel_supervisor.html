@@ -93,6 +93,13 @@ Panel de Supervisor
                     Tablero de metas y compromisos
                 </a>
 
+                {% if perms.tubo_gestionAPP.change_compromiso %}
+                    <a href="{% url 'compromiso_lista' %}"
+                       class="list-group-item list-group-item-action">
+                        Mantención de compromisos
+                    </a>
+                {% endif %}
+
                 {% if perms.sgr_maestrosAPP.view_catalogoactividad %}
                     <a href="{% url 'sgr_maestros:catalogo_lista' %}"
                        class="list-group-item list-group-item-action">
@@ -107,9 +114,9 @@ Panel de Supervisor
                     </a>
                 {% endif %}
 
-                <a href="{% url 'lista' %}"
+                <a href="{% url 'delegacion_lista' %}"
                    class="list-group-item list-group-item-action">
-                    Delegaciones
+                    Delegaciones y servicios
                 </a>
 
                 {% if perms.auth.view_user %}
@@ -133,6 +140,7 @@ Panel de Supervisor
                     <thead class="table-dark">
                         <tr>
                             <th>Tarea</th>
+                            <th>Delegación</th>
                             <th>Cumplimiento</th>
                             <th>Estado</th>
                         </tr>
@@ -142,6 +150,9 @@ Panel de Supervisor
                         {% for compromiso in ultimos_compromisos %}
                             <tr>
                                 <td>{{ compromiso.tarea }}</td>
+                                <td>
+                                    {{ compromiso.delegacion.nombre|default:"Sin delegación" }}
+                                </td>
                                 <td>{{ compromiso.cumplimiento }}%</td>
                                 <td>
                                     {% if compromiso.estado == "verde" %}
@@ -155,7 +166,7 @@ Panel de Supervisor
                             </tr>
                         {% empty %}
                             <tr>
-                                <td colspan="3" class="text-center text-muted py-4">
+                                <td colspan="4" class="text-center text-muted py-4">
                                     Sin compromisos registrados.
                                 </td>
                             </tr>

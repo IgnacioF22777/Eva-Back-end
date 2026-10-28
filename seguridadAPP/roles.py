@@ -44,6 +44,12 @@ ROLES = {
     # Supervisa la operación y parametriza catálogos, períodos y metas.
     "Supervisor": VER_OPERACION + [
         "auth.view_user",
+        "delegacionesAPP.add_delegacion",
+        "delegacionesAPP.change_delegacion",
+        "delegacionesAPP.delete_delegacion",
+        "delegacionesAPP.add_servicio",
+        "delegacionesAPP.change_servicio",
+        "delegacionesAPP.delete_servicio",
         "tubo_gestionAPP.add_compromiso",
         "tubo_gestionAPP.change_compromiso",
         "tubo_gestionAPP.delete_compromiso",

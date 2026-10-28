@@ -70,22 +70,6 @@ Roles y Permisos
                                     </a>
                                 {% endif %}
 
-                                {% if perms.auth.delete_group %}
-                                    {% if rol.total_usuarios == 0 %}
-                                        <a href="{% url 'seguridad:rol_eliminar' rol.pk %}"
-                                           class="btn btn-danger btn-sm">
-                                            Eliminar
-                                        </a>
-                                    {% else %}
-                                        <button type="button"
-                                                class="btn btn-outline-secondary btn-sm"
-                                                disabled
-                                                title="Tiene usuarios asignados">
-                                            Eliminar
-                                        </button>
-                                    {% endif %}
-                                {% endif %}
-
                             </div>
                         </td>
                     </tr>
