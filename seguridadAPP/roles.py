@@ -4,13 +4,29 @@ from django.contrib.auth.models import Group, Permission
 
 
 # ============================================================
-# ROLES DEL SGR (RBAC CON GRUPOS Y PERMISOS DE DJANGO)
+# PERFILES DEL SGR (RBAC CON GRUPOS Y PERMISOS DE DJANGO)
 # ============================================================
-# Cada rol corresponde a un actor de la guía del proyecto y se
-# implementa como un Group de Django. Los permisos usan el formato
-# "app_label.codename" y se aplican en el servidor con
-# @permission_required, siguiendo el principio de mínimo privilegio.
+# La pauta exige tres perfiles obligatorios:
+#   Administrador  -> acceso total
+#   Supervisor     -> acceso intermedio (operación y catálogos)
+#   Administrativo -> acceso mínimo (consulta y registro)
+#
+# Cada perfil es un Group de Django. Los permisos se aplican en el
+# servidor con @permission_required o con @perfil_requerido, siguiendo
+# el principio de mínimo privilegio.
 
+# Apps cuyos permisos se administran desde el SGR.
+APPS_CON_PERMISOS = [
+    "auth",
+    "seguridadAPP",
+    "delegacionesAPP",
+    "tubo_gestionAPP",
+    "sgr_maestrosAPP",
+    "emergenciasTerritorialesAPP",
+    "reportesCiudadanosAPP",
+]
+
+# Permisos de solo lectura sobre la operación municipal.
 VER_OPERACION = [
     "delegacionesAPP.view_delegacion",
     "delegacionesAPP.view_servicio",
@@ -22,27 +38,15 @@ VER_OPERACION = [
 ]
 
 ROLES = {
-    # Configura delegaciones, usuarios, cargos, catálogos y permisos.
-    "Administrador": VER_OPERACION + [
-        "auth.view_user",
-        "auth.add_user",
-        "auth.change_user",
-        "auth.delete_user",
-        "auth.view_group",
-        "auth.add_group",
-        "auth.change_group",
-        "auth.delete_group",
-        "seguridadAPP.view_perfilusuario",
-        "seguridadAPP.add_perfilusuario",
-        "seguridadAPP.change_perfilusuario",
-        "seguridadAPP.delete_perfilusuario",
-        "delegacionesAPP.add_delegacion",
-        "delegacionesAPP.change_delegacion",
-    ],
+    # Acceso total: todos los permisos de las apps del proyecto.
+    "Administrador": "*",
 
-    # Supervisa la operación, parametriza catálogos, períodos y metas.
-    "Coordinador": VER_OPERACION + [
+    # Supervisa la operación y parametriza catálogos, períodos y metas.
+    "Supervisor": VER_OPERACION + [
         "auth.view_user",
+        "tubo_gestionAPP.add_compromiso",
+        "tubo_gestionAPP.change_compromiso",
+        "tubo_gestionAPP.delete_compromiso",
         "sgr_maestrosAPP.add_catalogoactividad",
         "sgr_maestrosAPP.change_catalogoactividad",
         "sgr_maestrosAPP.add_periodo",
@@ -54,24 +58,31 @@ ROLES = {
         "sgr_maestrosAPP.change_meta",
     ],
 
-    # Consulta la gestión de su delegación y revisa compromisos.
-    "Delegado": VER_OPERACION + [
-        "auth.view_user",
-        "tubo_gestionAPP.change_compromiso",
-    ],
-
-    # Registra actividades y compromisos.
-    "Funcionario": VER_OPERACION + [
+    # Acceso mínimo: consulta la operación y registra compromisos.
+    "Administrativo": VER_OPERACION + [
         "tubo_gestionAPP.add_compromiso",
-        "tubo_gestionAPP.change_compromiso",
     ],
-
-    # Revisa y valida registros.
-    "Verificador": VER_OPERACION,
-
-    # Solo consulta tableros e informes.
-    "Consulta": VER_OPERACION,
 }
+
+# Orden de precedencia: si un usuario quedara con más de un perfil,
+# se conserva el de mayor privilegio (primero en este orden).
+PERFILES = tuple(ROLES.keys())
+
+# Equivalencia entre los roles históricos (6) y los tres perfiles.
+# Se usa en la migración de datos 0002 para reasignar a los usuarios.
+MAPEO_PERFILES = {
+    "Administrador": "Administrador",
+    "Coordinador": "Supervisor",
+    "Delegado": "Supervisor",
+    "Verificador": "Supervisor",
+    "Funcionario": "Administrativo",
+    "Consulta": "Administrativo",
+}
+
+# Roles que dejan de existir tras la migración.
+ROLES_OBSOLETOS = [
+    nombre for nombre in MAPEO_PERFILES if nombre not in PERFILES
+]
 
 
 def obtener_permiso(nombre_completo):
@@ -83,11 +94,20 @@ def obtener_permiso(nombre_completo):
     ).first()
 
 
+def permisos_del_proyecto():
+    """Permisos que el SGR puede delegar (excluye la tabla de permisos)."""
+    return Permission.objects.filter(
+        content_type__app_label__in=APPS_CON_PERMISOS
+    ).exclude(
+        content_type__model="permission"
+    )
+
+
 def sincronizar_roles():
     """
-    Crea los roles que no existan y les agrega sus permisos base.
+    Crea los perfiles que no existan y les agrega sus permisos base.
     No quita permisos agregados manualmente desde la gestión de roles.
-    Devuelve una lista de (rol, creado, permisos_faltantes).
+    Devuelve una lista de (perfil, creado, permisos_faltantes).
     """
     # Asegura que existan los permisos de todos los modelos.
     for app_config in apps.get_app_configs():
@@ -99,13 +119,16 @@ def sincronizar_roles():
         grupo, creado = Group.objects.get_or_create(name=nombre_rol)
         faltantes = []
 
-        for nombre_permiso in permisos:
-            permiso = obtener_permiso(nombre_permiso)
+        if permisos == "*":
+            grupo.permissions.add(*permisos_del_proyecto())
+        else:
+            for nombre_permiso in permisos:
+                permiso = obtener_permiso(nombre_permiso)
 
-            if permiso is None:
-                faltantes.append(nombre_permiso)
-            else:
-                grupo.permissions.add(permiso)
+                if permiso is None:
+                    faltantes.append(nombre_permiso)
+                else:
+                    grupo.permissions.add(permiso)
 
         resultado.append((nombre_rol, creado, faltantes))
 

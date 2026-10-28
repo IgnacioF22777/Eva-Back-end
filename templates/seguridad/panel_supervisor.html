@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+
+{% block title %}Panel Supervisor - SGR{% endblock %}
+
+{% block header %}
+Panel de Supervisor
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="h4 mb-1">Supervisión operativa</h2>
+        <p class="text-muted mb-0">
+            {% if delegacion_usuario %}
+                Delegación: <strong>{{ delegacion_usuario.nombre }}</strong>
+            {% else %}
+                Sin delegación asignada
+            {% endif %}
+        </p>
+    </div>
+
+    <span class="badge bg-primary fs-6">Supervisor</span>
+</div>
+
+{% include 'seguridad/_mensajes.html' %}
+
+{% if not delegacion_usuario %}
+    <div class="alert alert-warning">
+        Su usuario no tiene una delegación asignada. Solicite al
+        administrador que complete su perfil para ver datos territoriales.
+    </div>
+{% endif %}
+
+<!-- INDICADORES -->
+<div class="row g-3 mb-4">
+
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <p class="text-muted text-uppercase small mb-1">Funcionarios</p>
+                <p class="display-6 fw-bold mb-0">{{ funcionarios_delegacion }}</p>
+                <p class="text-muted small mb-0">activos en su delegación</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <p class="text-muted text-uppercase small mb-1">Compromisos</p>
+                <p class="display-6 fw-bold mb-0">{{ compromisos.total }}</p>
+                <p class="text-muted small mb-0">en seguimiento</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <p class="text-muted text-uppercase small mb-1">En rojo</p>
+                <p class="display-6 fw-bold mb-0 text-danger">{{ compromisos.rojo }}</p>
+                <p class="text-muted small mb-0">requieren atención</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <p class="text-muted text-uppercase small mb-1">Metas activas</p>
+                <p class="display-6 fw-bold mb-0">{{ metas_activas }}</p>
+                <p class="text-muted small mb-0">
+                    {{ periodos_abiertos }} período(s) abierto(s)
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="row g-4">
+
+    <div class="col-lg-5">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Tareas de supervisión</h5>
+            </div>
+
+            <div class="list-group list-group-flush">
+                <a href="{% url 'tablero_metas' %}"
+                   class="list-group-item list-group-item-action">
+                    Tablero de metas y compromisos
+                </a>
+
+                {% if perms.sgr_maestros.view_catalogoactividad %}
+                    <a href="{% url 'sgr_maestros:catalogo_lista' %}"
+                       class="list-group-item list-group-item-action">
+                        Catálogo de actividades
+                    </a>
+                {% endif %}
+
+                {% if perms.sgr_maestros.view_meta %}
+                    <a href="{% url 'sgr_maestros:meta_lista' %}"
+                       class="list-group-item list-group-item-action">
+                        Gestión de metas
+                    </a>
+                {% endif %}
+
+                <a href="{% url 'lista' %}"
+                   class="list-group-item list-group-item-action">
+                    Delegaciones
+                </a>
+
+                {% if perms.auth.view_user %}
+                    <a href="{% url 'seguridad:usuario_lista' %}"
+                       class="list-group-item list-group-item-action">
+                        Usuarios
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-7">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white border-bottom">
+                <h5 class="mb-0">Compromisos recientes</h5>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-striped align-middle mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Tarea</th>
+                            <th>Cumplimiento</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for compromiso in ultimos_compromisos %}
+                            <tr>
+                                <td>{{ compromiso.tarea }}</td>
+                                <td>{{ compromiso.cumplimiento }}%</td>
+                                <td>
+                                    {% if compromiso.estado == "verde" %}
+                                        <span class="badge bg-success">Verde</span>
+                                    {% elif compromiso.estado == "amarillo" %}
+                                        <span class="badge bg-warning text-dark">Amarillo</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Rojo</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="3" class="text-center text-muted py-4">
+                                    Sin compromisos registrados.
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

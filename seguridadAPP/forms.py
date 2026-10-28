@@ -8,19 +8,10 @@ from delegacionesAPP.models import Delegacion
 from tubo_gestionAPP.validadores import validar_rut_chileno
 
 from .models import PerfilUsuario, normalizar_rut
+from .roles import APPS_CON_PERMISOS, PERFILES
 
 
 User = get_user_model()
-
-APPS_CON_PERMISOS = [
-    "auth",
-    "seguridadAPP",
-    "delegacionesAPP",
-    "tubo_gestionAPP",
-    "sgr_maestrosAPP",
-    "emergenciasTerritorialesAPP",
-    "reportesCiudadanosAPP",
-]
 
 ACCIONES = {
     "view": "Ver",
@@ -263,6 +254,18 @@ class UsuarioForm(forms.ModelForm):
 
     def clean_last_name(self):
         return self.cleaned_data["last_name"].strip()
+
+    def clean_groups(self):
+        grupos = self.cleaned_data["groups"]
+        perfiles = {grupo.name for grupo in grupos} & set(PERFILES)
+
+        if not perfiles:
+            raise forms.ValidationError(
+                "Debe asignar al menos uno de los perfiles: "
+                + ", ".join(PERFILES) + "."
+            )
+
+        return grupos
 
     def clean_email(self):
         email = self.cleaned_data["email"].strip().lower()

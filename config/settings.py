@@ -61,6 +61,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'seguridadAPP.context_processors.perfil_actual',
             ],
         },
     },
@@ -114,7 +115,7 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 LOGIN_URL = 'seguridad:login'
-LOGIN_REDIRECT_URL = 'inicio'
+LOGIN_REDIRECT_URL = 'seguridad:panel'
 LOGOUT_REDIRECT_URL = 'seguridad:login'
 
 # Sesiones protegidas: la cookie no es accesible desde JavaScript y

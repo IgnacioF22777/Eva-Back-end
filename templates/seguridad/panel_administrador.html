@@ -1,0 +1,209 @@
+{% extends 'base.html' %}
+
+{% block title %}Panel Administrador - SGR{% endblock %}
+
+{% block header %}
+Panel de Administrador
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="h4 mb-1">Resumen general del sistema</h2>
+        <p class="text-muted mb-0">
+            Acceso total: usuarios, catálogos, operación y seguridad
+        </p>
+    </div>
+
+    <span class="badge bg-dark fs-6">Administrador</span>
+</div>
+
+<!-- INDICADORES -->
+<div class="row g-3 mb-4">
+
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <p class="text-muted text-uppercase small mb-1">Usuarios activos</p>
+                <p class="display-6 fw-bold mb-0">{{ usuarios_activos }}</p>
+                <p class="text-muted small mb-0">
+                    de {{ total_usuarios }} registrados
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <p class="text-muted text-uppercase small mb-1">Delegaciones</p>
+                <p class="display-6 fw-bold mb-0">{{ total_delegaciones }}</p>
+                <p class="text-muted small mb-0">
+                    {{ periodos_abiertos }} período(s) abierto(s)
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <p class="text-muted text-uppercase small mb-1">Compromisos</p>
+                <p class="display-6 fw-bold mb-0">{{ compromisos.total }}</p>
+                <p class="text-muted small mb-0">
+                    {{ compromisos.rojo }} en rojo
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <p class="text-muted text-uppercase small mb-1">Metas activas</p>
+                <p class="display-6 fw-bold mb-0">{{ metas_activas }}</p>
+                <p class="text-muted small mb-0">
+                    de {{ total_metas }} definidas
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="row g-4">
+
+    <!-- ACCESOS RÁPIDOS -->
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Accesos rápidos</h5>
+            </div>
+
+            <div class="list-group list-group-flush">
+                <a href="{% url 'seguridad:usuario_lista' %}"
+                   class="list-group-item list-group-item-action">
+                    Gestión de usuarios
+                </a>
+
+                <a href="{% url 'seguridad:rol_lista' %}"
+                   class="list-group-item list-group-item-action">
+                    Perfiles y permisos
+                </a>
+
+                <a href="{% url 'sgr_maestros:catalogo_lista' %}"
+                   class="list-group-item list-group-item-action">
+                    Catálogo de actividades
+                </a>
+
+                <a href="{% url 'sgr_maestros:periodo_lista' %}"
+                   class="list-group-item list-group-item-action">
+                    Gestión de períodos
+                </a>
+
+                <a href="{% url 'sgr_maestros:meta_lista' %}"
+                   class="list-group-item list-group-item-action">
+                    Gestión de metas
+                </a>
+
+                <a href="{% url 'lista' %}"
+                   class="list-group-item list-group-item-action">
+                    Delegaciones
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- DISTRIBUCIÓN POR PERFIL -->
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Usuarios por perfil</h5>
+            </div>
+
+            <div class="card-body">
+                {% for grupo in usuarios_por_perfil %}
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="fw-semibold">{{ grupo.name }}</span>
+                        <span class="badge bg-primary rounded-pill">{{ grupo.total }}</span>
+                    </div>
+                {% empty %}
+                    <p class="text-muted mb-0">Sin perfiles configurados.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- ESTADO DE COMPROMISOS -->
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Estado de compromisos</h5>
+            </div>
+
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Verde</span>
+                    <span class="badge bg-success">{{ compromisos.verde }}</span>
+                </div>
+
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Amarillo</span>
+                    <span class="badge bg-warning text-dark">{{ compromisos.amarillo }}</span>
+                </div>
+
+                <div class="d-flex justify-content-between">
+                    <span>Rojo</span>
+                    <span class="badge bg-danger">{{ compromisos.rojo }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ÚLTIMOS USUARIOS -->
+<div class="card border-0 shadow-sm mt-4">
+    <div class="card-header bg-white border-bottom">
+        <h5 class="mb-0">Últimos usuarios registrados</h5>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-striped align-middle mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th>Nombre</th>
+                    <th>Correo</th>
+                    <th>Delegación</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for usuario in ultimos_usuarios %}
+                    <tr>
+                        <td>{{ usuario.get_full_name|default:usuario.username }}</td>
+                        <td>{{ usuario.email|default:"Sin correo" }}</td>
+                        <td>{{ usuario.perfil.delegacion|default:"Sin delegación" }}</td>
+                        <td>
+                            {% if usuario.is_active %}
+                                <span class="badge bg-success">Activo</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Inactivo</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center text-muted py-4">
+                            Sin usuarios registrados.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

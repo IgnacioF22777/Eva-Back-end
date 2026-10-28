@@ -9,6 +9,19 @@ from django.db.models import Count, Q
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.http import require_POST
 
+from delegacionesAPP.models import Delegacion
+from sgr_maestrosAPP.models import CatalogoActividad, Meta, Periodo
+from tubo_gestionAPP.models import Compromiso
+
+from .perfiles import (
+    ADMINISTRADOR,
+    ADMINISTRATIVO,
+    PERFILES,
+    SUPERVISOR,
+    perfil_de,
+    perfil_requerido,
+)
+
 from .forms import (
     LoginForm,
     UsuarioForm,
@@ -402,4 +415,134 @@ def rol_eliminar(request, pk):
             "tipo": "rol",
             "url_cancelar": "seguridad:rol_lista",
         }
+    )
+
+
+# ============================================================
+# PANELES POR PERFIL
+# ============================================================
+# Cada perfil tiene su propio panel y no puede abrir el de otro:
+# el decorador @perfil_requerido responde 403 si el perfil no calza.
+
+PANEL_POR_PERFIL = {
+    ADMINISTRADOR: "seguridad:panel_administrador",
+    SUPERVISOR: "seguridad:panel_supervisor",
+    ADMINISTRATIVO: "seguridad:panel_administrativo",
+}
+
+
+def resumen_compromisos():
+    """Cantidad de compromisos por estado, sin consultas por fila."""
+    resumen = {"verde": 0, "amarillo": 0, "rojo": 0, "total": 0}
+
+    for fila in Compromiso.objects.values("estado").annotate(
+        total=Count("pk")
+    ):
+        if fila["estado"] in resumen:
+            resumen[fila["estado"]] = fila["total"]
+
+        resumen["total"] += fila["total"]
+
+    return resumen
+
+
+def datos_personales(usuario):
+    perfil = getattr(usuario, "perfil", None)
+
+    return {
+        "perfil_usuario": perfil,
+        "delegacion_usuario": perfil.delegacion if perfil else None,
+        "cargo_usuario": perfil.cargo if perfil else "",
+    }
+
+
+@login_required
+def panel(request):
+    """Redirige a cada usuario al panel de su perfil."""
+    perfil = perfil_de(request.user)
+
+    if perfil is None:
+        raise PermissionDenied(
+            "Su usuario no tiene un perfil asignado. "
+            "Contacte al administrador del sistema."
+        )
+
+    return redirect(PANEL_POR_PERFIL[perfil])
+
+
+@perfil_requerido(ADMINISTRADOR)
+def panel_administrador(request):
+    return render(
+        request,
+        "seguridad/panel_administrador.html",
+        {
+            "compromisos": resumen_compromisos(),
+            "total_usuarios": User.objects.count(),
+            "usuarios_activos": User.objects.filter(is_active=True).count(),
+            "total_delegaciones": Delegacion.objects.count(),
+            "total_actividades": CatalogoActividad.objects.count(),
+            "actividades_activas": CatalogoActividad.objects.filter(
+                activo=True
+            ).count(),
+            "total_metas": Meta.objects.count(),
+            "metas_activas": Meta.objects.filter(activo=True).count(),
+            "periodos_abiertos": Periodo.objects.filter(cerrado=False).count(),
+            "usuarios_por_perfil": Group.objects.filter(
+                name__in=PERFILES
+            ).annotate(total=Count("user")).order_by("name"),
+            "ultimos_usuarios": User.objects.select_related(
+                "perfil"
+            ).order_by("-date_joined")[:5],
+        }
+    )
+
+
+@perfil_requerido(SUPERVISOR)
+def panel_supervisor(request):
+    contexto = datos_personales(request.user)
+    delegacion = contexto["delegacion_usuario"]
+
+    contexto.update({
+        "compromisos": resumen_compromisos(),
+        "funcionarios_delegacion": (
+            User.objects.filter(
+                perfil__delegacion=delegacion,
+                is_active=True,
+            ).count()
+            if delegacion else 0
+        ),
+        "actividades_activas": CatalogoActividad.objects.filter(
+            activo=True
+        ).count(),
+        "metas_activas": Meta.objects.filter(activo=True).count(),
+        "periodos_abiertos": Periodo.objects.filter(cerrado=False).count(),
+        "ultimos_compromisos": Compromiso.objects.order_by("-pk")[:5],
+    })
+
+    return render(
+        request,
+        "seguridad/panel_supervisor.html",
+        contexto
+    )
+
+
+@perfil_requerido(ADMINISTRATIVO)
+def panel_administrativo(request):
+    contexto = datos_personales(request.user)
+
+    contexto.update({
+        "compromisos": resumen_compromisos(),
+        "actividades": CatalogoActividad.objects.filter(
+            activo=True
+        ).order_by("nombre")[:6],
+        "total_actividades_activas": CatalogoActividad.objects.filter(
+            activo=True
+        ).count(),
+        "periodos_abiertos": Periodo.objects.filter(cerrado=False).count(),
+    })
+
+    return render(
+        request,
+        "seguridad/panel_administrativo.html",
+        contexto
     )

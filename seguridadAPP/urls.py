@@ -25,6 +25,34 @@ urlpatterns = [
     ),
 
     # ========================================================
+    # PANELES POR PERFIL
+    # ========================================================
+
+    path(
+        "panel/",
+        views.panel,
+        name="panel"
+    ),
+
+    path(
+        "panel/administrador/",
+        views.panel_administrador,
+        name="panel_administrador"
+    ),
+
+    path(
+        "panel/supervisor/",
+        views.panel_supervisor,
+        name="panel_supervisor"
+    ),
+
+    path(
+        "panel/administrativo/",
+        views.panel_administrativo,
+        name="panel_administrativo"
+    ),
+
+    # ========================================================
     # CRUD 1: USUARIOS
     # ========================================================
 

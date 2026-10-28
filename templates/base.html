@@ -55,6 +55,15 @@
 
                 <ul class="navbar-nav ms-auto">
 
+                    {% if user.is_authenticated %}
+                        <li class="nav-item">
+                            <a class="nav-link fw-semibold"
+                               href="{% url 'seguridad:panel' %}">
+                                Mi panel
+                            </a>
+                        </li>
+                    {% endif %}
+
                     <li class="nav-item">
                         <a class="nav-link"
                            href="{% url 'inicio' %}">
@@ -62,22 +71,24 @@
                         </a>
                     </li>
 
-                    <li class="nav-item">
-                        <a class="nav-link"
-                           href="{% url 'lista' %}">
-                            Delegaciones
-                        </a>
-                    </li>
+                    {% if user.is_authenticated %}
+                        <li class="nav-item">
+                            <a class="nav-link"
+                               href="{% url 'lista' %}">
+                                Delegaciones
+                            </a>
+                        </li>
 
-                    <li class="nav-item">
-                        <a class="nav-link"
-                           href="{% url 'tablero_metas' %}">
-                            Tubo de Gestión
-                        </a>
-                    </li>
+                        <li class="nav-item">
+                            <a class="nav-link"
+                               href="{% url 'tablero_metas' %}">
+                                Tubo de Gestión
+                            </a>
+                        </li>
+                    {% endif %}
 
-                    <!-- MÓDULOS SGR: USUARIOS AUTORIZADOS -->
-                    {% if user.is_staff %}
+                    <!-- MÓDULOS SGR: SEGÚN PERMISOS DEL PERFIL -->
+                    {% if perms.sgr_maestros.view_catalogoactividad %}
 
                         <!-- MENÚ DESPLEGABLE DE TABLAS MAESTRAS -->
                         <li class="nav-item dropdown">
@@ -199,6 +210,18 @@
 
                             <ul class="dropdown-menu dropdown-menu-end"
                                 aria-labelledby="menuUsuario">
+
+                                {% if perfil_etiqueta %}
+                                    <li>
+                                        <span class="dropdown-header">
+                                            Perfil: {{ perfil_etiqueta }}
+                                        </span>
+                                    </li>
+
+                                    <li>
+                                        <hr class="dropdown-divider">
+                                    </li>
+                                {% endif %}
 
                                 <li>
                                     <!-- El cierre de sesión se hace por POST (protegido con CSRF) -->
