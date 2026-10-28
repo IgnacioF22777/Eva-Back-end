@@ -24,7 +24,7 @@ from .forms import (
 # ============================================================
 
 @login_required
-@permission_required("sgr_maestros.view_catalogoactividad", raise_exception=True)
+@permission_required("sgr_maestrosAPP.view_catalogoactividad", raise_exception=True)
 def catalogo_lista(request):
     actividades = CatalogoActividad.objects.all()
 
@@ -36,7 +36,7 @@ def catalogo_lista(request):
 
 
 @login_required
-@permission_required("sgr_maestros.add_catalogoactividad", raise_exception=True)
+@permission_required("sgr_maestrosAPP.add_catalogoactividad", raise_exception=True)
 def catalogo_crear(request):
     if request.method == "POST":
         form = CatalogoActividadForm(request.POST)
@@ -62,7 +62,7 @@ def catalogo_crear(request):
 
 
 @login_required
-@permission_required("sgr_maestros.change_catalogoactividad", raise_exception=True)
+@permission_required("sgr_maestrosAPP.change_catalogoactividad", raise_exception=True)
 def catalogo_editar(request, pk):
     actividad = get_object_or_404(
         CatalogoActividad,
@@ -96,7 +96,7 @@ def catalogo_editar(request, pk):
 
 
 @login_required
-@permission_required("sgr_maestros.change_catalogoactividad", raise_exception=True)
+@permission_required("sgr_maestrosAPP.change_catalogoactividad", raise_exception=True)
 @require_POST
 def catalogo_cambiar_estado(request, pk):
     actividad = get_object_or_404(
@@ -120,7 +120,7 @@ def catalogo_cambiar_estado(request, pk):
 # ============================================================
 
 @login_required
-@permission_required("sgr_maestros.view_periodo", raise_exception=True)
+@permission_required("sgr_maestrosAPP.view_periodo", raise_exception=True)
 def periodo_lista(request):
     periodos = Periodo.objects.all()
 
@@ -132,7 +132,7 @@ def periodo_lista(request):
 
 
 @login_required
-@permission_required("sgr_maestros.add_periodo", raise_exception=True)
+@permission_required("sgr_maestrosAPP.add_periodo", raise_exception=True)
 def periodo_crear(request):
     if request.method == "POST":
         form = PeriodoForm(request.POST)
@@ -158,7 +158,7 @@ def periodo_crear(request):
 
 
 @login_required
-@permission_required("sgr_maestros.change_periodo", raise_exception=True)
+@permission_required("sgr_maestrosAPP.change_periodo", raise_exception=True)
 def periodo_editar(request, pk):
     periodo = get_object_or_404(Periodo, pk=pk)
 
@@ -200,7 +200,7 @@ def periodo_editar(request, pk):
 # ============================================================
 
 @login_required
-@permission_required("sgr_maestros.view_detalleperiodo", raise_exception=True)
+@permission_required("sgr_maestrosAPP.view_detalleperiodo", raise_exception=True)
 def detalle_periodo_lista(request):
     detalles = DetallePeriodo.objects.select_related(
         "periodo"
@@ -214,7 +214,7 @@ def detalle_periodo_lista(request):
 
 
 @login_required
-@permission_required("sgr_maestros.add_detalleperiodo", raise_exception=True)
+@permission_required("sgr_maestrosAPP.add_detalleperiodo", raise_exception=True)
 def detalle_periodo_crear(request):
     if request.method == "POST":
         form = DetallePeriodoForm(request.POST)
@@ -242,7 +242,7 @@ def detalle_periodo_crear(request):
 
 
 @login_required
-@permission_required("sgr_maestros.change_detalleperiodo", raise_exception=True)
+@permission_required("sgr_maestrosAPP.change_detalleperiodo", raise_exception=True)
 def detalle_periodo_editar(request, pk):
     detalle = get_object_or_404(
         DetallePeriodo.objects.select_related("periodo"),
@@ -287,7 +287,7 @@ def detalle_periodo_editar(request, pk):
 
 
 @login_required
-@permission_required("sgr_maestros.delete_detalleperiodo", raise_exception=True)
+@permission_required("sgr_maestrosAPP.delete_detalleperiodo", raise_exception=True)
 @require_POST
 def detalle_periodo_eliminar(request, pk):
     detalle = get_object_or_404(
@@ -321,7 +321,7 @@ def detalle_periodo_eliminar(request, pk):
 # ============================================================
 
 @login_required
-@permission_required("sgr_maestros.view_meta", raise_exception=True)
+@permission_required("sgr_maestrosAPP.view_meta", raise_exception=True)
 def meta_lista(request):
     metas = Meta.objects.select_related(
         "periodo",
@@ -336,7 +336,7 @@ def meta_lista(request):
 
 
 @login_required
-@permission_required("sgr_maestros.add_meta", raise_exception=True)
+@permission_required("sgr_maestrosAPP.add_meta", raise_exception=True)
 def meta_crear(request):
     if request.method == "POST":
         form = MetaForm(request.POST)
@@ -364,7 +364,7 @@ def meta_crear(request):
 
 
 @login_required
-@permission_required("sgr_maestros.change_meta", raise_exception=True)
+@permission_required("sgr_maestrosAPP.change_meta", raise_exception=True)
 def meta_editar(request, pk):
     meta = get_object_or_404(
         Meta.objects.select_related(
@@ -411,7 +411,7 @@ def meta_editar(request, pk):
 
 
 @login_required
-@permission_required("sgr_maestros.change_meta", raise_exception=True)
+@permission_required("sgr_maestrosAPP.change_meta", raise_exception=True)
 @require_POST
 def meta_cambiar_estado(request, pk):
     meta = get_object_or_404(

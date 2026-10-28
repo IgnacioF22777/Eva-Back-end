@@ -93,14 +93,14 @@ Panel de Supervisor
                     Tablero de metas y compromisos
                 </a>
 
-                {% if perms.sgr_maestros.view_catalogoactividad %}
+                {% if perms.sgr_maestrosAPP.view_catalogoactividad %}
                     <a href="{% url 'sgr_maestros:catalogo_lista' %}"
                        class="list-group-item list-group-item-action">
                         Catálogo de actividades
                     </a>
                 {% endif %}
 
-                {% if perms.sgr_maestros.view_meta %}
+                {% if perms.sgr_maestrosAPP.view_meta %}
                     <a href="{% url 'sgr_maestros:meta_lista' %}"
                        class="list-group-item list-group-item-action">
                         Gestión de metas

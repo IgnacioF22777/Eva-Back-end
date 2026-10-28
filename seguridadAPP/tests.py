@@ -472,3 +472,25 @@ class PruebasPerfilesYPaneles(TestCase):
 
         self.assertEqual(respuesta.status_code, 200)
         self.assertContains(respuesta, "Gestión de Usuarios")
+
+    def test_administrador_accede_a_las_tablas_maestras(self):
+        self.client.force_login(self.admin)
+
+        for nombre_url in ["catalogo_lista", "periodo_lista", "meta_lista"]:
+            respuesta = self.client.get(reverse(f"sgr_maestros:{nombre_url}"))
+            self.assertEqual(respuesta.status_code, 200, nombre_url)
+
+    def test_administrativo_solo_consulta_las_tablas_maestras(self):
+        self.client.force_login(self.administrativo)
+
+        respuesta = self.client.get(reverse("sgr_maestros:catalogo_lista"))
+        self.assertEqual(respuesta.status_code, 200)
+
+        respuesta = self.client.get(reverse("sgr_maestros:catalogo_crear"))
+        self.assertEqual(respuesta.status_code, 403)
+
+    def test_supervisor_puede_crear_actividad(self):
+        self.client.force_login(self.supervisor)
+
+        respuesta = self.client.get(reverse("sgr_maestros:catalogo_crear"))
+        self.assertEqual(respuesta.status_code, 200)
