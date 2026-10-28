@@ -92,7 +92,75 @@ Sin perfil       -> panel 403
 Anónimo          -> panel, usuarios y maestros 302 (redirige al login)
 ```
 
-## 4. Servicios expuestos
+## 4. Recuperación de contraseña (Fase 2)
+
+Se implementó con el **flujo nativo de Django** (`PasswordResetView` y sus tres
+vistas asociadas), sin lógica de tokens propia.
+
+### Funcionamiento
+
+1. El usuario abre **"¿Olvidó su contraseña?"** desde el inicio de sesión.
+2. Escribe su **correo institucional**. Django busca la cuenta por correo, no
+   por RUT.
+3. Si la cuenta existe y está activa, recibe un enlace con un **token firmado**.
+4. Abre el enlace, define la nueva contraseña y confirma con el botón
+   **"Validar y cambiar contraseña"**.
+
+### Propiedades de seguridad
+
+| Propiedad | Implementación |
+|---|---|
+| Vigencia del enlace | 1 hora (`PASSWORD_RESET_TIMEOUT=3600`) |
+| Reutilización | Imposible: el token se invalida al usarse |
+| Cambio de contraseña | Invalida cualquier enlace pendiente |
+| Enumeración de cuentas | El sistema responde igual exista o no el correo |
+| Usuarios inactivos | No reciben enlace |
+| Abuso del formulario | 5 solicitudes por IP cada 15 minutos |
+| Identificación de IP | `X-Real-IP` de Nginx, no falsificable por el cliente |
+
+### Configuración
+
+Las credenciales viven solo en `.env` (permisos `600`, excluido de Git):
+
+```
+EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USE_TLS=True
+EMAIL_HOST_USER=<cuenta institucional de envio>
+EMAIL_HOST_PASSWORD=<contrasena de aplicacion>
+DEFAULT_FROM_EMAIL="SGR La Serena <cuenta institucional>"
+EMAIL_TIMEOUT=10
+```
+
+`EMAIL_TIMEOUT` evita que un servidor de correo que no responde bloquee a los
+workers de Gunicorn.
+
+### Verificación ejecutada en producción
+
+- **71 pruebas automatizadas** en verde, incluidas las del flujo completo.
+- Prueba real de extremo a extremo: se solicitó el enlace, **el correo llegó**
+  con las versiones de texto y HTML, se abrió el enlace, la contraseña débil
+  fue rechazada, la nueva fue aceptada, la contraseña antigua dejó de servir y
+  la nueva permitió iniciar sesión.
+
+### Limitaciones conocidas
+
+1. El remitente es una **cuenta Gmail**, no el dominio `@laserena.cl`. Algunos
+   filtros pueden enviar el mensaje a la carpeta de spam.
+2. Límite de Gmail: alrededor de **500 destinatarios por día**.
+3. La recuperación exige que el usuario tenga un **correo cargado** en su
+   perfil. Si no lo tiene, debe solicitarla el Administrador.
+
+> Para producción institucional se recomienda reemplazar Gmail por el **relay
+> SMTP de la Municipalidad**, de modo que los correos salgan del dominio
+> oficial con su configuración SPF/DKIM. El cambio es solo de variables de
+> entorno.
+>
+> La contraseña de aplicación usada durante la evaluación debe **revocarse** al
+> finalizar.
+
+## 5. Servicios expuestos
 
 | Servicio | Estado inicial | Medida |
 |---|---|---|
@@ -101,7 +169,7 @@ Anónimo          -> panel, usuarios y maestros 302 (redirige al login)
 | MariaDB (3306) | `0.0.0.0` (todas las interfaces) | Restringido a `127.0.0.1` |
 | phpMyAdmin | Público en `/phpmyadmin` | Restringido a acceso local (túnel SSH) |
 
-## 5. Verificación
+## 6. Verificación
 
 ```bash
 # La llave antigua debe ser rechazada
