@@ -9,3 +9,14 @@ __pycache__/
 .venv/
 
 .env
+
+# Llaves y certificados: NUNCA deben versionarse.
+*.pem
+*.key
+*.crt
+*.p12
+*.ppk
+
+# Respaldos de base de datos
+*.sql
+*.dump
