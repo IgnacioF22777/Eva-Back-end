@@ -20,3 +20,6 @@ __pycache__/
 # Respaldos de base de datos
 *.sql
 *.dump
+
+# Salida de collectstatic (se genera en cada despliegue)
+staticfiles/
