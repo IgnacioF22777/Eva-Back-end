@@ -113,6 +113,13 @@ Panel Administrativo
                             Ver mis compromisos
                         </a>
 
+                        {% if perms.tubo_gestionAPP.add_registroavance %}
+                            <a href="{% url 'compromiso_lista' %}"
+                               class="btn btn-success">
+                                Registrar avance de compromisos
+                            </a>
+                        {% endif %}
+
                         <a href="{% url 'delegacion_lista' %}"
                            class="btn btn-outline-primary">
                             Ver delegaciones

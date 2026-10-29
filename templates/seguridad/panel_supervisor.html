@@ -98,6 +98,11 @@ Panel de Supervisor
                        class="list-group-item list-group-item-action">
                         Mantención de compromisos
                     </a>
+
+                    <a href="{% url 'compromiso_lista' %}"
+                       class="list-group-item list-group-item-action">
+                        Asignar compromisos a delegaciones
+                    </a>
                 {% endif %}
 
                 {% if perms.sgr_maestrosAPP.view_catalogoactividad %}

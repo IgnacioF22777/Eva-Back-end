@@ -223,7 +223,45 @@ compromisos, sin edición ni baja.
 - Verificación de datos reales: 13 delegaciones, 48 servicios y 9 compromisos
   conservados; `/admin/` responde `404`.
 
-## 6. Servicios expuestos
+## 6. Transacciones atómicas y trazabilidad (Fase 4)
+
+La ejecución de un compromiso se divide en dos operaciones atómicas, cada una
+con bloqueo pesimista de la fila del compromiso:
+
+| Transacción | Vista | Permiso requerido | Operaciones dentro de la transacción |
+|---|---|---|---|
+| **T1: asignación** | `compromiso_asignar` | `tubo_gestionAPP.change_compromiso` | Desactiva la asignación vigente, crea la nueva, actualiza delegación y servicio del compromiso |
+| **T2: avance** | `compromiso_avance` | `tubo_gestionAPP.add_registroavance` | Valida asignación vigente, crea el registro de avance, actualiza cumplimiento y semáforo |
+
+### Propiedades aplicadas
+
+- `transaction.atomic()` envuelve la operación completa: si un paso falla, no
+  queda ninguna escritura parcial. Las pruebas lo verifican forzando un fallo
+  después de la primera escritura y comprobando que no persiste nada.
+- `select_for_update()` bloquea la fila del `Compromiso` hasta el final de la
+  transacción. Dos supervisores que asignan a la vez, o dos administrativos que
+  registran avance a la vez, se serializan; el segundo ve el estado actualizado.
+- La validación del porcentaje contra el cumplimiento vigente se hace **dentro**
+  del bloqueo, no en el formulario, porque entre la validación y el guardado el
+  valor pudo cambiar.
+- **Ningún modelo nuevo usa `CASCADE`**: todas las claves foráneas de
+  `AsignacionCompromiso` y `RegistroAvance` son `PROTECT`. Tampoco existe una
+  vista de borrado: las bajas son lógicas (`activo=False`).
+- La asignación anterior se conserva como historial; la vigente se identifica
+  con `activo=True`. Al ser MariaDB, esta invariante se garantiza con el bloqueo
+  y la transacción, no con un índice único parcial.
+- La evidencia del avance se guarda como texto (`TextField`) con una referencia
+  verificable, en lugar de archivos: el servidor todavía no tiene HTTPS y no se
+  quiere exponer `MEDIA_ROOT`.
+
+### Separación de funciones
+
+- **Supervisor**: asigna y reasigna compromisos. No puede registrar avances.
+- **Administrativo**: registra avances con evidencia. No puede asignar ni editar
+  el compromiso.
+- **Administrador**: conserva todos los permisos.
+
+## 7. Servicios expuestos
 
 | Servicio | Estado inicial | Medida |
 |---|---|---|
@@ -232,7 +270,7 @@ compromisos, sin edición ni baja.
 | MariaDB (3306) | `0.0.0.0` (todas las interfaces) | Restringido a `127.0.0.1` |
 | phpMyAdmin | Público en `/phpmyadmin` | Restringido a acceso local (túnel SSH) |
 
-## 7. Verificación
+## 8. Verificación
 
 ```bash
 # La llave antigua debe ser rechazada

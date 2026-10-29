@@ -31,6 +31,8 @@ VER_OPERACION = [
     "delegacionesAPP.view_delegacion",
     "delegacionesAPP.view_servicio",
     "tubo_gestionAPP.view_compromiso",
+    "tubo_gestionAPP.view_asignacioncompromiso",
+    "tubo_gestionAPP.view_registroavance",
     "sgr_maestrosAPP.view_catalogoactividad",
     "sgr_maestrosAPP.view_periodo",
     "sgr_maestrosAPP.view_detalleperiodo",
@@ -64,9 +66,10 @@ ROLES = {
         "sgr_maestrosAPP.change_meta",
     ],
 
-    # Acceso mínimo: consulta la operación y registra compromisos.
+    # Acceso mínimo: consulta la operación y registra compromisos y avances.
     "Administrativo": VER_OPERACION + [
         "tubo_gestionAPP.add_compromiso",
+        "tubo_gestionAPP.add_registroavance",
     ],
 }
 

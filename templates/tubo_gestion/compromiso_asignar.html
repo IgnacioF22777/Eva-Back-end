@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+
+{% block title %}Asignar compromiso - SGR{% endblock %}
+
+{% block header %}
+Asignar compromiso
+{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body">
+                <p class="text-muted text-uppercase small mb-1">
+                    Compromiso #{{ compromiso.pk }}
+                </p>
+                <h4 class="mb-3">{{ compromiso.tarea }}</h4>
+
+                <dl class="row mb-0 small">
+                    <dt class="col-sm-4 text-muted">Cumplimiento</dt>
+                    <dd class="col-sm-8">{{ compromiso.cumplimiento }}%</dd>
+
+                    <dt class="col-sm-4 text-muted">Estado</dt>
+                    <dd class="col-sm-8">
+                        {% if compromiso.estado == 'verde' %}
+                            <span class="badge bg-success">Verde</span>
+                        {% elif compromiso.estado == 'amarillo' %}
+                            <span class="badge bg-warning text-dark">Amarillo</span>
+                        {% else %}
+                            <span class="badge bg-danger">Rojo</span>
+                        {% endif %}
+                    </dd>
+
+                    <dt class="col-sm-4 text-muted">Delegación actual</dt>
+                    <dd class="col-sm-8">
+                        {{ compromiso.delegacion.nombre|default:"Sin asignar" }}
+                    </dd>
+
+                    <dt class="col-sm-4 text-muted">Servicio actual</dt>
+                    <dd class="col-sm-8 mb-0">
+                        {{ compromiso.servicio.nombre|default:"Sin asignar" }}
+                    </dd>
+                </dl>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Nueva asignación</h5>
+            </div>
+
+            <div class="card-body p-4">
+
+                {% if asignacion_actual %}
+                    <div class="alert alert-warning small">
+                        Este compromiso ya está asignado a
+                        <strong>{{ asignacion_actual.delegacion.nombre }}</strong>
+                        / <strong>{{ asignacion_actual.servicio.nombre }}</strong>.
+                        Al guardar, la asignación anterior se desactiva y se
+                        conserva en el historial: no se elimina nada.
+                    </div>
+                {% endif %}
+
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <form method="POST" novalidate>
+                    {% csrf_token %}
+
+                    {% for campo in form %}
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold"
+                                   for="{{ campo.id_for_label }}">
+                                {{ campo.label }}
+                            </label>
+
+                            {{ campo }}
+
+                            {% if campo.help_text %}
+                                <div class="form-text">
+                                    {{ campo.help_text }}
+                                </div>
+                            {% endif %}
+
+                            {% for error in campo.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ error }}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endfor %}
+
+                    <div class="alert alert-info small mb-0">
+                        La asignación y la actualización del compromiso se
+                        guardan en una sola transacción: si algo falla, no
+                        queda ningún cambio a medias.
+                    </div>
+
+                    <div class="d-flex flex-wrap gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary">
+                            Guardar asignación
+                        </button>
+
+                        <a href="{% url 'compromiso_historial' compromiso.pk %}"
+                           class="btn btn-outline-secondary">
+                            Ver historial
+                        </a>
+
+                        <a href="{% url 'compromiso_lista' %}"
+                           class="btn btn-outline-secondary">
+                            Volver al tablero
+                        </a>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}

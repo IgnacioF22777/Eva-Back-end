@@ -45,6 +45,31 @@ Ningún registro se elimina definitivamente: la baja es lógica y reversible.
 | Usuarios | `/seguridad/usuarios/` | Baja lógica y reactivación |
 | Roles | `/seguridad/roles/` | Los roles se conservan; no se borran |
 
+### Fase 4: asignación y avance de compromisos
+
+El flujo de ejecución de un compromiso se divide en dos transacciones atómicas
+independientes, para que ninguna quede a medias:
+
+| Transacción | Quién la ejecuta | Ruta | Qué hace |
+|---|---|---|---|
+| **T1: asignación** | Supervisor | `/gestion/compromisos/<id>/asignar/` | Asigna el compromiso a una delegación y a un servicio de esa delegación |
+| **T2: avance** | Administrativo | `/gestion/compromisos/<id>/avance/` | Registra el porcentaje, la evidencia y la observación del avance |
+
+- **Historial**: `/gestion/compromisos/<id>/historial/` muestra todas las
+  asignaciones y todos los avances, en solo lectura.
+- **Bloqueo pesimista**: ambas transacciones bloquean la fila del compromiso con
+  `SELECT ... FOR UPDATE` (`select_for_update()`), de modo que dos usuarios no
+  pueden asignar o avanzar el mismo compromiso al mismo tiempo.
+- **Reasignación sin pérdida de historial**: al reasignar, la asignación anterior
+  se marca como histórica (`activo=False`) y se conserva; nunca se elimina.
+- **Un solo camino para el porcentaje**: `CompromisoForm` ya no expone
+  `cumplimiento` ni `delegacion`. El porcentaje solo cambia por T2 y la
+  delegación/servicio solo por T1.
+- **Avance no retrocede**: un nuevo avance no puede ser menor al cumplimiento
+  vigente del compromiso.
+- **Evidencia obligatoria**: cada avance exige una referencia verificable (acta,
+  correo, fotografía, documento o enlace).
+
 ### Reglas de negocio
 
 - **Semáforo automático de compromisos**: el estado se calcula desde el
@@ -54,6 +79,8 @@ Ningún registro se elimina definitivamente: la baja es lógica y reversible.
   - **Rojo**: menos de 60 %.
 - **Bloqueo de baja de delegaciones**: una delegación con servicios o
   compromisos activos no puede darse de baja hasta reasignarlos o desactivarlos.
+- **Bloqueo de baja de servicios**: un servicio con compromisos activos
+  asignados no puede darse de baja hasta reasignarlos o desactivarlos.
 - **Validación de duplicados**: no se crean delegaciones ni servicios activos
   con el mismo nombre. Si existe un registro inactivo equivalente, se reactiva
   en lugar de duplicarlo.
@@ -118,9 +145,12 @@ python manage.py test
 
 La suite cubre autenticación, recuperación de contraseña, permisos por perfil,
 CRUD de los mantenedores, búsqueda, duplicados, baja lógica, reactivación,
-semáforo y cierre de `/admin/`.
+semáforo, cierre de `/admin/` y las dos transacciones atómicas de la Fase 4
+(incluida la reversión completa cuando falla un paso).
 
-- **136 pruebas en verde** en el servidor con Django 4.2.
+- **167 pruebas en verde** en local (Django 5.2).
+- **154 pruebas en verde** en el servidor con Django 4.2 para los módulos
+  `tubo_gestionAPP`, `delegacionesAPP` y `seguridadAPP`.
 - Verificación de extremo a extremo con los tres perfiles en producción,
   ejecutada dentro de una transacción revertida para no dejar datos de prueba.
 

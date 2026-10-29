@@ -13,6 +13,7 @@ Tubo de Gestión
         <h2 class="h4 mb-1">Mantención de compromisos</h2>
         <p class="text-muted mb-0">
             Crear, buscar, editar, dar de baja y reactivar compromisos.
+            El Supervisor asigna y el Administrativo registra avances.
         </p>
     </div>
 
@@ -145,6 +146,7 @@ Tubo de Gestión
                     <th>#</th>
                     <th>Tarea</th>
                     <th>Delegación</th>
+                    <th>Servicio</th>
                     <th class="text-center">Cumplimiento</th>
                     <th>Estado</th>
                     <th>Situación</th>
@@ -161,6 +163,10 @@ Tubo de Gestión
 
                         <td>
                             {{ compromiso.delegacion.nombre|default:"Sin delegación" }}
+                        </td>
+
+                        <td>
+                            {{ compromiso.servicio.nombre|default:"Sin servicio" }}
                         </td>
 
                         <td class="text-center">
@@ -189,6 +195,25 @@ Tubo de Gestión
 
                         <td>
                             <div class="d-flex flex-wrap gap-2">
+                                {% if perms.tubo_gestionAPP.change_compromiso %}
+                                    <a href="{% url 'compromiso_asignar' compromiso.pk %}"
+                                       class="btn btn-outline-primary btn-sm">
+                                        Asignar
+                                    </a>
+                                {% endif %}
+
+                                {% if perms.tubo_gestionAPP.add_registroavance %}
+                                    <a href="{% url 'compromiso_avance' compromiso.pk %}"
+                                       class="btn btn-outline-success btn-sm">
+                                        Avance
+                                    </a>
+                                {% endif %}
+
+                                <a href="{% url 'compromiso_historial' compromiso.pk %}"
+                                   class="btn btn-outline-secondary btn-sm">
+                                    Historial
+                                </a>
+
                                 {% if perms.tubo_gestionAPP.change_compromiso %}
                                     <a href="{% url 'compromiso_editar' compromiso.pk %}"
                                        class="btn btn-warning btn-sm">
@@ -220,7 +245,7 @@ Tubo de Gestión
                     </tr>
                 {% empty %}
                     <tr>
-                        <td colspan="7" class="text-center text-muted py-5">
+                        <td colspan="8" class="text-center text-muted py-5">
                             <h5>No se encontraron compromisos</h5>
                             <p class="mb-0">
                                 Ajuste la búsqueda o registre un nuevo compromiso.

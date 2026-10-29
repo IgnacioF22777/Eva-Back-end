@@ -480,6 +480,57 @@ class PruebasServicios(TestCase):
         servicio.refresh_from_db()
         self.assertFalse(servicio.activo)
 
+    def test_no_da_de_baja_servicio_con_compromisos_activos(self):
+        from tubo_gestionAPP.models import Compromiso
+
+        servicio = Servicio.objects.create(
+            delegacion=self.delegacion, nombre="Aseo"
+        )
+        Compromiso.objects.create(
+            tarea="Mejorar luminarias",
+            cumplimiento=50,
+            delegacion=self.delegacion,
+            servicio=servicio,
+        )
+        self.client.force_login(self.supervisor)
+
+        respuesta = self.client.post(
+            reverse("servicio_cambiar_estado", args=[servicio.pk]),
+            follow=True,
+        )
+
+        self.assertContains(
+            respuesta,
+            "tiene compromisos activos asignados",
+        )
+
+        servicio.refresh_from_db()
+        self.assertTrue(servicio.activo)
+
+    def test_reactiva_servicio_sin_compromisos_activos(self):
+        from tubo_gestionAPP.models import Compromiso
+
+        servicio = Servicio.objects.create(
+            delegacion=self.delegacion,
+            nombre="Aseo",
+            activo=False,
+        )
+        Compromiso.objects.create(
+            tarea="Compromiso histórico",
+            cumplimiento=50,
+            delegacion=self.delegacion,
+            servicio=servicio,
+            activo=False,
+        )
+        self.client.force_login(self.supervisor)
+
+        self.client.post(
+            reverse("servicio_cambiar_estado", args=[servicio.pk])
+        )
+
+        servicio.refresh_from_db()
+        self.assertTrue(servicio.activo)
+
     def test_baja_de_servicio_exige_post(self):
         servicio = Servicio.objects.create(
             delegacion=self.delegacion, nombre="Aseo"

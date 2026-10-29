@@ -33,5 +33,22 @@ urlpatterns = [
         name="compromiso_cambiar_estado",
     ),
 
+    # Fase 4: asignación, avance e historial
+    path(
+        "compromisos/<int:pk>/asignar/",
+        views.compromiso_asignar,
+        name="compromiso_asignar",
+    ),
+    path(
+        "compromisos/<int:pk>/avance/",
+        views.compromiso_avance,
+        name="compromiso_avance",
+    ),
+    path(
+        "compromisos/<int:pk>/historial/",
+        views.compromiso_historial,
+        name="compromiso_historial",
+    ),
+
     path("", views.inicio, name="home_gestion"),
 ]

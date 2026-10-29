@@ -353,6 +353,18 @@ def servicio_cambiar_estado(request, pk):
     )
 
     if servicio.activo:
+        # Un servicio con compromisos activos no puede darse de baja:
+        # primero hay que reasignarlos o desactivarlos. La comprobación
+        # se hace en el servidor para que no dependa del formulario.
+        if servicio.compromisos.filter(activo=True).exists():
+            messages.error(
+                request,
+                "No se puede dar de baja el servicio porque tiene "
+                "compromisos activos asignados. Reasígnelos o "
+                "desactívelos primero.",
+            )
+            return redirect("delegacion_detalle", pk=servicio.delegacion_id)
+
         servicio.activo = False
         servicio.save(update_fields=["activo"])
 
