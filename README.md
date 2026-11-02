@@ -31,8 +31,15 @@ modificar y dar de baja) se realiza desde interfaces propias.
 
 ### Mantenedores
 
-Todos incluyen **crear, buscar, listar, modificar, dar de baja y reactivar**.
-Ningún registro se elimina definitivamente: la baja es lógica y reversible.
+Los mantenedores de **Delegaciones, Servicios, Compromisos, Catálogo, Metas,
+Detalles de período y Usuarios** incluyen crear, buscar, listar, modificar, dar
+de baja y reactivar. Ningún registro se elimina definitivamente: la baja es
+lógica y reversible.
+
+> **Sobre el requisito "Eliminar" de la pauta:** se implementa como **baja
+> lógica**. El registro desaparece del listado de activos, se conserva en la base
+> de datos con `activo=False` y puede reactivarse. Esto evita perder trazabilidad
+> y respeta la integridad referencial (`PROTECT`) del sistema.
 
 | Módulo | Ruta | Detalle |
 |---|---|---|
@@ -42,6 +49,7 @@ Ningún registro se elimina definitivamente: la baja es lógica y reversible.
 | Catálogo de Actividades | `/maestros/catalogo/` | Búsqueda por código, nombre, área o descripción |
 | Metas | `/maestros/metas/` | Búsqueda por código, nombre, período o actividad |
 | Detalles de período | `/maestros/detalle-periodos/` | Baja lógica; bloqueado en períodos cerrados |
+| Períodos de medición | `/maestros/periodos/` | Alta y edición; el cierre del período bloquea sus detalles |
 | Usuarios | `/seguridad/usuarios/` | Baja lógica y reactivación |
 | Roles | `/seguridad/roles/` | Los roles se conservan; no se borran |
 
@@ -176,25 +184,71 @@ semáforo, cierre de `/admin/` y las dos transacciones atómicas de la Fase 4
 
 ## Autoría por Módulo
 
+La pauta exige, para un trabajo de **dos integrantes**, un mínimo de **cuatro
+mantenedores y dos transacciones**. El proyecto entrega **siete mantenedores
+completos y dos transacciones atómicas**, distribuidas así:
+
 | Módulo / Transacción | Responsable |
 |---|---|
 | Delegaciones y Servicios | Integrante 1 |
 | Compromisos del Tubo de Gestión | Integrante 1 |
+| **T1: Asignación de compromisos a delegación y servicio** | Integrante 1 |
 | Catálogo de Actividades | Integrante 2 |
 | Metas y Detalles de período | Integrante 2 |
+| **T2: Registro de avance con evidencia** | Integrante 2 |
+| Usuarios, Roles y Perfiles (transversal) | Ambos integrantes |
 
-> Completar los nombres de los integrantes en la portada del informe. La
-> distribución anterior respeta el mínimo de **dos mantenedores por integrante**
-> exigido por la pauta.
+> Completar los nombres reales en la portada del informe y en esta tabla.
+
+### Cobertura de la pauta
+
+| Requisito de la pauta (2 integrantes) | Mínimo | Entregado |
+|---|---|---|
+| Mantenedores completos | 4 | **7** |
+| Transacciones operacionales | 2 | **2** |
+| Perfiles de usuario | 3 | **3** |
+| Dashboards diferenciados | 3 | **3** |
+
+## Cuentas de Demostración
+
+| Perfil | Usuario (login) | Delegación | Acceso |
+|---|---|---|---|
+| Administrador | `Sroot` | — (visión global) | Total |
+| Supervisor | `21.345.678-4` | Delegación Centro | Intermedio |
+| Administrativo | `22.456.789-8` | Delegación Av. del Mar | Mínimo |
+
+- El ingreso es en `/seguridad/login/` con **RUT (con o sin puntos), usuario o
+  correo**.
+- **Las contraseñas no se publican en el repositorio.** Se entregan de forma
+  privada y se muestran durante la revisión presencial.
+- Las cuentas demo son cuentas reales con permisos reales; al término de la
+  evaluación deben cambiarse sus contraseñas o darse de baja lógica.
 
 ## Evidencia de IA
 
-El proyecto fue desarrollado con apoyo de herramientas de IA (OpenCode) para
-revisión de seguridad, diseño de la baja lógica, construcción de los
-mantenedores, redacción de pruebas automatizadas y resolución de errores de
-despliegue en AWS. Las decisiones técnicas fueron revisadas y validadas contra
-la pauta y el entorno real; la IA se documenta como evidencia de apoyo y no
-reemplaza los mecanismos nativos de Django.
+El proyecto fue desarrollado con apoyo de herramientas de IA (**OpenCode**) usadas
+como asistente técnico: revisión de seguridad, diseño de la baja lógica,
+construcción de los mantenedores, redacción de pruebas automatizadas y resolución
+de errores de despliegue en AWS.
+
+Las respuestas de la IA fueron **revisadas, corregidas y validadas** contra la
+pauta y contra el entorno real (Django 5.2 en local, Django 4.2 en el servidor).
+La IA se documenta como evidencia de apoyo y **no reemplaza** los mecanismos
+nativos de Django (autenticación, permisos, formularios, ORM y migraciones).
+
+### Prompts representativos y su aplicación
+
+| Área | Prompt (resumen) | Aplicación en el proyecto |
+|---|---|---|
+| Seguridad | "Revisa el repositorio y detecta secretos o llaves expuestas" | Rotación de la llave SSH, `.gitignore` ampliado y `SECURITY.md` |
+| Perfiles | "Consolida 6 roles históricos en 3 perfiles sin perder usuarios" | Migración `0002_perfiles_acceso` y `seguridadAPP/roles.py` |
+| Recuperación | "Implementa recuperación de contraseña con el flujo nativo de Django y SMTP" | 4 vistas, 7 plantillas y límite de solicitudes por IP |
+| Baja lógica | "Ningún registro debe borrarse; solo desactivarse y reactivarse" | Campos `activo`, guardas de baja y pruebas por mantenedor |
+| Fase 4 | "Implementa dos transacciones atómicas con `select_for_update` sobre `Compromiso`" | `compromiso_asignar` y `compromiso_avance`, con reversión total ante fallo |
+| Pruebas | "Escribe pruebas de atomicidad que fallen después de la primera escritura" | 167 pruebas, incluidas las de rollback de T1 y T2 |
+
+> En el documento técnico se incluyen los prompts completos, extractos de las
+> respuestas y las capturas de la aplicación resultante.
 
 ---
 
