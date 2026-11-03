@@ -183,9 +183,23 @@ en vivo:
 
 ## Instalación y Despliegue Local
 
-1. Clonar el repositorio:
+**Requisitos previos:** Git, Python 3.13 y un servidor MySQL 8 o MariaDB 10.5+
+instalado y en ejecución (por ejemplo, MariaDB Community Server o XAMPP en
+Windows).
+
+0. Crear la base de datos y su usuario (en la consola de MySQL/MariaDB):
+   ```sql
+   CREATE DATABASE evaluacion_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+   CREATE USER 'usuario'@'localhost' IDENTIFIED BY 'clave';
+   GRANT ALL PRIVILEGES ON evaluacion_db.* TO 'usuario'@'localhost';
+   -- Solo para ejecutar las pruebas (crean una base test_evaluacion_db):
+   GRANT ALL PRIVILEGES ON test_evaluacion_db.* TO 'usuario'@'localhost';
+   FLUSH PRIVILEGES;
+   ```
+1. Clonar el repositorio y entrar a la carpeta:
    ```bash
    git clone https://github.com/IgnacioF22777/Eva-Back-end.git
+   cd Eva-Back-end
    ```
 2. Crear y activar el entorno virtual:
    ```bash
@@ -201,7 +215,7 @@ en vivo:
    5.2.19). Si el entorno tiene otra versión instalada, `manage.py check`,
    `runserver`, `migrate` y las pruebas lo advierten (`sgr.W002`), sin
    detener la aplicación.
-4. Crear el archivo `.env`:
+4. Crear el archivo `.env` en la carpeta del proyecto (junto a `manage.py`):
    ```
    SECRET_KEY=tu_clave_secreta
    DB_NAME=evaluacion_db
@@ -209,8 +223,13 @@ en vivo:
    DB_PASSWORD=clave
    DB_HOST=127.0.0.1
    DB_PORT=3306
-   DEBUG=False
+   DEBUG=True
    ```
+   En un equipo local se usa `DEBUG=True`: con `DEBUG=False`, `runserver` no
+   entrega los archivos estáticos y la página se ve sin estilos de Bootstrap.
+   En el servidor de producción va `DEBUG=False` (Nginx entrega los
+   estáticos). Sin las variables `EMAIL_*`, los correos de recuperación de
+   contraseña se muestran en la consola en lugar de enviarse.
 5. Aplicar migraciones y cargar datos:
    ```bash
    python manage.py migrate
@@ -220,7 +239,14 @@ en vivo:
    ```bash
    python manage.py crear_roles
    ```
-7. Ejecutar el servidor de desarrollo:
+7. Crear el primer usuario (superusuario = perfil Administrador). Sin este
+   paso la base no tiene usuarios y nadie puede iniciar sesión:
+   ```bash
+   python manage.py createsuperuser
+   ```
+   Desde su panel se crean los demás usuarios con RUT, delegación y perfil.
+8. Ejecutar el servidor de desarrollo y abrir
+   `http://127.0.0.1:8000/seguridad/login/`:
    ```bash
    python manage.py runserver
    ```

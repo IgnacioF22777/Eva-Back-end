@@ -29,3 +29,6 @@ staticfiles/
 
 # Archivos subidos por los usuarios (evidencias de avances)
 media/
+
+# Documentos privados (manuales con credenciales): NUNCA deben versionarse.
+privado/
