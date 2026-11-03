@@ -174,8 +174,8 @@ en vivo:
 
 ## Stack Tecnológico
 
-- **Lenguaje:** Python 3.9+
-- **Framework:** Django 4.2
+- **Lenguaje:** Python 3.13
+- **Framework:** Django 5.2 LTS (soporte de seguridad hasta abril de 2028)
 - **Servidor Web:** Nginx + Gunicorn
 - **Base de Datos:** MySQL / MariaDB
 - **Infraestructura:** AWS EC2 (Amazon Linux 2023)
@@ -197,8 +197,8 @@ en vivo:
    ```bash
    pip install -r requirements.txt
    ```
-   `requirements.txt` refleja lo que corre en la EC2 (Python 3.9, Django
-   4.2.30). Si el entorno tiene otra versión instalada, `manage.py check`,
+   `requirements.txt` refleja lo que corre en la EC2 (Python 3.13, Django
+   5.2.19). Si el entorno tiene otra versión instalada, `manage.py check`,
    `runserver`, `migrate` y las pruebas lo advierten (`sgr.W002`), sin
    detener la aplicación.
 4. Crear el archivo `.env`:
@@ -241,9 +241,8 @@ ponderaciones, días computables, Períodos y Cargos, y `tubo_gestionAPP/test_am
 delegación, los límites de largo de texto y los archivos adjuntos (límites,
 extensiones bloqueadas, limpieza ante reversión y descarga protegida).
 
-- **167 pruebas en verde** en local (Django 5.2).
-- **154 pruebas en verde** en el servidor con Django 4.2 para los módulos
-  `tubo_gestionAPP`, `delegacionesAPP` y `seguridadAPP`.
+- **242 pruebas en verde** en local y en el servidor, con Python 3.13 y
+  Django 5.2.19; en el servidor se ejecutan contra MariaDB 10.5.
 - Verificación de extremo a extremo con los tres perfiles en producción,
   ejecutada dentro de una transacción revertida para no dejar datos de prueba.
 
@@ -261,6 +260,8 @@ extensiones bloqueadas, limpieza ante reversión y descarga protegida).
 ## Despliegue en AWS
 
 - Instancia EC2 con Amazon Linux 2023.
+- Python 3.13 (paquete `python3.13` de Amazon Linux) en el entorno virtual
+  `venv313`. El Python 3.9 del sistema se conserva porque lo usa `dnf`.
 - Gunicorn como servidor de aplicación sobre socket Unix.
 - Nginx como proxy inverso, con `X-Real-IP` para el control de solicitudes.
 - MariaDB escuchando solo en `127.0.0.1`.
@@ -315,7 +316,7 @@ construcción de los mantenedores, redacción de pruebas automatizadas y resoluc
 de errores de despliegue en AWS.
 
 Las respuestas de la IA fueron **revisadas, corregidas y validadas** contra la
-pauta y contra el entorno real (Django 5.2 en local, Django 4.2 en el servidor).
+pauta y contra el entorno real (Python 3.13 y Django 5.2 tanto en local como en el servidor).
 La IA se documenta como evidencia de apoyo y **no reemplaza** los mecanismos
 nativos de Django (autenticación, permisos, formularios, ORM y migraciones).
 
