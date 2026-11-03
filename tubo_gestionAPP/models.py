@@ -1,7 +1,20 @@
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.core.validators import MaxValueValidator, MinValueValidator
+from django.core.validators import (
+    MaxLengthValidator,
+    MaxValueValidator,
+    MinValueValidator,
+)
 from django.db import models
+
+from .adjuntos import ruta_adjunto, validar_archivo_adjunto
+
+
+# Largo máximo de los campos de texto libre. TextField no aplica el límite
+# por sí solo: se declara max_length (formulario y maxlength del HTML) y
+# MaxLengthValidator (validación del modelo).
+MAX_OBSERVACION = 1000
+MAX_EVIDENCIA = 2000
 
 
 class Compromiso(models.Model):
@@ -170,6 +183,8 @@ class AsignacionCompromiso(models.Model):
 
     observacion = models.TextField(
         blank=True,
+        max_length=MAX_OBSERVACION,
+        validators=[MaxLengthValidator(MAX_OBSERVACION)],
         verbose_name="Observación",
     )
 
@@ -239,6 +254,8 @@ class RegistroAvance(models.Model):
     )
 
     evidencia = models.TextField(
+        max_length=MAX_EVIDENCIA,
+        validators=[MaxLengthValidator(MAX_EVIDENCIA)],
         verbose_name="Evidencia",
         help_text=(
             "Referencia verificable: acta, correo, fotografía, "
@@ -248,6 +265,8 @@ class RegistroAvance(models.Model):
 
     observacion = models.TextField(
         blank=True,
+        max_length=MAX_OBSERVACION,
+        validators=[MaxLengthValidator(MAX_OBSERVACION)],
         verbose_name="Observación",
     )
 
@@ -282,3 +301,56 @@ class RegistroAvance(models.Model):
             raise ValidationError({
                 "evidencia": "La evidencia del avance es obligatoria."
             })
+
+
+class AdjuntoAvance(models.Model):
+    """
+    Archivo que respalda un registro de avance (fotografía, acta en PDF,
+    planilla, etc.).
+
+    El archivo se guarda con un nombre aleatorio fuera de las carpetas
+    públicas; solo se descarga a través de una vista que exige sesión,
+    permiso y pertenecer a la delegación del compromiso.
+    """
+
+    registro = models.ForeignKey(
+        "RegistroAvance",
+        related_name="adjuntos",
+        on_delete=models.PROTECT,
+        verbose_name="Registro de avance",
+    )
+
+    archivo = models.FileField(
+        upload_to=ruta_adjunto,
+        max_length=255,
+        validators=[validar_archivo_adjunto],
+        verbose_name="Archivo",
+    )
+
+    nombre_original = models.CharField(
+        max_length=255,
+        verbose_name="Nombre del archivo",
+    )
+
+    tamano = models.PositiveBigIntegerField(
+        verbose_name="Tamaño (bytes)",
+    )
+
+    tipo_contenido = models.CharField(
+        max_length=100,
+        blank=True,
+        verbose_name="Tipo de contenido",
+    )
+
+    fecha_subida = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Fecha de subida",
+    )
+
+    class Meta:
+        verbose_name = "Adjunto de avance"
+        verbose_name_plural = "Adjuntos de avance"
+        ordering = ["pk"]
+
+    def __str__(self):
+        return self.nombre_original

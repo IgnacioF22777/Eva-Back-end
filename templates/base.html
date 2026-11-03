@@ -316,5 +316,71 @@
     <!-- BOOTSTRAP JAVASCRIPT -->
     <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
 
+    <!-- AYUDAS DE FORMULARIO -->
+    <!-- Solo informan al usuario antes de enviar: el servidor vuelve a
+         validar largo de textos y archivos en cualquier caso. -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function () {
+
+        // Contador de caracteres en los textos con largo máximo.
+        document.querySelectorAll("textarea[maxlength]").forEach(function (campo) {
+            var maximo = parseInt(campo.getAttribute("maxlength"), 10);
+            var contador = document.createElement("div");
+            contador.className = "form-text text-end";
+            campo.insertAdjacentElement("afterend", contador);
+
+            function actualizar() {
+                contador.textContent = campo.value.length + " / " + maximo + " caracteres";
+            }
+
+            campo.addEventListener("input", actualizar);
+            actualizar();
+        });
+
+        // Límites de cantidad y tamaño de los archivos adjuntos.
+        document.querySelectorAll("input[type=file][data-max-archivos]").forEach(function (campo) {
+            var maxArchivos = parseInt(campo.dataset.maxArchivos, 10);
+            var maxPorArchivo = parseInt(campo.dataset.maxBytesArchivo, 10);
+            var maxTotal = parseInt(campo.dataset.maxBytesTotal, 10);
+            var aviso = document.createElement("div");
+            aviso.className = "text-danger small mt-1";
+            campo.insertAdjacentElement("afterend", aviso);
+
+            function megas(bytes) {
+                return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+            }
+
+            campo.addEventListener("change", function () {
+                var archivos = Array.prototype.slice.call(campo.files);
+                var total = 0;
+                var error = "";
+
+                archivos.forEach(function (archivo) {
+                    total += archivo.size;
+                    if (!error && archivo.size > maxPorArchivo) {
+                        error = "«" + archivo.name + "» pesa " + megas(archivo.size) +
+                                " y el máximo por archivo es " + megas(maxPorArchivo) + ".";
+                    }
+                });
+
+                if (!error && archivos.length > maxArchivos) {
+                    error = "Puede adjuntar como máximo " + maxArchivos + " archivos.";
+                }
+                if (!error && total > maxTotal) {
+                    error = "Los archivos suman " + megas(total) +
+                            " y el máximo por avance es " + megas(maxTotal) + ".";
+                }
+
+                aviso.textContent = error;
+                if (error) {
+                    // Se descarta la selección para no enviar archivos que
+                    // el servidor rechazará.
+                    campo.value = "";
+                }
+            });
+        });
+    });
+    </script>
+
 </body>
 </html>

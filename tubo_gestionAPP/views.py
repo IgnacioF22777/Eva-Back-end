@@ -3,17 +3,59 @@ from django.contrib.auth.decorators import login_required, permission_required
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Count, Q
+from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from delegacionesAPP.models import Servicio
 
+from .ambito import (
+    SIN_DELEGACION,
+    compromisos_visibles,
+    delegacion_id_de,
+    es_global,
+    verificar_acceso_compromiso,
+    verificar_delegacion_destino,
+)
 from .forms import (
     AsignacionCompromisoForm,
     CompromisoForm,
     RegistroAvanceForm,
 )
-from .models import AsignacionCompromiso, Compromiso
+from .models import AdjuntoAvance, AsignacionCompromiso, Compromiso
+
+
+def resumen_semaforo(compromisos):
+    """Cantidad de compromisos activos por color, sin consultas por fila."""
+    resumen = {"verde": 0, "amarillo": 0, "rojo": 0}
+
+    for fila in compromisos.filter(activo=True).values(
+        "estado"
+    ).annotate(total=Count("pk")):
+        if fila["estado"] in resumen:
+            resumen[fila["estado"]] = fila["total"]
+
+    return resumen
+
+
+def obtener_compromiso(usuario, pk, queryset=None):
+    """Busca el compromiso y verifica que esté dentro del ámbito."""
+    if queryset is None:
+        queryset = Compromiso.objects.select_related("delegacion", "servicio")
+
+    compromiso = get_object_or_404(queryset, pk=pk)
+    verificar_acceso_compromiso(usuario, compromiso)
+
+    return compromiso
+
+
+def eliminar_archivos(storage, nombres):
+    """Borra del disco los archivos de una transacción que se revirtió."""
+    for nombre in nombres:
+        try:
+            storage.delete(nombre)
+        except OSError:
+            pass
 
 
 # ============================================================
@@ -27,9 +69,11 @@ def compromiso_lista(request):
     estado = request.GET.get("estado", "")
     situacion = request.GET.get("situacion", "activos")
 
-    compromisos = Compromiso.objects.select_related(
-        "delegacion", "servicio"
-    ).all()
+    # Ámbito territorial: cada perfil solo ve los compromisos de su
+    # delegación (el Administrador ve todos).
+    visibles = compromisos_visibles(request.user, Compromiso.objects.all())
+
+    compromisos = visibles.select_related("delegacion", "servicio")
 
     if busqueda:
         compromisos = compromisos.filter(
@@ -45,14 +89,6 @@ def compromiso_lista(request):
     elif situacion == "inactivos":
         compromisos = compromisos.filter(activo=False)
 
-    resumen = {"verde": 0, "amarillo": 0, "rojo": 0}
-
-    for fila in Compromiso.objects.filter(activo=True).values(
-        "estado"
-    ).annotate(total=Count("pk")):
-        if fila["estado"] in resumen:
-            resumen[fila["estado"]] = fila["total"]
-
     return render(
         request,
         "tubo_gestion/tablero_metas.html",
@@ -61,13 +97,14 @@ def compromiso_lista(request):
             "busqueda": busqueda,
             "estado": estado,
             "situacion": situacion,
-            "resumen": resumen,
-            "total_activos": Compromiso.objects.filter(
-                activo=True
-            ).count(),
-            "total_inactivos": Compromiso.objects.filter(
-                activo=False
-            ).count(),
+            "resumen": resumen_semaforo(visibles),
+            "total_activos": visibles.filter(activo=True).count(),
+            "total_inactivos": visibles.filter(activo=False).count(),
+            "sin_delegacion": (
+                not es_global(request.user)
+                and delegacion_id_de(request.user) is None
+            ),
+            "aviso_sin_delegacion": SIN_DELEGACION,
         },
     )
 
@@ -104,10 +141,7 @@ def compromiso_crear(request):
 @login_required
 @permission_required("tubo_gestionAPP.change_compromiso", raise_exception=True)
 def compromiso_editar(request, pk):
-    compromiso = get_object_or_404(
-        Compromiso.objects.select_related("delegacion"),
-        pk=pk,
-    )
+    compromiso = obtener_compromiso(request.user, pk)
 
     if request.method == "POST":
         form = CompromisoForm(request.POST, instance=compromiso)
@@ -140,7 +174,7 @@ def compromiso_editar(request, pk):
 @permission_required("tubo_gestionAPP.delete_compromiso", raise_exception=True)
 @require_POST
 def compromiso_cambiar_estado(request, pk):
-    compromiso = get_object_or_404(Compromiso, pk=pk)
+    compromiso = obtener_compromiso(request.user, pk, Compromiso.objects.all())
 
     compromiso.activo = not compromiso.activo
     compromiso.save(update_fields=["activo"])
@@ -182,13 +216,10 @@ def compromiso_asignar(request, pk):
     Si cualquier paso falla, la transacción se revierte completa y el
     compromiso queda exactamente como estaba.
     """
-    compromiso = get_object_or_404(
-        Compromiso.objects.select_related("delegacion", "servicio"),
-        pk=pk,
-    )
+    compromiso = obtener_compromiso(request.user, pk)
 
     if request.method == "POST":
-        form = AsignacionCompromisoForm(request.POST)
+        form = AsignacionCompromisoForm(request.POST, usuario=request.user)
 
         if form.is_valid():
             try:
@@ -197,6 +228,14 @@ def compromiso_asignar(request, pk):
                     # mismo compromiso a la vez se serializan aquí.
                     compromiso = Compromiso.objects.select_for_update().get(
                         pk=pk
+                    )
+
+                    # Con la fila bloqueada se repite el control de
+                    # ámbito: otro usuario pudo reasignarlo entre la carga
+                    # de la página y este POST.
+                    verificar_acceso_compromiso(request.user, compromiso)
+                    verificar_delegacion_destino(
+                        request.user, form.cleaned_data["delegacion"].pk
                     )
 
                     if not compromiso.activo:
@@ -260,7 +299,7 @@ def compromiso_asignar(request, pk):
                 )
                 return redirect("compromiso_historial", pk=compromiso.pk)
     else:
-        form = AsignacionCompromisoForm()
+        form = AsignacionCompromisoForm(usuario=request.user)
 
     return render(
         request,
@@ -289,26 +328,32 @@ def compromiso_avance(request, pk):
 
       1. se bloquea la fila del compromiso con SELECT ... FOR UPDATE,
       2. se valida que esté activo y con asignación vigente,
-      3. se guarda el registro de avance con su evidencia,
+      3. se guarda el registro de avance con su evidencia y sus archivos,
       4. se actualiza el cumplimiento y el semáforo del compromiso.
 
     El registro histórico nunca se modifica ni se elimina: cada avance
-    es una fila nueva.
+    es una fila nueva. Si la transacción se revierte, también se borran
+    del disco los archivos que alcanzaron a guardarse.
     """
-    compromiso = get_object_or_404(
-        Compromiso.objects.select_related("delegacion", "servicio"),
-        pk=pk,
-    )
+    compromiso = obtener_compromiso(request.user, pk)
 
     if request.method == "POST":
-        form = RegistroAvanceForm(request.POST)
+        form = RegistroAvanceForm(request.POST, request.FILES)
 
         if form.is_valid():
+            storage = AdjuntoAvance._meta.get_field("archivo").storage
+            guardados = []
+
             try:
                 with transaction.atomic():
                     compromiso = Compromiso.objects.select_for_update().get(
                         pk=pk
                     )
+
+                    # Con la fila bloqueada se repite el control de
+                    # ámbito: el compromiso pudo reasignarse a otra
+                    # delegación entre la carga de la página y este POST.
+                    verificar_acceso_compromiso(request.user, compromiso)
 
                     if not compromiso.activo:
                         raise ValidationError(
@@ -343,14 +388,32 @@ def compromiso_avance(request, pk):
                     registro.usuario_registro = request.user
                     registro.save()
 
+                    for archivo in form.cleaned_data["adjuntos"]:
+                        adjunto = AdjuntoAvance(
+                            registro=registro,
+                            nombre_original=archivo.name,
+                            tamano=archivo.size,
+                            tipo_contenido=(
+                                getattr(archivo, "content_type", "") or ""
+                            )[:100],
+                        )
+                        adjunto.archivo.save(archivo.name, archivo, save=False)
+                        guardados.append(adjunto.archivo.name)
+                        adjunto.save()
+
                     compromiso.cumplimiento = registro.porcentaje_avance
                     compromiso.save(
                         update_fields=["cumplimiento", "estado"]
                     )
 
             except ValidationError as error:
+                eliminar_archivos(storage, guardados)
+
                 for mensaje in error.messages:
                     form.add_error(None, mensaje)
+            except BaseException:
+                eliminar_archivos(storage, guardados)
+                raise
             else:
                 messages.success(
                     request,
@@ -389,16 +452,15 @@ def compromiso_historial(request, pk):
     avances, del más reciente al más antiguo. No permite modificar ni
     eliminar nada.
     """
-    compromiso = get_object_or_404(
-        Compromiso.objects.select_related("delegacion", "servicio"),
-        pk=pk,
-    )
+    compromiso = obtener_compromiso(request.user, pk)
 
     asignaciones = compromiso.asignaciones.select_related(
         "delegacion", "servicio", "usuario_asignador"
     )
 
-    avances = compromiso.avances.select_related("usuario_registro")
+    avances = compromiso.avances.select_related(
+        "usuario_registro"
+    ).prefetch_related("adjuntos")
 
     return render(
         request,
@@ -409,6 +471,34 @@ def compromiso_historial(request, pk):
             "avances": avances,
             "asignacion_actual": asignaciones.filter(activo=True).first(),
         },
+    )
+
+
+@login_required
+@permission_required("tubo_gestionAPP.view_registroavance", raise_exception=True)
+def adjunto_descargar(request, pk):
+    """
+    Entrega un archivo adjunto solo a quien puede ver el compromiso.
+
+    Se fuerza la descarga (Content-Disposition: attachment) con el nombre
+    original, para que el navegador nunca interprete el archivo como una
+    página del sitio.
+    """
+    adjunto = get_object_or_404(
+        AdjuntoAvance.objects.select_related("registro__compromiso"),
+        pk=pk,
+    )
+    verificar_acceso_compromiso(request.user, adjunto.registro.compromiso)
+
+    try:
+        archivo = adjunto.archivo.open("rb")
+    except (FileNotFoundError, OSError):
+        raise Http404("El archivo ya no se encuentra en el servidor.")
+
+    return FileResponse(
+        archivo,
+        as_attachment=True,
+        filename=adjunto.nombre_original,
     )
 
 
@@ -423,13 +513,9 @@ tablero_metas = compromiso_lista
 @login_required
 @permission_required("tubo_gestionAPP.view_compromiso", raise_exception=True)
 def inicio(request):
-    resumen = {"verde": 0, "amarillo": 0, "rojo": 0}
-
-    for fila in Compromiso.objects.filter(activo=True).values(
-        "estado"
-    ).annotate(total=Count("pk")):
-        if fila["estado"] in resumen:
-            resumen[fila["estado"]] = fila["total"]
+    resumen = resumen_semaforo(
+        compromisos_visibles(request.user, Compromiso.objects.all())
+    )
 
     return render(
         request,

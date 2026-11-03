@@ -14,6 +14,10 @@ Acceso denegado
 
         <h2 class="h4 mb-3">No tiene permisos para acceder a esta sección</h2>
 
+        {% if exception %}
+            <div class="alert alert-warning">{{ exception }}</div>
+        {% endif %}
+
         <p class="text-muted">
             Su rol no permite realizar esta operación.
             Si cree que es un error, contacte al administrador del sistema.

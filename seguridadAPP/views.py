@@ -19,6 +19,7 @@ from django.views.decorators.http import require_POST
 
 from delegacionesAPP.models import Delegacion, Servicio
 from sgr_maestrosAPP.models import CatalogoActividad, Meta, Periodo
+from tubo_gestionAPP.ambito import compromisos_visibles
 from tubo_gestionAPP.models import Compromiso
 
 from .perfiles import (
@@ -630,10 +631,11 @@ def panel_supervisor(request):
     contexto = datos_personales(request.user)
     delegacion = contexto["delegacion_usuario"]
 
-    compromisos = Compromiso.objects.filter(activo=True)
-
-    if delegacion:
-        compromisos = compromisos.filter(delegacion=delegacion)
+    # Mismo ámbito que el tablero: su delegación y los compromisos aún
+    # sin asignar. Sin delegación asignada no ve compromisos.
+    compromisos = compromisos_visibles(
+        request.user, Compromiso.objects.filter(activo=True)
+    )
 
     contexto.update({
         "compromisos": resumen_compromisos(compromisos),
@@ -664,12 +666,11 @@ def panel_supervisor(request):
 @perfil_requerido(ADMINISTRATIVO)
 def panel_administrativo(request):
     contexto = datos_personales(request.user)
-    delegacion = contexto["delegacion_usuario"]
 
-    compromisos = Compromiso.objects.filter(activo=True)
-
-    if delegacion:
-        compromisos = compromisos.filter(delegacion=delegacion)
+    # Solo los compromisos de su delegación.
+    compromisos = compromisos_visibles(
+        request.user, Compromiso.objects.filter(activo=True)
+    )
 
     contexto.update({
         "compromisos": resumen_compromisos(compromisos),

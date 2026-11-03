@@ -7,11 +7,13 @@ from django.contrib.auth.forms import (
 )
 from django.contrib.auth.models import Group, Permission
 from django.core.exceptions import ValidationError
+from django.db.models import Q
 
 from delegacionesAPP.models import Delegacion
 from tubo_gestionAPP.validadores import validar_rut_chileno
 
 from .models import PerfilUsuario, normalizar_rut
+from .perfiles import ADMINISTRADOR
 from .roles import APPS_CON_PERMISOS, PERFILES
 
 
@@ -90,6 +92,10 @@ class UsuarioForm(forms.ModelForm):
         queryset=Delegacion.objects.all(),
         required=False,
         empty_label="Sin delegación asignada",
+        help_text=(
+            "Obligatoria para Supervisor y Administrativo: solo verán y "
+            "operarán los compromisos de esta delegación."
+        ),
         widget=forms.Select(attrs={
             "class": "form-select",
         })
@@ -190,6 +196,18 @@ class UsuarioForm(forms.ModelForm):
             "password1", "password2", "is_active",
         ])
 
+        # Solo se ofrecen delegaciones activas; al editar se conserva la
+        # delegación actual aunque se haya dado de baja.
+        delegaciones = Q(activo=True)
+        perfil_actual = getattr(self.instance, "perfil", None)
+
+        if not self.es_nuevo and perfil_actual and perfil_actual.delegacion_id:
+            delegaciones |= Q(pk=perfil_actual.delegacion_id)
+
+        self.fields["delegacion"].queryset = Delegacion.objects.filter(
+            delegaciones
+        ).order_by("nombre")
+
         if self.es_nuevo:
             self.initial.setdefault("is_active", True)
         else:
@@ -287,6 +305,25 @@ class UsuarioForm(forms.ModelForm):
 
     def clean(self):
         cleaned_data = super().clean()
+
+        # Ámbito territorial: el Supervisor y el Administrativo solo
+        # operan los compromisos de su delegación, por lo que deben
+        # tener una asignada. El Administrador tiene visión global.
+        grupos = cleaned_data.get("groups")
+
+        if grupos is not None and not self.instance.is_superuser:
+            nombres = {grupo.name for grupo in grupos}
+            perfil = next((p for p in PERFILES if p in nombres), None)
+
+            if (
+                perfil is not None
+                and perfil != ADMINISTRADOR
+                and not cleaned_data.get("delegacion")
+            ):
+                self.add_error(
+                    "delegacion",
+                    f"El perfil {perfil} debe tener una delegación asignada."
+                )
 
         password1 = cleaned_data.get("password1")
         password2 = cleaned_data.get("password2")

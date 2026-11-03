@@ -144,6 +144,22 @@ STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 
+
+# Archivos adjuntos (evidencias de los avances)
+# Se guardan en MEDIA_ROOT, que NO se publica en Nginx ni tiene MEDIA_URL
+# en las rutas: cada descarga pasa por una vista que exige sesión, permiso
+# y pertenecer a la delegación del compromiso.
+
+MEDIA_ROOT = Path(os.getenv("MEDIA_ROOT", BASE_DIR / "media"))
+
+ADJUNTOS_MAX_ARCHIVOS = int(os.getenv("ADJUNTOS_MAX_ARCHIVOS", "5"))
+ADJUNTOS_MAX_MB_POR_ARCHIVO = int(os.getenv("ADJUNTOS_MAX_MB_POR_ARCHIVO", "10"))
+ADJUNTOS_MAX_MB_TOTAL = int(os.getenv("ADJUNTOS_MAX_MB_TOTAL", "25"))
+
+# Los archivos quedan legibles solo por el usuario del servicio.
+FILE_UPLOAD_PERMISSIONS = 0o640
+FILE_UPLOAD_DIRECTORY_PERMISSIONS = 0o750
+
 # Email
 # https://docs.djangoproject.com/en/4.2/topics/email/
 # Django 4.2 usa EMAIL_BACKEND (no existe la opción "MAILERS").

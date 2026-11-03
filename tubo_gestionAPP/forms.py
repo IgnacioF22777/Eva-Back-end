@@ -1,9 +1,58 @@
 from django import forms
 from django.core.exceptions import ValidationError
 
+from django.template.defaultfilters import filesizeformat
+
 from delegacionesAPP.models import Delegacion, Servicio
 
+from . import adjuntos as reglas_adjuntos
+from .ambito import delegacion_id_de, es_global
 from .models import AsignacionCompromiso, Compromiso, RegistroAvance
+
+
+class EntradaVariosArchivos(forms.FileInput):
+    """Input de archivo que permite seleccionar varios a la vez."""
+
+    allow_multiple_selected = True
+
+
+class CampoVariosArchivos(forms.FileField):
+    """
+    Campo que devuelve una lista de archivos (vacía si no se adjunta
+    ninguno). Cada archivo se valida por separado y luego el conjunto.
+    """
+
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("widget", EntradaVariosArchivos())
+        super().__init__(*args, **kwargs)
+
+    def clean(self, data, initial=None):
+        if not data:
+            data = []
+        elif not isinstance(data, (list, tuple)):
+            data = [data]
+
+        archivos = [super(CampoVariosArchivos, self).clean(item, initial)
+                    for item in data]
+        archivos = [archivo for archivo in archivos if archivo]
+
+        errores = []
+
+        for archivo in archivos:
+            try:
+                reglas_adjuntos.validar_archivo_adjunto(archivo)
+            except ValidationError as error:
+                errores.extend(error.messages)
+
+        try:
+            reglas_adjuntos.validar_conjunto_adjuntos(archivos)
+        except ValidationError as error:
+            errores.extend(error.messages)
+
+        if errores:
+            raise ValidationError(errores)
+
+        return archivos
 
 
 class CompromisoForm(forms.ModelForm):
@@ -88,10 +137,10 @@ class AsignacionCompromisoForm(forms.ModelForm):
             "observacion": "Observación (opcional)",
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, usuario=None, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.fields["delegacion"].queryset = Delegacion.objects.filter(
+        delegaciones = Delegacion.objects.filter(
             activo=True
         ).order_by("nombre")
 
@@ -101,6 +150,16 @@ class AsignacionCompromisoForm(forms.ModelForm):
         ).select_related("delegacion").order_by(
             "delegacion__nombre", "nombre"
         )
+
+        # Ámbito territorial: sin visión global solo se ofrece la
+        # delegación propia (y sus servicios). Una delegación ajena
+        # enviada a mano queda como "opción no válida".
+        if usuario is not None and not es_global(usuario):
+            propia = delegacion_id_de(usuario)
+            delegaciones = delegaciones.filter(pk=propia)
+            servicios = servicios.filter(delegacion_id=propia)
+
+        self.fields["delegacion"].queryset = delegaciones
 
         delegacion_id = None
 
@@ -195,6 +254,30 @@ class RegistroAvanceForm(forms.ModelForm):
             "evidencia": "Evidencia",
             "observacion": "Observación (opcional)",
         }
+
+    adjuntos = CampoVariosArchivos(
+        label="Archivos de respaldo (opcional)",
+        required=False,
+        help_text=(
+            f"Cualquier tipo de archivo: fotografías, PDF, planillas, "
+            f"documentos, etc. Máximo {reglas_adjuntos.MAX_ARCHIVOS} archivos, "
+            f"{filesizeformat(reglas_adjuntos.MAX_BYTES_POR_ARCHIVO)} por archivo "
+            f"y {filesizeformat(reglas_adjuntos.MAX_BYTES_TOTAL)} en total. No se "
+            f"aceptan ejecutables ni scripts."
+        ),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Datos que usa el navegador para avisar antes de enviar.
+        self.fields["adjuntos"].widget.attrs.update({
+            "class": "form-control",
+            "multiple": True,
+            "data-max-archivos": reglas_adjuntos.MAX_ARCHIVOS,
+            "data-max-bytes-archivo": reglas_adjuntos.MAX_BYTES_POR_ARCHIVO,
+            "data-max-bytes-total": reglas_adjuntos.MAX_BYTES_TOTAL,
+        })
 
     def clean_evidencia(self):
         evidencia = (self.cleaned_data.get("evidencia") or "").strip()

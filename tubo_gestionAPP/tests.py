@@ -127,7 +127,7 @@ class PlanPruebasUnitariasSGR(SimpleTestCase):
 CLAVE = "ClaveSegura#2026"
 
 
-def crear_usuario(rut, email, rol):
+def crear_usuario(rut, email, rol, delegacion=None):
     from django.contrib.auth import get_user_model
 
     User = get_user_model()
@@ -137,7 +137,11 @@ def crear_usuario(rut, email, rol):
         email=email,
         password=CLAVE,
     )
-    PerfilUsuario.objects.create(usuario=usuario, rut=normalizar_rut(rut))
+    PerfilUsuario.objects.create(
+        usuario=usuario,
+        rut=normalizar_rut(rut),
+        delegacion=delegacion,
+    )
     usuario.groups.add(Group.objects.get(name=rol))
 
     return usuario
@@ -166,15 +170,6 @@ class PruebasCompromisos(TestCase):
     def setUpTestData(cls):
         sincronizar_roles()
 
-        cls.admin = crear_usuario(
-            "11.111.111-1", "admin@laserena.cl", ADMINISTRADOR
-        )
-        cls.supervisor = crear_usuario(
-            "12.345.678-5", "supervisor@laserena.cl", SUPERVISOR
-        )
-        cls.administrativo = crear_usuario(
-            "22.222.222-2", "administrativo@laserena.cl", ADMINISTRATIVO
-        )
         cls.centro = Delegacion.objects.create(
             nombre="Delegación Centro",
             direccion="Av. Principal 123",
@@ -190,6 +185,18 @@ class PruebasCompromisos(TestCase):
             email="rural@laserena.cl",
             telefono="51 2 000 001",
             celular="",
+        )
+
+        cls.admin = crear_usuario(
+            "11.111.111-1", "admin@laserena.cl", ADMINISTRADOR
+        )
+        cls.supervisor = crear_usuario(
+            "12.345.678-5", "supervisor@laserena.cl", SUPERVISOR,
+            delegacion=cls.centro,
+        )
+        cls.administrativo = crear_usuario(
+            "22.222.222-2", "administrativo@laserena.cl", ADMINISTRATIVO,
+            delegacion=cls.centro,
         )
 
     def crear_compromiso(self, tarea="Mejorar luminarias", **cambios):
@@ -379,7 +386,7 @@ class PruebasCompromisos(TestCase):
         self.crear_compromiso(
             tarea="Ampliar sede vecinal", delegacion=self.rural
         )
-        self.client.force_login(self.supervisor)
+        self.client.force_login(self.admin)
 
         respuesta = self.client.get(
             reverse("compromiso_lista"), {"q": "luminarias"}
@@ -487,16 +494,6 @@ class PruebasFase4Transacciones(TestCase):
     def setUpTestData(cls):
         sincronizar_roles()
 
-        cls.admin = crear_usuario(
-            "13.333.333-3", "admin.f4@laserena.cl", ADMINISTRADOR
-        )
-        cls.supervisor = crear_usuario(
-            "14.444.444-4", "supervisor.f4@laserena.cl", SUPERVISOR
-        )
-        cls.administrativo = crear_usuario(
-            "15.555.555-5", "administrativo.f4@laserena.cl", ADMINISTRATIVO
-        )
-
         cls.centro = Delegacion.objects.create(
             nombre="Delegación Centro F4",
             direccion="Av. Principal 500",
@@ -526,6 +523,18 @@ class PruebasFase4Transacciones(TestCase):
             delegacion=cls.centro,
             nombre="Servicio dado de baja",
             activo=False,
+        )
+
+        cls.admin = crear_usuario(
+            "13.333.333-3", "admin.f4@laserena.cl", ADMINISTRADOR
+        )
+        cls.supervisor = crear_usuario(
+            "14.444.444-4", "supervisor.f4@laserena.cl", SUPERVISOR,
+            delegacion=cls.centro,
+        )
+        cls.administrativo = crear_usuario(
+            "15.555.555-5", "administrativo.f4@laserena.cl", ADMINISTRATIVO,
+            delegacion=cls.centro,
         )
 
     def setUp(self):
@@ -583,7 +592,8 @@ class PruebasFase4Transacciones(TestCase):
         self.assertEqual(self.compromiso.asignaciones.count(), 1)
 
     def test_reasignar_desactiva_la_anterior_sin_borrarla(self):
-        self.client.force_login(self.supervisor)
+        # Reasignar a otra delegación requiere visión global.
+        self.client.force_login(self.admin)
 
         self.client.post(
             self.url("compromiso_asignar"),
@@ -771,6 +781,9 @@ class PruebasFase4Transacciones(TestCase):
         self.assertEqual(self.compromiso.cumplimiento, 80)
 
     def test_avance_exige_asignacion_vigente(self):
+        # Compromiso de su delegación, pero sin asignación vigente.
+        self.compromiso.delegacion = self.centro
+        self.compromiso.save()
         self.client.force_login(self.administrativo)
 
         respuesta = self.client.post(

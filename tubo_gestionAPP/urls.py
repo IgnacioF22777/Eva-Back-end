@@ -50,5 +50,12 @@ urlpatterns = [
         name="compromiso_historial",
     ),
 
+    # Descarga protegida de los archivos adjuntos de un avance
+    path(
+        "adjuntos/<int:pk>/descargar/",
+        views.adjunto_descargar,
+        name="adjunto_descargar",
+    ),
+
     path("", views.inicio, name="home_gestion"),
 ]

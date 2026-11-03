@@ -21,6 +21,13 @@ Panel Administrativo
 
 {% include 'seguridad/_mensajes.html' %}
 
+{% if not delegacion_usuario %}
+    <div class="alert alert-warning">
+        Su usuario no tiene una delegación asignada, por lo que no verá
+        compromisos. Solicite al administrador que complete su perfil.
+    </div>
+{% endif %}
+
 <div class="row g-4">
 
     <!-- DATOS DEL FUNCIONARIO -->

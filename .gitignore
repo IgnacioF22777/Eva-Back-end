@@ -25,3 +25,6 @@ __pycache__/
 
 # Salida de collectstatic (se genera en cada despliegue)
 staticfiles/
+
+# Archivos subidos por los usuarios (evidencias de avances)
+media/

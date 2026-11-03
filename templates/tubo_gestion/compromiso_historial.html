@@ -171,6 +171,7 @@ Historial del compromiso
                     <th>Fecha</th>
                     <th class="text-center">Avance</th>
                     <th>Evidencia</th>
+                    <th>Archivos</th>
                     <th>Observación</th>
                     <th>Registrado por</th>
                 </tr>
@@ -185,15 +186,27 @@ Historial del compromiso
                         <td class="text-center fw-semibold">
                             {{ avance.porcentaje_avance }}%
                         </td>
-                        <td class="small">{{ avance.evidencia }}</td>
-                        <td class="small">{{ avance.observacion|default:"—" }}</td>
+                        <td class="small text-break">{{ avance.evidencia|linebreaksbr }}</td>
+                        <td class="small">
+                            {% for adjunto in avance.adjuntos.all %}
+                                <div class="text-nowrap">
+                                    <a href="{% url 'adjunto_descargar' adjunto.pk %}">
+                                        {{ adjunto.nombre_original|truncatechars:40 }}
+                                    </a>
+                                    <span class="text-muted">({{ adjunto.tamano|filesizeformat }})</span>
+                                </div>
+                            {% empty %}
+                                —
+                            {% endfor %}
+                        </td>
+                        <td class="small text-break">{{ avance.observacion|default:"—"|linebreaksbr }}</td>
                         <td>
                             {{ avance.usuario_registro.get_full_name|default:avance.usuario_registro.username }}
                         </td>
                     </tr>
                 {% empty %}
                     <tr>
-                        <td colspan="5" class="text-center text-muted py-4">
+                        <td colspan="6" class="text-center text-muted py-4">
                             Este compromiso todavía no tiene avances
                             registrados.
                         </td>

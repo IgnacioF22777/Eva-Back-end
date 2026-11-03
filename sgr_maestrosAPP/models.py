@@ -3,7 +3,18 @@ from decimal import Decimal
 
 from django.db import models
 from django.core.exceptions import ValidationError
-from django.core.validators import MinValueValidator, MaxValueValidator
+from django.core.validators import (
+    MaxLengthValidator,
+    MaxValueValidator,
+    MinValueValidator,
+)
+
+
+# Largo máximo de los campos de texto libre. TextField no aplica el
+# límite por sí solo: se declara max_length (formulario y maxlength del
+# HTML) y MaxLengthValidator (validación del modelo).
+MAX_DESCRIPCION = 1000
+MAX_OBSERVACIONES = 1000
 
 
 # ============================================================
@@ -22,7 +33,9 @@ class CatalogoActividad(models.Model):
     )
 
     descripcion = models.TextField(
-        blank=True
+        blank=True,
+        max_length=MAX_DESCRIPCION,
+        validators=[MaxLengthValidator(MAX_DESCRIPCION)],
     )
 
     area = models.CharField(
@@ -160,6 +173,8 @@ class DetallePeriodo(models.Model):
 
     observaciones = models.TextField(
         blank=True,
+        max_length=MAX_OBSERVACIONES,
+        validators=[MaxLengthValidator(MAX_OBSERVACIONES)],
         verbose_name="Observaciones"
     )
 
@@ -244,6 +259,8 @@ class Meta(models.Model):
 
     descripcion = models.TextField(
         blank=True,
+        max_length=MAX_DESCRIPCION,
+        validators=[MaxLengthValidator(MAX_DESCRIPCION)],
         verbose_name="Descripción"
     )
 

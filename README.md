@@ -77,6 +77,48 @@ independientes, para que ninguna quede a medias:
   vigente del compromiso.
 - **Evidencia obligatoria**: cada avance exige una referencia verificable (acta,
   correo, fotografía, documento o enlace).
+- **Archivos de respaldo**: el avance acepta adjuntos de cualquier tipo
+  (fotografías, PDF, planillas, documentos, comprimidos, audio o video) con
+  límites: **5 archivos**, **10 MB por archivo** y **25 MB por avance**. Se
+  rechazan ejecutables y scripts (`.exe`, `.bat`, `.sh`, `.js`, `.php`,
+  `.html`, etc.) y archivos vacíos. Si la transacción se revierte, los archivos
+  ya escritos se borran del disco.
+- **Descarga protegida**: los archivos se guardan con nombre aleatorio en
+  `MEDIA_ROOT`, que no se publica; se descargan solo por
+  `/gestion/adjuntos/<id>/descargar/`, que exige sesión, permiso y pertenecer a
+  la delegación del compromiso.
+
+### Ámbito por delegación
+
+Los permisos indican **qué** puede hacer cada perfil; el ámbito indica **sobre
+qué delegación** puede hacerlo (`tubo_gestionAPP/ambito.py`):
+
+| Perfil | Compromisos que ve y opera |
+|---|---|
+| Administrador | Todos (visión global) |
+| Supervisor | Los de su delegación y los aún sin asignar; solo asigna a servicios de su delegación |
+| Administrativo | Solo los de su delegación |
+
+- Se aplica en el tablero, la búsqueda, los paneles, la edición, la baja, T1,
+  T2, el historial y la descarga de adjuntos. Fuera de ámbito se responde
+  **403** con el motivo.
+- En T1 y T2 el ámbito se vuelve a comprobar **dentro de la transacción**, con
+  la fila bloqueada, por si el compromiso se reasignó mientras el usuario tenía
+  el formulario abierto.
+- Un Supervisor o Administrativo **sin delegación** no ve compromisos
+  (denegación por defecto), y el formulario de usuarios exige delegación para
+  esos perfiles.
+
+### Límites de largo de los textos
+
+| Campo | Máximo |
+|---|---|
+| Evidencia del avance | 2.000 caracteres |
+| Observaciones (avance, asignación, detalle de período) | 1.000 caracteres |
+| Descripción (catálogo, metas) | 1.000 caracteres |
+
+El límite se valida en el formulario y en el modelo, y el HTML muestra un
+contador de caracteres.
 
 ### Demostración preparada T1 → T2
 
@@ -86,8 +128,10 @@ en vivo:
 - **Compromiso ID 1**: “Implementar plataforma de trámites en línea”, en **60 %**
   (amarillo), ya asignado por **T1** a **Delegación Centro / Trámites
   municipales**.
-- Al ingresar como **Administrativo** y registrar **95 %** por **T2** (con
-  evidencia), el compromiso cambia automáticamente a **verde**.
+- Al ingresar como un **Administrativo de Delegación Centro** y registrar
+  **95 %** por **T2** (con evidencia y, opcionalmente, archivos), el compromiso
+  cambia automáticamente a **verde**. Por el ámbito por delegación, un
+  Administrativo de otra delegación recibe **403**.
 - La verificación de T2 se ejecutó en una transacción revertida: el registro de
   prueba no queda en la base y el compromiso permanece en 60 % para la revisión.
 
@@ -167,7 +211,10 @@ python manage.py test
 La suite cubre autenticación, recuperación de contraseña, permisos por perfil,
 CRUD de los mantenedores, búsqueda, duplicados, baja lógica, reactivación,
 semáforo, cierre de `/admin/` y las dos transacciones atómicas de la Fase 4
-(incluida la reversión completa cuando falla un paso).
+(incluida la reversión completa cuando falla un paso). En total son **208
+pruebas**; `tubo_gestionAPP/test_ambito_y_adjuntos.py` cubre el ámbito por
+delegación, los límites de largo de texto y los archivos adjuntos (límites,
+extensiones bloqueadas, limpieza ante reversión y descarga protegida).
 
 - **167 pruebas en verde** en local (Django 5.2).
 - **154 pruebas en verde** en el servidor con Django 4.2 para los módulos

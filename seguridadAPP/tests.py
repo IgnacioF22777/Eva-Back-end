@@ -50,6 +50,17 @@ class PruebasSeguridad(TestCase):
             "22.222.222-2", "inactivo@laserena.cl", [ADMINISTRATIVO], activo=False
         )
 
+        from delegacionesAPP.models import Delegacion
+
+        cls.delegacion_usuarios = Delegacion.objects.create(
+            nombre="Delegación Usuarios",
+            direccion="Av. Principal 1",
+            encargado="Ana Rojas",
+            email="usuarios@laserena.cl",
+            telefono="51 2 000 000",
+            celular="+56 9 0000 0000",
+        )
+
     def setUp(self):
         cache.clear()
 
@@ -156,6 +167,7 @@ class PruebasSeguridad(TestCase):
             "last_name": "Rojas",
             "email": "ana.rojas@laserena.cl",
             "cargo": "Encargada territorial",
+            "delegacion": self.delegacion_usuarios.pk,
             "groups": [Group.objects.get(name=SUPERVISOR).pk],
             "password1": CLAVE,
             "password2": CLAVE,
