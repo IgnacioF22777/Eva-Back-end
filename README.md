@@ -48,10 +48,11 @@ lógica y reversible.
 | Compromisos | `/gestion/compromisos/` | Búsqueda por tarea o delegación; filtro por semáforo y estado |
 | Catálogo de Actividades | `/maestros/catalogo/` | Búsqueda por código, nombre, área o descripción |
 | Metas | `/maestros/metas/` | Búsqueda por código, nombre, período o actividad |
-| Detalles de período | `/maestros/detalle-periodos/` | Baja lógica; bloqueado en períodos cerrados |
-| Períodos de medición | `/maestros/periodos/` | Alta y edición; el cierre del período bloquea sus detalles |
+| Detalles de período | `/maestros/detalle-periodos/` | Baja lógica; bloqueado en períodos cerrados; días computables automáticos |
+| Períodos de medición | `/maestros/periodos/` | Búsqueda por código o nombre y filtro abierto/cerrado; muestra la suma de ponderaciones; se elimina solo sin detalles ni metas |
 | Usuarios | `/seguridad/usuarios/` | Baja lógica y reactivación |
-| Roles | `/seguridad/roles/` | Los roles se conservan; no se borran |
+| Roles | `/seguridad/roles/` | Búsqueda por nombre; se elimina solo si no tiene usuarios y no es un perfil base |
+| Cargos | `/seguridad/cargos/` | Búsqueda; baja lógica; se elimina solo sin funcionarios asociados |
 
 ### Fase 4: asignación y avance de compromisos
 
@@ -152,6 +153,17 @@ en vivo:
 - **Integridad referencial**: los servicios y compromisos usan `PROTECT`; no se
   puede borrar una delegación con registros asociados.
 - **Períodos cerrados**: sus detalles no se pueden crear, editar ni dar de baja.
+- **Ponderación de metas**: las metas activas de un período no pueden superar
+  el 100 %, y el período solo puede cerrarse cuando suman exactamente 100 %
+  (`validar_suma_ponderaciones`).
+- **Días computables automáticos**: cada detalle de período calcula sus días
+  hábiles descontando fines de semana y feriados nacionales de fecha fija y
+  Semana Santa (`calcular_dias_computables`); ya no se escriben a mano.
+- **Cargos protegidos**: un cargo con funcionarios no se elimina
+  (`verificar_eliminacion_cargo`); se da de baja lógica (`desactivar_cargo`).
+- Los validadores de `tubo_gestionAPP/validadores.py` se usan en el sistema,
+  no solo en las pruebas: login (`validar_credenciales`), RUT, ámbito por
+  delegación, fechas, código único de catálogo, ponderaciones, días y cargos.
 
 ## Stack Tecnológico
 
@@ -211,8 +223,9 @@ python manage.py test
 La suite cubre autenticación, recuperación de contraseña, permisos por perfil,
 CRUD de los mantenedores, búsqueda, duplicados, baja lógica, reactivación,
 semáforo, cierre de `/admin/` y las dos transacciones atómicas de la Fase 4
-(incluida la reversión completa cuando falla un paso). En total son **208
-pruebas**; `tubo_gestionAPP/test_ambito_y_adjuntos.py` cubre el ámbito por
+(incluida la reversión completa cuando falla un paso). En total son **234
+pruebas**; `sgr_maestrosAPP/test_reglas_y_mantenedores.py` cubre
+ponderaciones, días computables, Períodos y Cargos, y `tubo_gestionAPP/test_ambito_y_adjuntos.py` cubre el ámbito por
 delegación, los límites de largo de texto y los archivos adjuntos (límites,
 extensiones bloqueadas, limpieza ante reversión y descarga protegida).
 
@@ -262,7 +275,7 @@ completos y dos transacciones atómicas**, distribuidas así:
 
 | Requisito de la pauta (2 integrantes) | Mínimo | Entregado |
 |---|---|---|
-| Mantenedores completos | 4 | **7** |
+| Mantenedores completos (crear, buscar, listar, modificar, eliminar) | 4 | **10** |
 | Transacciones operacionales | 2 | **2** |
 | Perfiles de usuario | 3 | **3** |
 | Dashboards diferenciados | 3 | **3** |

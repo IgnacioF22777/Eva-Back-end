@@ -32,6 +32,59 @@ def formatear_rut(rut: str) -> str:
 
 
 # ============================================================
+# MODELO: CARGO
+# ============================================================
+# Catálogo de cargos municipales. Un cargo con funcionarios asociados no
+# se elimina: se da de baja lógica para conservar el historial.
+
+class Cargo(models.Model):
+
+    nombre = models.CharField(
+        max_length=100,
+        unique=True,
+        verbose_name="Nombre del cargo"
+    )
+
+    descripcion = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name="Descripción"
+    )
+
+    activo = models.BooleanField(
+        default=True,
+        verbose_name="Activo"
+    )
+
+    class Meta:
+        verbose_name = "Cargo"
+        verbose_name_plural = "Cargos"
+        ordering = ["nombre"]
+
+    def __str__(self):
+        return self.nombre
+
+    def clean(self):
+        super().clean()
+
+        self.nombre = " ".join((self.nombre or "").split())
+
+        if not self.nombre:
+            raise ValidationError({
+                "nombre": "El nombre del cargo es obligatorio."
+            })
+
+        if Cargo.objects.exclude(
+            pk=self.pk
+        ).filter(
+            nombre__iexact=self.nombre
+        ).exists():
+            raise ValidationError({
+                "nombre": "Ya existe un cargo con este nombre."
+            })
+
+
+# ============================================================
 # MODELO: PERFIL DE USUARIO (FUNCIONARIO)
 # ============================================================
 # Se extiende el User de Django con una relación uno a uno para no
@@ -63,9 +116,12 @@ class PerfilUsuario(models.Model):
         verbose_name="Delegación"
     )
 
-    cargo = models.CharField(
-        max_length=100,
+    cargo = models.ForeignKey(
+        Cargo,
+        on_delete=models.PROTECT,
+        null=True,
         blank=True,
+        related_name="funcionarios",
         verbose_name="Cargo"
     )
 

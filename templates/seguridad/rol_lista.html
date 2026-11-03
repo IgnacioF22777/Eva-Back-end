@@ -26,6 +26,30 @@ Roles y Permisos
 
 {% include 'seguridad/_mensajes.html' %}
 
+<div class="card shadow-sm border-0 mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-2 align-items-end">
+            <div class="col-md-10">
+                <label class="form-label small fw-semibold" for="q">
+                    Buscar
+                </label>
+                <input type="search"
+                       id="q"
+                       name="q"
+                       value="{{ busqueda }}"
+                       class="form-control"
+                       placeholder="Nombre del rol">
+            </div>
+
+            <div class="col-md-2 d-grid">
+                <button type="submit" class="btn btn-primary">
+                    Buscar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <div class="card shadow-sm border-0">
 
     <div class="card-header bg-primary text-white">
@@ -68,6 +92,29 @@ Roles y Permisos
                                        class="btn btn-warning btn-sm">
                                         Editar
                                     </a>
+                                {% endif %}
+
+                                {% if perms.auth.delete_group %}
+                                    {% if rol.name in perfiles_base %}
+                                        <button type="button"
+                                                class="btn btn-outline-secondary btn-sm"
+                                                disabled
+                                                title="Perfil base del sistema">
+                                            Eliminar
+                                        </button>
+                                    {% elif rol.total_usuarios %}
+                                        <button type="button"
+                                                class="btn btn-outline-secondary btn-sm"
+                                                disabled
+                                                title="Tiene usuarios asignados">
+                                            Eliminar
+                                        </button>
+                                    {% else %}
+                                        <a href="{% url 'seguridad:rol_eliminar' rol.pk %}"
+                                           class="btn btn-danger btn-sm">
+                                            Eliminar
+                                        </a>
+                                    {% endif %}
                                 {% endif %}
 
                             </div>

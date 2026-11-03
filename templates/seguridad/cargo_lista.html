@@ -1,0 +1,172 @@
+{% extends 'base.html' %}
+
+{% block title %}Cargos - SGR{% endblock %}
+
+{% block header %}
+Cargos Municipales
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="h4 mb-1">Gestión de Cargos</h2>
+        <p class="text-muted mb-0">
+            Cargos que se asignan a los funcionarios del SGR
+        </p>
+    </div>
+
+    {% if perms.seguridadAPP.add_cargo %}
+        <a href="{% url 'seguridad:cargo_crear' %}"
+           class="btn btn-primary">
+            + Nuevo Cargo
+        </a>
+    {% endif %}
+</div>
+
+{% include 'seguridad/_mensajes.html' %}
+
+<div class="card shadow-sm border-0 mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-2 align-items-end">
+            <div class="col-md-6">
+                <label class="form-label small fw-semibold" for="q">
+                    Buscar
+                </label>
+                <input type="search"
+                       id="q"
+                       name="q"
+                       value="{{ busqueda }}"
+                       class="form-control"
+                       placeholder="Nombre o descripción del cargo">
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label small fw-semibold" for="estado">
+                    Estado
+                </label>
+                <select id="estado" name="estado" class="form-select">
+                    <option value="activos"
+                        {% if estado == 'activos' %}selected{% endif %}>
+                        Activos ({{ total_activos }})
+                    </option>
+                    <option value="inactivos"
+                        {% if estado == 'inactivos' %}selected{% endif %}>
+                        Inactivos ({{ total_inactivos }})
+                    </option>
+                    <option value="todos"
+                        {% if estado == 'todos' %}selected{% endif %}>
+                        Todos
+                    </option>
+                </select>
+            </div>
+
+            <div class="col-md-2 d-grid">
+                <button type="submit" class="btn btn-primary">
+                    Buscar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">Listado de Cargos</h5>
+    </div>
+
+    <div class="card-body">
+
+        <div class="table-responsive">
+            <table class="table table-striped table-hover align-middle">
+
+                <thead class="table-dark">
+                    <tr>
+                        <th>Cargo</th>
+                        <th>Descripción</th>
+                        <th>Funcionarios</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for cargo in cargos %}
+
+                    <tr>
+                        <td><strong>{{ cargo.nombre }}</strong></td>
+
+                        <td class="small">{{ cargo.descripcion|default:"—" }}</td>
+
+                        <td>{{ cargo.total_funcionarios }}</td>
+
+                        <td>
+                            {% if cargo.activo %}
+                                <span class="badge bg-success">Activo</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Inactivo</span>
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            <div class="d-flex flex-wrap gap-2">
+
+                                {% if perms.seguridadAPP.change_cargo %}
+                                    <a href="{% url 'seguridad:cargo_editar' cargo.pk %}"
+                                       class="btn btn-warning btn-sm">
+                                        Editar
+                                    </a>
+
+                                    <form method="POST"
+                                          action="{% url 'seguridad:cargo_cambiar_estado' cargo.pk %}">
+                                        {% csrf_token %}
+                                        <button type="submit"
+                                                class="btn btn-outline-secondary btn-sm">
+                                            {% if cargo.activo %}Dar de baja{% else %}Reactivar{% endif %}
+                                        </button>
+                                    </form>
+                                {% endif %}
+
+                                {% if perms.seguridadAPP.delete_cargo %}
+                                    {% if cargo.total_funcionarios %}
+                                        <button type="button"
+                                                class="btn btn-outline-secondary btn-sm"
+                                                disabled
+                                                title="Tiene funcionarios asociados">
+                                            Eliminar
+                                        </button>
+                                    {% else %}
+                                        <a href="{% url 'seguridad:cargo_eliminar' cargo.pk %}"
+                                           class="btn btn-danger btn-sm">
+                                            Eliminar
+                                        </a>
+                                    {% endif %}
+                                {% endif %}
+
+                            </div>
+                        </td>
+                    </tr>
+
+                    {% empty %}
+
+                    <tr>
+                        <td colspan="5"
+                            class="text-center text-muted py-5">
+                            <h5>No hay cargos para mostrar</h5>
+                            <p class="mb-0">
+                                Registre un nuevo cargo o cambie el filtro.
+                            </p>
+                        </td>
+                    </tr>
+
+                    {% endfor %}
+                </tbody>
+
+            </table>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}

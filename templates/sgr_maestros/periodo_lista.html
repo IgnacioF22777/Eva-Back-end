@@ -42,6 +42,51 @@ Gestión de Períodos de Evaluación
     {% endfor %}
 {% endif %}
 
+<!-- BÚSQUEDA -->
+<div class="card shadow-sm border-0 mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-2 align-items-end">
+            <div class="col-md-6">
+                <label class="form-label small fw-semibold" for="q">
+                    Buscar
+                </label>
+                <input type="search"
+                       id="q"
+                       name="q"
+                       value="{{ busqueda }}"
+                       class="form-control"
+                       placeholder="Código o nombre del período">
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label small fw-semibold" for="estado">
+                    Estado
+                </label>
+                <select id="estado" name="estado" class="form-select">
+                    <option value="todos"
+                        {% if estado == 'todos' %}selected{% endif %}>
+                        Todos
+                    </option>
+                    <option value="abiertos"
+                        {% if estado == 'abiertos' %}selected{% endif %}>
+                        Abiertos ({{ total_abiertos }})
+                    </option>
+                    <option value="cerrados"
+                        {% if estado == 'cerrados' %}selected{% endif %}>
+                        Cerrados ({{ total_cerrados }})
+                    </option>
+                </select>
+            </div>
+
+            <div class="col-md-2 d-grid">
+                <button type="submit" class="btn btn-primary">
+                    Buscar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <!-- TABLA DE PERÍODOS -->
 <div class="card shadow-sm border-0">
 
@@ -61,6 +106,7 @@ Gestión de Períodos de Evaluación
                         <th>Nombre</th>
                         <th>Fecha de Inicio</th>
                         <th>Fecha de Término</th>
+                        <th>Ponderación de metas</th>
                         <th>Estado</th>
                         <th>Acciones</th>
                     </tr>
@@ -88,6 +134,19 @@ Gestión de Períodos de Evaluación
                         </td>
 
                         <td>
+                            {% if periodo.suma_ponderaciones == 100 %}
+                                <span class="badge bg-success">
+                                    {{ periodo.suma_ponderaciones|floatformat:"-2" }}%
+                                </span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark"
+                                      title="Para cerrar el período las metas activas deben sumar 100%">
+                                    {{ periodo.suma_ponderaciones|floatformat:"-2" }}% de 100%
+                                </span>
+                            {% endif %}
+                        </td>
+
+                        <td>
                             {% if periodo.cerrado %}
                                 <span class="badge bg-danger">
                                     Cerrado
@@ -99,7 +158,7 @@ Gestión de Períodos de Evaluación
                             {% endif %}
                         </td>
 
-                        <td>
+                        <td class="d-flex flex-wrap gap-2">
 
                             {% if periodo.cerrado %}
 
@@ -119,13 +178,29 @@ Gestión de Períodos de Evaluación
 
                             {% endif %}
 
+                            {% if perms.sgr_maestrosAPP.delete_periodo %}
+                                {% if periodo.total_detalles or periodo.total_metas %}
+                                    <button type="button"
+                                            class="btn btn-outline-secondary btn-sm"
+                                            disabled
+                                            title="Tiene detalles o metas asociados">
+                                        Eliminar
+                                    </button>
+                                {% else %}
+                                    <a href="{% url 'sgr_maestros:periodo_eliminar' periodo.pk %}"
+                                       class="btn btn-danger btn-sm">
+                                        Eliminar
+                                    </a>
+                                {% endif %}
+                            {% endif %}
+
                         </td>
                     </tr>
 
                     {% empty %}
 
                     <tr>
-                        <td colspan="6"
+                        <td colspan="7"
                             class="text-center text-muted py-5">
 
                             <h5>No existen períodos registrados</h5>

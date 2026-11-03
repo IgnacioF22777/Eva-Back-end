@@ -150,7 +150,7 @@
                     {% endif %}
 
                     <!-- SEGURIDAD: SEGÚN PERMISOS DEL ROL -->
-                    {% if perms.auth.view_user or perms.auth.view_group %}
+                    {% if perms.auth.view_user or perms.auth.view_group or perms.seguridadAPP.view_cargo %}
 
                         <li class="nav-item dropdown">
 
@@ -182,6 +182,15 @@
                                         <a class="dropdown-item"
                                            href="{% url 'seguridad:rol_lista' %}">
                                             Roles y permisos
+                                        </a>
+                                    </li>
+                                {% endif %}
+
+                                {% if perms.seguridadAPP.view_cargo %}
+                                    <li>
+                                        <a class="dropdown-item"
+                                           href="{% url 'seguridad:cargo_lista' %}">
+                                            Cargos
                                         </a>
                                     </li>
                                 {% endif %}

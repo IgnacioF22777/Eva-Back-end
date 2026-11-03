@@ -12,7 +12,7 @@ from django.db.models import Q
 from delegacionesAPP.models import Delegacion
 from tubo_gestionAPP.validadores import validar_rut_chileno
 
-from .models import PerfilUsuario, normalizar_rut
+from .models import Cargo, PerfilUsuario, normalizar_rut
 from .perfiles import ADMINISTRADOR
 from .roles import APPS_CON_PERMISOS, PERFILES
 
@@ -101,13 +101,13 @@ class UsuarioForm(forms.ModelForm):
         })
     )
 
-    cargo = forms.CharField(
+    cargo = forms.ModelChoiceField(
         label="Cargo",
-        max_length=100,
+        queryset=Cargo.objects.none(),
         required=False,
-        widget=forms.TextInput(attrs={
-            "class": "form-control",
-            "placeholder": "Ej: Encargado territorial",
+        empty_label="Sin cargo asignado",
+        widget=forms.Select(attrs={
+            "class": "form-select",
         })
     )
 
@@ -208,6 +208,14 @@ class UsuarioForm(forms.ModelForm):
             delegaciones
         ).order_by("nombre")
 
+        # Igual con los cargos: activos, más el cargo actual.
+        cargos = Q(activo=True)
+
+        if not self.es_nuevo and perfil_actual and perfil_actual.cargo_id:
+            cargos |= Q(pk=perfil_actual.cargo_id)
+
+        self.fields["cargo"].queryset = Cargo.objects.filter(cargos)
+
         if self.es_nuevo:
             self.initial.setdefault("is_active", True)
         else:
@@ -222,7 +230,7 @@ class UsuarioForm(forms.ModelForm):
             if perfil:
                 self.initial["rut"] = perfil.rut_formateado
                 self.initial["delegacion"] = perfil.delegacion_id
-                self.initial["cargo"] = perfil.cargo
+                self.initial["cargo"] = perfil.cargo_id
 
         # Un usuario no puede cambiar sus propios roles ni desactivarse,
         # para evitar escalamiento de privilegios o bloquearse a sí mismo.
@@ -369,7 +377,7 @@ class UsuarioForm(forms.ModelForm):
                 defaults={
                     "rut": self.cleaned_data["rut"],
                     "delegacion": self.cleaned_data.get("delegacion"),
-                    "cargo": self.cleaned_data.get("cargo", "").strip(),
+                    "cargo": self.cleaned_data.get("cargo"),
                 }
             )
 
@@ -506,3 +514,44 @@ class RolForm(forms.ModelForm):
             grupos.setdefault(titulo, []).append(casilla)
 
         return grupos.items()
+
+
+# ============================================================
+# FORMULARIO 5: CARGOS
+# ============================================================
+
+class CargoForm(forms.ModelForm):
+
+    class Meta:
+        model = Cargo
+
+        fields = [
+            "nombre",
+            "descripcion",
+            "activo",
+        ]
+
+        widgets = {
+            "nombre": forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "Ej: Encargado territorial",
+                "autofocus": True,
+            }),
+
+            "descripcion": forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "Funciones principales del cargo",
+            }),
+
+            "activo": forms.CheckboxInput(attrs={
+                "class": "form-check-input",
+            }),
+        }
+
+    def clean_nombre(self):
+        nombre = " ".join((self.cleaned_data.get("nombre") or "").split())
+
+        if not nombre:
+            raise forms.ValidationError("El nombre del cargo es obligatorio.")
+
+        return nombre

@@ -58,6 +58,12 @@ urlpatterns = [
         name="periodo_editar"
     ),
 
+    path(
+        "periodos/<int:pk>/eliminar/",
+        views.periodo_eliminar,
+        name="periodo_eliminar"
+    ),
+
     # ========================================================
     # CRUD 3: DETALLE DE PERÍODO
     # ========================================================

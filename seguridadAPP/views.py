@@ -12,7 +12,7 @@ from django.contrib.auth.views import (
 )
 from django.core.cache import cache
 from django.core.exceptions import PermissionDenied
-from django.db.models import Count, Q
+from django.db.models import Count, ProtectedError, Q
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse_lazy
 from django.views.decorators.http import require_POST
@@ -21,6 +21,10 @@ from delegacionesAPP.models import Delegacion, Servicio
 from sgr_maestrosAPP.models import CatalogoActividad, Meta, Periodo
 from tubo_gestionAPP.ambito import compromisos_visibles
 from tubo_gestionAPP.models import Compromiso
+from tubo_gestionAPP.validadores import (
+    desactivar_cargo,
+    verificar_eliminacion_cargo,
+)
 
 from .perfiles import (
     ADMINISTRADOR,
@@ -32,13 +36,14 @@ from .perfiles import (
 )
 
 from .forms import (
+    CargoForm,
     LoginForm,
     RecuperarPasswordForm,
     UsuarioForm,
     RestablecerPasswordForm,
     RolForm,
 )
-from .models import normalizar_rut
+from .models import Cargo, normalizar_rut
 
 
 User = get_user_model()
@@ -441,15 +446,24 @@ def usuario_eliminar(request, pk):
 @login_required
 @permission_required("auth.view_group", raise_exception=True)
 def rol_lista(request):
+    busqueda = request.GET.get("q", "").strip()
+
     roles = Group.objects.annotate(
         total_usuarios=Count("user", distinct=True),
         total_permisos=Count("permissions", distinct=True),
     ).order_by("name")
 
+    if busqueda:
+        roles = roles.filter(name__icontains=busqueda)
+
     return render(
         request,
         "seguridad/rol_lista.html",
-        {"roles": roles}
+        {
+            "roles": roles,
+            "busqueda": busqueda,
+            "perfiles_base": PERFILES,
+        }
     )
 
 
@@ -512,17 +526,193 @@ def rol_editar(request, pk):
 def rol_eliminar(request, pk):
     rol = get_object_or_404(Group, pk=pk)
 
-    # Los roles no se eliminan: se conservan para no perder el historial
-    # de acceso. Si un rol deja de usarse, se le quitan los usuarios y
-    # los permisos, pero el registro permanece.
-    messages.error(
+    # Los tres perfiles base sostienen el control de acceso del sistema
+    # y no se eliminan. Un rol adicional solo se elimina si ya no tiene
+    # usuarios: así nadie pierde sus permisos sin darse cuenta.
+    if rol.name in PERFILES:
+        messages.error(
+            request,
+            f"El rol '{rol.name}' es un perfil base del sistema y no "
+            "puede eliminarse."
+        )
+        return redirect("seguridad:rol_lista")
+
+    if rol.user_set.exists():
+        messages.error(
+            request,
+            f"El rol '{rol.name}' tiene usuarios asignados. Quíteselo a "
+            "esos usuarios antes de eliminarlo."
+        )
+        return redirect("seguridad:rol_lista")
+
+    if request.method == "POST":
+        nombre = rol.name
+        rol.delete()
+
+        messages.success(
+            request,
+            f"Rol '{nombre}' eliminado correctamente."
+        )
+        return redirect("seguridad:rol_lista")
+
+    return render(
         request,
-        f"El rol '{rol.name}' no se elimina. Los roles se conservan "
-        "para mantener el historial; quite los usuarios asignados y "
-        "ajuste sus permisos si ya no se utiliza."
+        "seguridad/confirmar_eliminar.html",
+        {
+            "objeto": rol.name,
+            "tipo": "rol",
+            "aviso": (
+                "El rol no tiene usuarios asignados y se eliminará "
+                "definitivamente junto con su lista de permisos."
+            ),
+            "url_cancelar": "seguridad:rol_lista",
+        }
     )
 
-    return redirect("seguridad:rol_lista")
+
+# ============================================================
+# CRUD 3: CARGOS
+# ============================================================
+
+@login_required
+@permission_required("seguridadAPP.view_cargo", raise_exception=True)
+def cargo_lista(request):
+    busqueda = request.GET.get("q", "").strip()
+    estado = request.GET.get("estado", "activos")
+
+    cargos = Cargo.objects.annotate(
+        total_funcionarios=Count("funcionarios", distinct=True),
+    ).order_by("nombre")
+
+    if busqueda:
+        cargos = cargos.filter(
+            Q(nombre__icontains=busqueda)
+            | Q(descripcion__icontains=busqueda)
+        )
+
+    if estado == "activos":
+        cargos = cargos.filter(activo=True)
+    elif estado == "inactivos":
+        cargos = cargos.filter(activo=False)
+
+    return render(
+        request,
+        "seguridad/cargo_lista.html",
+        {
+            "cargos": cargos,
+            "busqueda": busqueda,
+            "estado": estado,
+            "total_activos": Cargo.objects.filter(activo=True).count(),
+            "total_inactivos": Cargo.objects.filter(activo=False).count(),
+        }
+    )
+
+
+@login_required
+@permission_required("seguridadAPP.add_cargo", raise_exception=True)
+def cargo_crear(request):
+    if request.method == "POST":
+        form = CargoForm(request.POST)
+
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Cargo registrado correctamente.")
+            return redirect("seguridad:cargo_lista")
+    else:
+        form = CargoForm()
+
+    return render(
+        request,
+        "seguridad/cargo_form.html",
+        {"form": form, "titulo": "Registrar cargo"}
+    )
+
+
+@login_required
+@permission_required("seguridadAPP.change_cargo", raise_exception=True)
+def cargo_editar(request, pk):
+    cargo = get_object_or_404(Cargo, pk=pk)
+
+    if request.method == "POST":
+        form = CargoForm(request.POST, instance=cargo)
+
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Cargo actualizado correctamente.")
+            return redirect("seguridad:cargo_lista")
+    else:
+        form = CargoForm(instance=cargo)
+
+    return render(
+        request,
+        "seguridad/cargo_form.html",
+        {"form": form, "titulo": f"Editar cargo: {cargo.nombre}"}
+    )
+
+
+@login_required
+@permission_required("seguridadAPP.change_cargo", raise_exception=True)
+@require_POST
+def cargo_cambiar_estado(request, pk):
+    cargo = get_object_or_404(Cargo, pk=pk)
+
+    if cargo.activo:
+        # Baja lógica (CP-CAR-002): el cargo se conserva como historial.
+        cargo.activo = desactivar_cargo(cargo.activo)
+        mensaje = "Cargo dado de baja. Puede reactivarlo cuando lo necesite."
+    else:
+        cargo.activo = True
+        mensaje = "Cargo reactivado correctamente."
+
+    cargo.save(update_fields=["activo"])
+    messages.success(request, mensaje)
+
+    return redirect("seguridad:cargo_lista")
+
+
+@login_required
+@permission_required("seguridadAPP.delete_cargo", raise_exception=True)
+def cargo_eliminar(request, pk):
+    """
+    Eliminación física solo sin dependencias (CP-CAR-001). Si hay
+    funcionarios con el cargo, se bloquea y se ofrece la baja lógica.
+    """
+    cargo = get_object_or_404(Cargo, pk=pk)
+
+    try:
+        # Las metas no se vinculan a cargos en el modelo actual.
+        verificar_eliminacion_cargo(
+            usuarios_asociados=cargo.funcionarios.count(),
+            metas_asociadas=0,
+        )
+    except ProtectedError:
+        messages.error(
+            request,
+            f"El cargo '{cargo.nombre}' tiene funcionarios asociados y no "
+            "puede eliminarse. Puede darlo de baja para que no se asigne "
+            "a nuevos usuarios."
+        )
+        return redirect("seguridad:cargo_lista")
+
+    if request.method == "POST":
+        nombre = cargo.nombre
+        cargo.delete()
+        messages.success(request, f"Cargo '{nombre}' eliminado correctamente.")
+        return redirect("seguridad:cargo_lista")
+
+    return render(
+        request,
+        "seguridad/confirmar_eliminar.html",
+        {
+            "objeto": cargo.nombre,
+            "tipo": "cargo",
+            "aviso": (
+                "El cargo no tiene funcionarios asociados y se eliminará "
+                "definitivamente."
+            ),
+            "url_cancelar": "seguridad:cargo_lista",
+        }
+    )
 
 
 # ============================================================

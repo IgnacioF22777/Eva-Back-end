@@ -52,6 +52,10 @@ class PruebasSeguridad(TestCase):
 
         from delegacionesAPP.models import Delegacion
 
+        from .models import Cargo
+
+        cls.cargo = Cargo.objects.create(nombre="Encargada territorial")
+
         cls.delegacion_usuarios = Delegacion.objects.create(
             nombre="Delegación Usuarios",
             direccion="Av. Principal 1",
@@ -166,7 +170,7 @@ class PruebasSeguridad(TestCase):
             "first_name": "Ana",
             "last_name": "Rojas",
             "email": "ana.rojas@laserena.cl",
-            "cargo": "Encargada territorial",
+            "cargo": self.cargo.pk,
             "delegacion": self.delegacion_usuarios.pk,
             "groups": [Group.objects.get(name=SUPERVISOR).pk],
             "password1": CLAVE,
@@ -358,21 +362,62 @@ class PruebasSeguridad(TestCase):
         self.client.post(reverse("seguridad:rol_eliminar", args=[rol.pk]))
         self.assertTrue(Group.objects.filter(pk=rol.pk).exists())
 
-    def test_no_elimina_ningun_rol(self):
+    def test_elimina_rol_sin_usuarios(self):
         self.client.force_login(self.admin)
         rol = Group.objects.create(name="Rol temporal")
+        url = reverse("seguridad:rol_eliminar", args=[rol.pk])
+
+        # GET muestra la confirmación y no borra nada.
+        self.assertContains(self.client.get(url), "Rol temporal")
+        self.assertTrue(Group.objects.filter(pk=rol.pk).exists())
+
+        respuesta = self.client.post(url, follow=True)
+        self.assertFalse(Group.objects.filter(pk=rol.pk).exists())
+        self.assertContains(respuesta, "eliminado correctamente")
+
+    def test_no_elimina_rol_con_usuarios(self):
+        self.client.force_login(self.admin)
+        rol = Group.objects.create(name="Rol con usuarios")
+        self.funcionario.groups.add(rol)
+
         respuesta = self.client.post(
             reverse("seguridad:rol_eliminar", args=[rol.pk]), follow=True
         )
         self.assertTrue(Group.objects.filter(pk=rol.pk).exists())
-        self.assertContains(respuesta, "no se elimina")
+        self.assertContains(respuesta, "tiene usuarios asignados")
 
-    def test_el_listado_de_roles_no_ofrece_eliminar(self):
+    def test_no_elimina_los_perfiles_base(self):
         self.client.force_login(self.admin)
+
+        for nombre in (ADMINISTRADOR, SUPERVISOR, ADMINISTRATIVO):
+            rol = Group.objects.get(name=nombre)
+            respuesta = self.client.post(
+                reverse("seguridad:rol_eliminar", args=[rol.pk]), follow=True
+            )
+            self.assertTrue(Group.objects.filter(pk=rol.pk).exists(), nombre)
+            self.assertContains(respuesta, "perfil base")
+
+    def test_busqueda_de_roles(self):
+        self.client.force_login(self.admin)
+        Group.objects.create(name="Auditor externo")
+
+        respuesta = self.client.get(
+            reverse("seguridad:rol_lista"), {"q": "auditor"}
+        )
+        self.assertContains(respuesta, "Auditor externo")
+        self.assertNotContains(respuesta, "<strong>Supervisor</strong>")
+
+    def test_listado_solo_ofrece_eliminar_roles_libres(self):
+        self.client.force_login(self.admin)
+        libre = Group.objects.create(name="Rol libre")
+        base = Group.objects.get(name=SUPERVISOR)
+
         respuesta = self.client.get(reverse("seguridad:rol_lista"))
-        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(
+            respuesta, reverse("seguridad:rol_eliminar", args=[libre.pk])
+        )
         self.assertNotContains(
-            respuesta, reverse("seguridad:rol_eliminar", args=[1])
+            respuesta, reverse("seguridad:rol_eliminar", args=[base.pk])
         )
 
     def test_formulario_de_rol_se_muestra(self):

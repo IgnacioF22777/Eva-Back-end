@@ -140,6 +140,13 @@ class PeriodoForm(forms.ModelForm):
                     "anterior a la fecha de inicio."
                 )
 
+        # Al cerrar el período, sus metas activas deben sumar 100%.
+        if cleaned_data.get("cerrado") and not self.instance.cerrado:
+            try:
+                self.instance.validar_cierre()
+            except forms.ValidationError as error:
+                self.add_error(None, error)
+
         return cleaned_data
 
 
@@ -157,7 +164,6 @@ class DetallePeriodoForm(forms.ModelForm):
             "nombre",
             "fecha_inicio",
             "fecha_fin",
-            "dias_computables",
             "observaciones",
         ]
 
@@ -186,12 +192,6 @@ class DetallePeriodoForm(forms.ModelForm):
                     "type": "date",
                 }
             ),
-
-            "dias_computables": forms.NumberInput(attrs={
-                "class": "form-control",
-                "min": "0",
-                "placeholder": "Cantidad de días",
-            }),
 
             "observaciones": forms.Textarea(attrs={
                 "class": "form-control",

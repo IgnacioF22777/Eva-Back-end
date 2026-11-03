@@ -3,7 +3,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
 from django.db import IntegrityError
-from django.db.models import Q
+from django.db.models import Count, DecimalField, OuterRef, Q, Subquery, Sum
+from django.db.models.functions import Coalesce
 from django.views.decorators.http import require_POST
 
 from .models import (
@@ -150,12 +151,48 @@ def catalogo_cambiar_estado(request, pk):
 @login_required
 @permission_required("sgr_maestrosAPP.view_periodo", raise_exception=True)
 def periodo_lista(request):
-    periodos = Periodo.objects.all()
+    busqueda = request.GET.get("q", "").strip()
+    estado = request.GET.get("estado", "todos")
+
+    # Suma de ponderaciones de las metas activas (subconsulta, para no
+    # multiplicar filas con el conteo de detalles).
+    suma_metas = Meta.objects.filter(
+        periodo=OuterRef("pk"), activo=True
+    ).values("periodo").annotate(
+        total=Sum("ponderacion")
+    ).values("total")
+
+    periodos = Periodo.objects.annotate(
+        total_detalles=Count("detalles", distinct=True),
+        total_metas=Count("metas", distinct=True),
+        suma_ponderaciones=Coalesce(
+            Subquery(suma_metas, output_field=DecimalField()),
+            0,
+            output_field=DecimalField(),
+        ),
+    )
+
+    if busqueda:
+        periodos = periodos.filter(
+            Q(codigo__icontains=busqueda)
+            | Q(nombre__icontains=busqueda)
+        )
+
+    if estado == "abiertos":
+        periodos = periodos.filter(cerrado=False)
+    elif estado == "cerrados":
+        periodos = periodos.filter(cerrado=True)
 
     return render(
         request,
         "sgr_maestros/periodo_lista.html",
-        {"periodos": periodos}
+        {
+            "periodos": periodos,
+            "busqueda": busqueda,
+            "estado": estado,
+            "total_abiertos": Periodo.objects.filter(cerrado=False).count(),
+            "total_cerrados": Periodo.objects.filter(cerrado=True).count(),
+        }
     )
 
 
@@ -219,6 +256,54 @@ def periodo_editar(request, pk):
         {
             "form": form,
             "titulo": "Editar período",
+        }
+    )
+
+
+@login_required
+@permission_required("sgr_maestrosAPP.delete_periodo", raise_exception=True)
+def periodo_eliminar(request, pk):
+    """
+    Elimina un período solo si no tiene detalles ni metas asociados.
+    Con registros asociados se conserva (integridad referencial): en ese
+    caso corresponde cerrarlo, no borrarlo.
+    """
+    periodo = get_object_or_404(Periodo, pk=pk)
+
+    tiene_dependencias = (
+        periodo.detalles.exists() or periodo.metas.exists()
+    )
+
+    if tiene_dependencias:
+        messages.error(
+            request,
+            f"El período '{periodo.codigo}' tiene detalles o metas "
+            "asociados y no puede eliminarse. Ciérrelo para conservar "
+            "su historial."
+        )
+        return redirect("sgr_maestros:periodo_lista")
+
+    if request.method == "POST":
+        codigo = periodo.codigo
+        periodo.delete()
+
+        messages.success(
+            request,
+            f"Período '{codigo}' eliminado correctamente."
+        )
+        return redirect("sgr_maestros:periodo_lista")
+
+    return render(
+        request,
+        "seguridad/confirmar_eliminar.html",
+        {
+            "objeto": f"{periodo.codigo} - {periodo.nombre}",
+            "tipo": "período",
+            "aviso": (
+                "El período no tiene detalles ni metas asociados, por lo "
+                "que se eliminará definitivamente."
+            ),
+            "url_cancelar": "sgr_maestros:periodo_lista",
         }
     )
 
@@ -558,6 +643,19 @@ def meta_cambiar_estado(request, pk):
         )
 
         return redirect("sgr_maestros:meta_lista")
+
+    # Al reactivar, la suma del período no puede superar el 100%.
+    if not meta.activo:
+        disponible = 100 - meta.periodo.suma_ponderaciones()
+
+        if meta.ponderacion > disponible:
+            messages.error(
+                request,
+                "No puedes reactivar la meta: el período superaría el "
+                f"100% de ponderación (disponible: {disponible}%)."
+            )
+
+            return redirect("sgr_maestros:meta_lista")
 
     meta.activo = not meta.activo
     meta.save(update_fields=["activo"])

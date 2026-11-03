@@ -1,5 +1,8 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.backends import ModelBackend
+from django.core.exceptions import ValidationError
+
+from tubo_gestionAPP.validadores import validar_credenciales
 
 from .models import normalizar_rut
 
@@ -34,10 +37,18 @@ class RutOCorreoBackend(ModelBackend):
             get_user_model()().set_password(password)
             return None
 
-        if usuario.check_password(password) and self.user_can_authenticate(usuario):
-            return usuario
+        # Regla CP-LOG-001 a CP-LOG-003: usuario registrado, contraseña
+        # correcta y cuenta activa.
+        try:
+            validar_credenciales(
+                usuario_registrado=True,
+                clave_correcta=usuario.check_password(password),
+                esta_activo=self.user_can_authenticate(usuario),
+            )
+        except ValidationError:
+            return None
 
-        return None
+        return usuario
 
     def buscar_usuario(self, identificador):
         User = get_user_model()

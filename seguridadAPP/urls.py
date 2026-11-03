@@ -150,4 +150,38 @@ urlpatterns = [
         name="rol_eliminar"
     ),
 
+    # ========================================================
+    # CRUD 3: CARGOS
+    # ========================================================
+
+    path(
+        "cargos/",
+        views.cargo_lista,
+        name="cargo_lista"
+    ),
+
+    path(
+        "cargos/nuevo/",
+        views.cargo_crear,
+        name="cargo_crear"
+    ),
+
+    path(
+        "cargos/<int:pk>/editar/",
+        views.cargo_editar,
+        name="cargo_editar"
+    ),
+
+    path(
+        "cargos/<int:pk>/estado/",
+        views.cargo_cambiar_estado,
+        name="cargo_cambiar_estado"
+    ),
+
+    path(
+        "cargos/<int:pk>/eliminar/",
+        views.cargo_eliminar,
+        name="cargo_eliminar"
+    ),
+
 ]

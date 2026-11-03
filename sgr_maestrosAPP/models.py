@@ -9,6 +9,15 @@ from django.core.validators import (
     MinValueValidator,
 )
 
+from tubo_gestionAPP.validadores import (
+    calcular_dias_computables,
+    validar_codigo_unico_catalogo,
+    validar_rango_fechas,
+    validar_suma_ponderaciones,
+)
+
+from .feriados import feriados_entre
+
 
 # Largo máximo de los campos de texto libre. TextField no aplica el
 # límite por sí solo: se declara max_length (formulario y maxlength del
@@ -71,11 +80,16 @@ class CatalogoActividad(models.Model):
                 "nombre": "El nombre es obligatorio."
             })
 
-        if CatalogoActividad.objects.exclude(
-            pk=self.pk
-        ).filter(
-            codigo__iexact=self.codigo
-        ).exists():
+        codigos_existentes = [
+            codigo.upper()
+            for codigo in CatalogoActividad.objects.exclude(
+                pk=self.pk
+            ).values_list("codigo", flat=True)
+        ]
+
+        try:
+            validar_codigo_unico_catalogo(self.codigo, codigos_existentes)
+        except ValidationError:
             raise ValidationError({
                 "codigo": "Ya existe una actividad con este código."
             })
@@ -119,20 +133,45 @@ class Periodo(models.Model):
     def __str__(self):
         return f"{self.codigo} - {self.nombre}"
 
+    def ponderaciones_activas(self, excluir_meta=None):
+        """Ponderaciones de las metas activas del período."""
+        if self.pk is None:
+            return []
+
+        metas = self.metas.filter(activo=True)
+
+        if excluir_meta is not None:
+            metas = metas.exclude(pk=excluir_meta)
+
+        return list(metas.values_list("ponderacion", flat=True))
+
+    def suma_ponderaciones(self):
+        return sum(self.ponderaciones_activas(), Decimal("0"))
+
+    def validar_cierre(self):
+        """
+        Un período solo puede cerrarse cuando sus metas activas suman
+        exactamente 100%: así la evaluación final queda completa.
+        """
+        try:
+            validar_suma_ponderaciones(self.ponderaciones_activas())
+        except ValidationError:
+            raise ValidationError({
+                "cerrado": (
+                    "No se puede cerrar el período: sus metas activas "
+                    f"suman {self.suma_ponderaciones()}% y deben sumar "
+                    "exactamente 100%."
+                )
+            })
+
     def clean(self):
         super().clean()
 
-        if (
-            self.fecha_inicio
-            and self.fecha_fin
-            and self.fecha_fin < self.fecha_inicio
-        ):
-            raise ValidationError({
-                "fecha_fin": (
-                    "La fecha de término no puede ser "
-                    "anterior a la fecha de inicio."
-                )
-            })
+        if self.fecha_inicio and self.fecha_fin:
+            try:
+                validar_rango_fechas(self.fecha_inicio, self.fecha_fin)
+            except ValidationError as error:
+                raise ValidationError({"fecha_fin": error.messages})
 
 
 # ============================================================
@@ -164,10 +203,11 @@ class DetallePeriodo(models.Model):
     dias_computables = models.PositiveIntegerField(
         null=True,
         blank=True,
+        editable=False,
         verbose_name="Días computables",
         help_text=(
-            "Valor provisional. El cálculo automático "
-            "debe considerar fines de semana y feriados."
+            "Se calcula automáticamente: días hábiles del rango, sin "
+            "fines de semana ni feriados nacionales."
         )
     )
 
@@ -202,17 +242,11 @@ class DetallePeriodo(models.Model):
     def clean(self):
         super().clean()
 
-        if (
-            self.fecha_inicio
-            and self.fecha_fin
-            and self.fecha_fin < self.fecha_inicio
-        ):
-            raise ValidationError({
-                "fecha_fin": (
-                    "La fecha de término no puede ser "
-                    "anterior a la fecha de inicio."
-                )
-            })
+        if self.fecha_inicio and self.fecha_fin:
+            try:
+                validar_rango_fechas(self.fecha_inicio, self.fecha_fin)
+            except ValidationError as error:
+                raise ValidationError({"fecha_fin": error.messages})
 
         if self.periodo_id:
             periodo = self.periodo
@@ -238,6 +272,28 @@ class DetallePeriodo(models.Model):
                         "después del período principal."
                     )
                 })
+
+    def calcular_dias(self):
+        """Días hábiles del rango, sin fines de semana ni feriados."""
+        # Acepta también fechas en texto ("2026-01-31"), como las que se
+        # pueden asignar desde el ORM antes de guardar.
+        inicio = self._meta.get_field("fecha_inicio").to_python(self.fecha_inicio)
+        fin = self._meta.get_field("fecha_fin").to_python(self.fecha_fin)
+
+        if not (inicio and fin) or fin < inicio:
+            return None
+
+        return calcular_dias_computables(inicio, fin, feriados_entre(inicio, fin))
+
+    def save(self, *args, **kwargs):
+        # El valor nunca se escribe a mano: siempre se deriva del rango.
+        self.dias_computables = self.calcular_dias()
+
+        update_fields = kwargs.get("update_fields")
+        if update_fields is not None:
+            kwargs["update_fields"] = set(update_fields) | {"dias_computables"}
+
+        super().save(*args, **kwargs)
 
 
 # ============================================================
@@ -350,6 +406,24 @@ class Meta(models.Model):
             ):
                 errores["ponderacion"] = (
                     "La ponderación debe estar entre 0 y 100."
+                )
+
+        # Las metas activas de un período no pueden superar el 100%.
+        if (
+            "ponderacion" not in errores
+            and self.ponderacion is not None
+            and self.activo
+            and self.periodo_id
+        ):
+            disponible = 100 - sum(
+                self.periodo.ponderaciones_activas(excluir_meta=self.pk),
+                Decimal("0"),
+            )
+
+            if self.ponderacion > disponible:
+                errores["ponderacion"] = (
+                    "Las metas activas del período superarían el 100%. "
+                    f"Ponderación disponible: {disponible}%."
                 )
 
         if errores:
