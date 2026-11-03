@@ -62,6 +62,24 @@ class CatalogoActividadForm(forms.ModelForm):
 
         return codigo
 
+    def clean_activo(self):
+        activo = self.cleaned_data.get("activo")
+
+        # Misma regla que la baja desde el listado: no se desactiva una
+        # actividad que todavía tiene metas activas.
+        if (
+            not activo
+            and self.instance.pk
+            and self.instance.activo
+            and self.instance.metas.filter(activo=True).exists()
+        ):
+            raise forms.ValidationError(
+                "No se puede desactivar: la actividad tiene metas "
+                "activas. Dé de baja o reasigne esas metas primero."
+            )
+
+        return activo
+
 
 # ============================================================
 # FORMULARIO 2: GESTIÓN DE PERÍODOS

@@ -10,7 +10,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Creamos una ruta para nuestros html
 TEMPLATES_DIR = os.path.join(BASE_DIR,'templates')
 # Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
+# See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('SECRET_KEY')
@@ -71,7 +71,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 
 # Database
-# https://docs.djangoproject.com/en/6.1/ref/settings/#databases
+# https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 DATABASES = {
     'default': {
@@ -89,7 +89,7 @@ DATABASES = {
 
 
 # Password validation
-# https://docs.djangoproject.com/en/6.1/ref/settings/#auth-password-validators
+# https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -124,9 +124,23 @@ SESSION_COOKIE_AGE = 60 * 60 * 8
 SESSION_COOKIE_HTTPONLY = True
 CSRF_COOKIE_HTTPONLY = True
 
+# Caché compartida en la base de datos.
+# Guarda los contadores de intentos fallidos de inicio de sesión y de
+# solicitudes de recuperación de contraseña. Con la caché en memoria
+# (LocMemCache) cada worker de Gunicorn llevaba su propio contador, por lo
+# que el bloqueo tras 5 intentos podía tardar hasta 15. En la base de
+# datos todos los workers comparten el mismo contador.
+# La tabla se crea con la migración seguridadAPP.0004 (createcachetable).
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.db.DatabaseCache",
+        "LOCATION": "sgr_cache",
+    }
+}
+
 
 # Internationalization
-# https://docs.djangoproject.com/en/6.1/topics/i18n/
+# https://docs.djangoproject.com/en/4.2/topics/i18n/
 
 LANGUAGE_CODE = 'es-cl'
 
@@ -138,7 +152,7 @@ USE_TZ = True
 
 
 # Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/6.1/howto/static-files/
+# https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'

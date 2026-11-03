@@ -133,6 +133,16 @@ def catalogo_cambiar_estado(request, pk):
         pk=pk
     )
 
+    # Una actividad con metas activas no se da de baja: las metas
+    # quedarían apuntando a una actividad que ya no está vigente.
+    if actividad.activo and actividad.metas.filter(activo=True).exists():
+        messages.error(
+            request,
+            f"La actividad '{actividad.nombre}' tiene metas activas. "
+            "Dé de baja o reasigne esas metas antes de desactivarla."
+        )
+        return redirect("sgr_maestros:catalogo_lista")
+
     actividad.activo = not actividad.activo
     actividad.save(update_fields=["activo"])
 

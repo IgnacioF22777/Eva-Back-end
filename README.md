@@ -159,6 +159,13 @@ en vivo:
 - **Días computables automáticos**: cada detalle de período calcula sus días
   hábiles descontando fines de semana y feriados nacionales de fecha fija y
   Semana Santa (`calcular_dias_computables`); ya no se escriben a mano.
+- **Bloqueo de inicio de sesión compartido**: los intentos fallidos y las
+  solicitudes de recuperación se cuentan en una caché guardada en la base de
+  datos (`sgr_cache`), común a los 3 workers de Gunicorn. Así el bloqueo ocurre
+  al quinto intento, lo atienda el worker que lo atienda. La tabla se crea sola
+  con `migrate`.
+- **Actividades con metas activas**: no se pueden dar de baja hasta dar de baja
+  o reasignar esas metas.
 - **Cargos protegidos**: un cargo con funcionarios no se elimina
   (`verificar_eliminacion_cargo`); se da de baja lógica (`desactivar_cargo`).
 - Los validadores de `tubo_gestionAPP/validadores.py` se usan en el sistema,
@@ -186,10 +193,14 @@ en vivo:
    source venv/bin/activate        # Linux/Mac
    venv\Scripts\activate           # Windows
    ```
-3. Instalar dependencias:
+3. Instalar dependencias (las mismas versiones exactas que producción):
    ```bash
    pip install -r requirements.txt
    ```
+   `requirements.txt` refleja lo que corre en la EC2 (Python 3.9, Django
+   4.2.30). Si el entorno tiene otra versión instalada, `manage.py check`,
+   `runserver`, `migrate` y las pruebas lo advierten (`sgr.W002`), sin
+   detener la aplicación.
 4. Crear el archivo `.env`:
    ```
    SECRET_KEY=tu_clave_secreta
@@ -223,8 +234,9 @@ python manage.py test
 La suite cubre autenticación, recuperación de contraseña, permisos por perfil,
 CRUD de los mantenedores, búsqueda, duplicados, baja lógica, reactivación,
 semáforo, cierre de `/admin/` y las dos transacciones atómicas de la Fase 4
-(incluida la reversión completa cuando falla un paso). En total son **234
-pruebas**; `sgr_maestrosAPP/test_reglas_y_mantenedores.py` cubre
+(incluida la reversión completa cuando falla un paso). En total son **242
+pruebas**; `seguridadAPP/test_cache_compartida.py` cubre el bloqueo con
+varios workers; `sgr_maestrosAPP/test_reglas_y_mantenedores.py` cubre
 ponderaciones, días computables, Períodos y Cargos, y `tubo_gestionAPP/test_ambito_y_adjuntos.py` cubre el ámbito por
 delegación, los límites de largo de texto y los archivos adjuntos (límites,
 extensiones bloqueadas, limpieza ante reversión y descarga protegida).

@@ -11,7 +11,12 @@ from seguridadAPP.perfiles import ADMINISTRADOR, ADMINISTRATIVO, SUPERVISOR
 from seguridadAPP.roles import sincronizar_roles
 
 from .feriados import domingo_de_resurreccion, feriados_entre
-from .forms import DetallePeriodoForm, MetaForm, PeriodoForm
+from .forms import (
+    CatalogoActividadForm,
+    DetallePeriodoForm,
+    MetaForm,
+    PeriodoForm,
+)
 from .models import CatalogoActividad, DetallePeriodo, Meta, Periodo
 from .tests import crear_usuario
 
@@ -386,3 +391,45 @@ class PruebasMantenedorCargos(Base):
         self.client.force_login(self.admin)
         respuesta = self.client.get(reverse("seguridad:cargo_lista"))
         self.assertEqual(respuesta.status_code, 200)
+
+
+# ============================================================
+# CATÁLOGO: NO SE DESACTIVA CON METAS ACTIVAS
+# ============================================================
+
+class PruebasBajaDeActividad(Base):
+
+    def test_no_da_de_baja_actividad_con_metas_activas(self):
+        self.crear_meta("M1", "50")
+        self.client.force_login(self.admin)
+
+        respuesta = self.client.post(
+            reverse("sgr_maestros:catalogo_cambiar_estado", args=[self.actividad.pk]),
+            follow=True,
+        )
+
+        self.actividad.refresh_from_db()
+        self.assertTrue(self.actividad.activo)
+        self.assertContains(respuesta, "tiene metas activas")
+
+    def test_tampoco_desde_el_formulario_de_edicion(self):
+        self.crear_meta("M1", "50")
+
+        form = CatalogoActividadForm(
+            {"codigo": "ACT-001", "nombre": "Aseo y ornato"},
+            instance=self.actividad,
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("activo", form.errors)
+
+    def test_si_las_metas_estan_de_baja_se_puede_desactivar(self):
+        self.crear_meta("M1", "50", activo=False)
+        self.client.force_login(self.admin)
+
+        self.client.post(
+            reverse("sgr_maestros:catalogo_cambiar_estado", args=[self.actividad.pk])
+        )
+
+        self.actividad.refresh_from_db()
+        self.assertFalse(self.actividad.activo)

@@ -19,6 +19,9 @@ class SeguridadappConfig(AppConfig):
     verbose_name = 'Seguridad: usuarios y roles'
 
     def ready(self):
+        # Registra la comprobación de versiones de requirements.txt.
+        import config.checks  # noqa: F401
+
         post_migrate.connect(
             sincronizar_roles_post_migrate,
             sender=self,
