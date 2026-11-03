@@ -78,6 +78,19 @@ independientes, para que ninguna quede a medias:
 - **Evidencia obligatoria**: cada avance exige una referencia verificable (acta,
   correo, fotografía, documento o enlace).
 
+### Demostración preparada T1 → T2
+
+La base de producción queda con un caso listo para mostrar el cambio de semáforo
+en vivo:
+
+- **Compromiso ID 1**: “Implementar plataforma de trámites en línea”, en **60 %**
+  (amarillo), ya asignado por **T1** a **Delegación Centro / Trámites
+  municipales**.
+- Al ingresar como **Administrativo** y registrar **95 %** por **T2** (con
+  evidencia), el compromiso cambia automáticamente a **verde**.
+- La verificación de T2 se ejecutó en una transacción revertida: el registro de
+  prueba no queda en la base y el compromiso permanece en 60 % para la revisión.
+
 ### Reglas de negocio
 
 - **Semáforo automático de compromisos**: el estado se calcula desde el
@@ -190,15 +203,13 @@ completos y dos transacciones atómicas**, distribuidas así:
 
 | Módulo / Transacción | Responsable |
 |---|---|
-| Delegaciones y Servicios | Integrante 1 |
-| Compromisos del Tubo de Gestión | Integrante 1 |
-| **T1: Asignación de compromisos a delegación y servicio** | Integrante 1 |
-| Catálogo de Actividades | Integrante 2 |
-| Metas y Detalles de período | Integrante 2 |
-| **T2: Registro de avance con evidencia** | Integrante 2 |
-| Usuarios, Roles y Perfiles (transversal) | Ambos integrantes |
-
-> Completar los nombres reales en la portada del informe y en esta tabla.
+| Delegaciones y Servicios | Ignacio Figueroa |
+| Compromisos del Tubo de Gestión | Ignacio Figueroa |
+| **T1: Asignación de compromisos a delegación y servicio** | Ignacio Figueroa |
+| Catálogo de Actividades | Orlando Iribarren |
+| Metas y Detalles de período | Orlando Iribarren |
+| **T2: Registro de avance con evidencia** | Orlando Iribarren |
+| Usuarios, Roles y Perfiles (transversal) | Ignacio Figueroa y Orlando Iribarren |
 
 ### Cobertura de la pauta
 
@@ -213,7 +224,7 @@ completos y dos transacciones atómicas**, distribuidas así:
 
 | Perfil | Usuario (login) | Delegación | Acceso |
 |---|---|---|---|
-| Administrador | `Sroot` | — (visión global) | Total |
+| Administrador | `21988036-7` | — (visión global) | Total |
 | Supervisor | `21.345.678-4` | Delegación Centro | Intermedio |
 | Administrativo | `22.456.789-8` | Delegación Av. del Mar | Mínimo |
 
