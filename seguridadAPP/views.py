@@ -680,17 +680,17 @@ def cargo_eliminar(request, pk):
     cargo = get_object_or_404(Cargo, pk=pk)
 
     try:
-        # Las metas no se vinculan a cargos en el modelo actual.
+        # Desde la Eva 3 las metas se definen por cargo (Meta.cargo).
         verificar_eliminacion_cargo(
             usuarios_asociados=cargo.funcionarios.count(),
-            metas_asociadas=0,
+            metas_asociadas=cargo.metas.count(),
         )
     except ProtectedError:
         messages.error(
             request,
-            f"El cargo '{cargo.nombre}' tiene funcionarios asociados y no "
-            "puede eliminarse. Puede darlo de baja para que no se asigne "
-            "a nuevos usuarios."
+            f"El cargo '{cargo.nombre}' tiene funcionarios o metas "
+            "asociadas y no puede eliminarse. Puede darlo de baja para "
+            "que no se asigne a nuevos usuarios."
         )
         return redirect("seguridad:cargo_lista")
 
