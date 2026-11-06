@@ -1,6 +1,8 @@
 
 from django import forms
 
+from seguridadAPP.models import Cargo
+
 from .models import (
     CatalogoActividad,
     Periodo,
@@ -23,6 +25,7 @@ class CatalogoActividadForm(forms.ModelForm):
             "nombre",
             "descripcion",
             "area",
+            "tipo_gestion",
             "activo",
         ]
 
@@ -47,10 +50,21 @@ class CatalogoActividadForm(forms.ModelForm):
                 "placeholder": "Ej: Aseo y Ornato",
             }),
 
+            "tipo_gestion": forms.Select(attrs={
+                "class": "form-select",
+            }),
+
             "activo": forms.CheckboxInput(attrs={
                 "class": "form-check-input",
             }),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Si el POST no trae el tipo (formularios o scripts anteriores a
+        # la Eva 3), se usa el valor por defecto: Ejecución.
+        self.fields["tipo_gestion"].required = False
 
     def clean_codigo(self):
         codigo = self.cleaned_data["codigo"].strip().upper()
@@ -61,6 +75,12 @@ class CatalogoActividadForm(forms.ModelForm):
             )
 
         return codigo
+
+    def clean_tipo_gestion(self):
+        return (
+            self.cleaned_data.get("tipo_gestion")
+            or CatalogoActividad._meta.get_field("tipo_gestion").default
+        )
 
     def clean_activo(self):
         activo = self.cleaned_data.get("activo")
@@ -304,6 +324,7 @@ class MetaForm(forms.ModelForm):
             "nombre",
             "descripcion",
             "periodo",
+            "cargo",
             "actividad",
             "valor_objetivo",
             "ponderacion",
@@ -328,6 +349,10 @@ class MetaForm(forms.ModelForm):
             }),
 
             "periodo": forms.Select(attrs={
+                "class": "form-select",
+            }),
+
+            "cargo": forms.Select(attrs={
                 "class": "form-select",
             }),
 
@@ -376,6 +401,17 @@ class MetaForm(forms.ModelForm):
             "Seleccione una actividad"
         )
 
+        # Cargos activos, más el cargo actual de la meta aunque se haya
+        # dado de baja (para no perderlo al editar).
+        cargos = Cargo.objects.filter(activo=True)
+        if self.instance.pk and self.instance.cargo_id:
+            cargos = cargos | Cargo.objects.filter(pk=self.instance.cargo_id)
+
+        self.fields["cargo"].queryset = cargos.distinct()
+        self.fields["cargo"].empty_label = (
+            "Sin cargo (meta general)"
+        )
+
     def clean_codigo(self):
         codigo = self.cleaned_data["codigo"].strip().upper()
 
@@ -410,6 +446,17 @@ class MetaForm(forms.ModelForm):
                 "actividad",
                 "No se pueden asignar metas "
                 "a actividades inactivas."
+            )
+
+        cargo = cleaned_data.get("cargo")
+        if (
+            cargo
+            and not cargo.activo
+            and cargo.pk != self.instance.cargo_id
+        ):
+            self.add_error(
+                "cargo",
+                "No se pueden asignar metas a cargos inactivos."
             )
 
         if valor_objetivo is not None:

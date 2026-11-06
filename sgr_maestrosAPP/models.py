@@ -10,10 +10,14 @@ from django.core.validators import (
 )
 
 from tubo_gestionAPP.validadores import (
+    TIPO_GESTION_EJECUCION,
+    TIPO_GESTION_PREPARATORIA,
     calcular_dias_computables,
+    tipo_gestion_puntua,
     validar_codigo_unico_catalogo,
     validar_rango_fechas,
     validar_suma_ponderaciones,
+    validar_suma_ponderaciones_por_cargo,
 )
 
 from .feriados import feriados_entre
@@ -31,6 +35,14 @@ MAX_OBSERVACIONES = 1000
 # ============================================================
 
 class CatalogoActividad(models.Model):
+
+    # R5: coordinaciones, correos e invitaciones no dan punto; solo la
+    # acción realizada. Ej.: "Coordinación de taller" = Preparatoria,
+    # "Realización de taller" = Ejecución.
+    TIPO_GESTION_OPCIONES = [
+        (TIPO_GESTION_EJECUCION, "Ejecución (suma puntaje)"),
+        (TIPO_GESTION_PREPARATORIA, "Preparatoria (no suma puntaje)"),
+    ]
 
     codigo = models.CharField(
         max_length=40,
@@ -52,6 +64,18 @@ class CatalogoActividad(models.Model):
         blank=True
     )
 
+    tipo_gestion = models.CharField(
+        max_length=12,
+        choices=TIPO_GESTION_OPCIONES,
+        default=TIPO_GESTION_EJECUCION,
+        db_index=True,
+        verbose_name="Tipo de gestión",
+        help_text=(
+            "Ejecución: la acción realizada, suma puntaje. Preparatoria: "
+            "correos, coordinaciones e invitaciones, no suma puntaje."
+        ),
+    )
+
     activo = models.BooleanField(
         default=True
     )
@@ -63,6 +87,11 @@ class CatalogoActividad(models.Model):
 
     def __str__(self):
         return f"{self.codigo} - {self.nombre}"
+
+    @property
+    def puntua(self):
+        """True si registrar esta actividad suma puntaje (R5)."""
+        return tipo_gestion_puntua(self.tipo_gestion)
 
     def clean(self):
         super().clean()
@@ -133,34 +162,89 @@ class Periodo(models.Model):
     def __str__(self):
         return f"{self.codigo} - {self.nombre}"
 
-    def ponderaciones_activas(self, excluir_meta=None):
-        """Ponderaciones de las metas activas del período."""
+    # Valor centinela: distingue "no filtrar por cargo" de "metas sin
+    # cargo" (cargo=None).
+    TODOS_LOS_CARGOS = object()
+
+    def ponderaciones_activas(self, excluir_meta=None, cargo=TODOS_LOS_CARGOS):
+        """
+        Ponderaciones de las metas activas del período. Con `cargo`, solo
+        las de ese cargo (None = metas generales, sin cargo asignado).
+        """
         if self.pk is None:
             return []
 
         metas = self.metas.filter(activo=True)
+
+        if cargo is not self.TODOS_LOS_CARGOS:
+            if cargo is None:
+                metas = metas.filter(cargo__isnull=True)
+            else:
+                metas = metas.filter(cargo=cargo)
 
         if excluir_meta is not None:
             metas = metas.exclude(pk=excluir_meta)
 
         return list(metas.values_list("ponderacion", flat=True))
 
-    def suma_ponderaciones(self):
-        return sum(self.ponderaciones_activas(), Decimal("0"))
+    def suma_ponderaciones(self, cargo=TODOS_LOS_CARGOS):
+        return sum(self.ponderaciones_activas(cargo=cargo), Decimal("0"))
+
+    def ponderaciones_por_cargo(self):
+        """
+        {nombre del cargo: [ponderaciones]} de las metas activas. Las
+        metas sin cargo forman el grupo "Sin cargo".
+        """
+        grupos = {}
+        if self.pk is None:
+            return grupos
+
+        for nombre, ponderacion in self.metas.filter(activo=True).order_by(
+            "cargo__nombre"
+        ).values_list("cargo__nombre", "ponderacion"):
+            grupos.setdefault(nombre or "Sin cargo", []).append(ponderacion)
+
+        return grupos
+
+    def resumen_ponderaciones_por_cargo(self):
+        """Lista de {cargo, suma, completo} para mostrar en el listado."""
+        return [
+            {
+                "cargo": nombre,
+                "suma": sum(ponderaciones, Decimal("0")),
+                "completo": sum(ponderaciones, Decimal("0")) == 100,
+            }
+            for nombre, ponderaciones in self.ponderaciones_por_cargo().items()
+        ]
 
     def validar_cierre(self):
         """
-        Un período solo puede cerrarse cuando sus metas activas suman
-        exactamente 100%: así la evaluación final queda completa.
+        Un período solo puede cerrarse cuando las metas activas de CADA
+        cargo suman exactamente 100%: así la evaluación de cada
+        funcionario queda completa.
         """
+        grupos = self.ponderaciones_por_cargo()
+
+        # Sin metas, o solo metas generales: regla original.
+        if not grupos or list(grupos) == ["Sin cargo"]:
+            try:
+                validar_suma_ponderaciones(self.ponderaciones_activas())
+            except ValidationError:
+                raise ValidationError({
+                    "cerrado": (
+                        "No se puede cerrar el período: sus metas activas "
+                        f"suman {self.suma_ponderaciones()}% y deben sumar "
+                        "exactamente 100%."
+                    )
+                })
+            return
+
         try:
-            validar_suma_ponderaciones(self.ponderaciones_activas())
-        except ValidationError:
+            validar_suma_ponderaciones_por_cargo(grupos)
+        except ValidationError as error:
             raise ValidationError({
                 "cerrado": (
-                    "No se puede cerrar el período: sus metas activas "
-                    f"suman {self.suma_ponderaciones()}% y deben sumar "
-                    "exactamente 100%."
+                    "No se puede cerrar el período. " + error.messages[0]
                 )
             })
 
@@ -334,6 +418,22 @@ class Meta(models.Model):
         verbose_name="Actividad del catálogo"
     )
 
+    # En la matriz real las metas son por cargo (Apoyo Administrativo,
+    # Territorial OO.CC., Gestor Social, etc.). Null = meta general,
+    # para conservar las metas creadas antes de este cambio.
+    cargo = models.ForeignKey(
+        "seguridadAPP.Cargo",
+        on_delete=models.PROTECT,
+        related_name="metas",
+        null=True,
+        blank=True,
+        verbose_name="Cargo",
+        help_text=(
+            "Cargo al que se aplica la meta. Las ponderaciones deben "
+            "sumar 100% por período y cargo."
+        ),
+    )
+
     valor_objetivo = models.DecimalField(
         max_digits=10,
         decimal_places=2,
@@ -367,6 +467,16 @@ class Meta(models.Model):
 
     def __str__(self):
         return f"{self.codigo} - {self.nombre}"
+
+    def ponderacion_disponible(self):
+        """Lo que queda para llegar a 100% en este período y cargo."""
+        return 100 - sum(
+            self.periodo.ponderaciones_activas(
+                excluir_meta=self.pk,
+                cargo=self.cargo if self.cargo_id else None,
+            ),
+            Decimal("0"),
+        )
 
     def clean(self):
         super().clean()
@@ -408,23 +518,29 @@ class Meta(models.Model):
                     "La ponderación debe estar entre 0 y 100."
                 )
 
-        # Las metas activas de un período no pueden superar el 100%.
+        # Las metas activas de un mismo período y cargo no pueden
+        # superar el 100%.
         if (
             "ponderacion" not in errores
             and self.ponderacion is not None
             and self.activo
             and self.periodo_id
         ):
-            disponible = 100 - sum(
-                self.periodo.ponderaciones_activas(excluir_meta=self.pk),
-                Decimal("0"),
-            )
+            disponible = self.ponderacion_disponible()
 
             if self.ponderacion > disponible:
-                errores["ponderacion"] = (
-                    "Las metas activas del período superarían el 100%. "
-                    f"Ponderación disponible: {disponible}%."
-                )
+                if self.cargo_id:
+                    errores["ponderacion"] = (
+                        "Las metas activas del cargo "
+                        f"'{self.cargo.nombre}' en este período "
+                        "superarían el 100%. "
+                        f"Ponderación disponible: {disponible}%."
+                    )
+                else:
+                    errores["ponderacion"] = (
+                        "Las metas activas del período superarían el "
+                        f"100%. Ponderación disponible: {disponible}%."
+                    )
 
         if errores:
             raise ValidationError(errores)

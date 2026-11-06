@@ -134,7 +134,15 @@ Gestión de Períodos de Evaluación
                         </td>
 
                         <td>
-                            {% if periodo.suma_ponderaciones == 100 %}
+                            {% with grupos=periodo.resumen_ponderaciones_por_cargo %}
+                            {% if grupos|length > 1 or grupos and grupos.0.cargo != "Sin cargo" %}
+                                {% for grupo in grupos %}
+                                    <span class="badge {% if grupo.completo %}bg-success{% else %}bg-warning text-dark{% endif %} d-block mb-1 text-start"
+                                          title="Para cerrar el período cada cargo debe sumar 100%">
+                                        {{ grupo.cargo }}: {{ grupo.suma|floatformat:"-2" }}%{% if not grupo.completo %} de 100%{% endif %}
+                                    </span>
+                                {% endfor %}
+                            {% elif periodo.suma_ponderaciones == 100 %}
                                 <span class="badge bg-success">
                                     {{ periodo.suma_ponderaciones|floatformat:"-2" }}%
                                 </span>
@@ -144,6 +152,7 @@ Gestión de Períodos de Evaluación
                                     {{ periodo.suma_ponderaciones|floatformat:"-2" }}% de 100%
                                 </span>
                             {% endif %}
+                            {% endwith %}
                         </td>
 
                         <td>

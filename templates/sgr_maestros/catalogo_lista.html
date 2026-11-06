@@ -42,7 +42,7 @@ Catálogo de Actividades Municipales
 <div class="card shadow-sm border-0 mb-3">
     <div class="card-body">
         <form method="GET" class="row g-2 align-items-end">
-            <div class="col-md-6">
+            <div class="col-md-4">
                 <label class="form-label small fw-semibold" for="q">
                     Buscar
                 </label>
@@ -54,7 +54,24 @@ Catálogo de Actividades Municipales
                        placeholder="Código, nombre, área o descripción">
             </div>
 
-            <div class="col-md-4">
+            <div class="col-md-3">
+                <label class="form-label small fw-semibold" for="tipo">
+                    Tipo de gestión
+                </label>
+                <select id="tipo" name="tipo" class="form-select">
+                    <option value="" {% if not tipo %}selected{% endif %}>
+                        Todos
+                    </option>
+                    {% for valor, etiqueta in tipos_gestion %}
+                    <option value="{{ valor }}"
+                        {% if tipo == valor %}selected{% endif %}>
+                        {{ etiqueta }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-3">
                 <label class="form-label small fw-semibold" for="estado">
                     Estado
                 </label>
@@ -99,6 +116,7 @@ Catálogo de Actividades Municipales
                         <th>Código</th>
                         <th>Nombre</th>
                         <th>Área</th>
+                        <th>Tipo de gestión</th>
                         <th>Descripción</th>
                         <th>Estado</th>
                         <th>Acciones</th>
@@ -117,6 +135,20 @@ Catálogo de Actividades Municipales
 
                         <td>
                             {{ actividad.area|default:"Sin área" }}
+                        </td>
+
+                        <td>
+                            {% if actividad.tipo_gestion == "PREPARATORIA" %}
+                                <span class="badge bg-secondary"
+                                      title="Correos, coordinaciones e invitaciones: no suma puntaje">
+                                    Preparatoria
+                                </span>
+                            {% else %}
+                                <span class="badge bg-info text-dark"
+                                      title="Acción realizada: suma puntaje">
+                                    Ejecución
+                                </span>
+                            {% endif %}
                         </td>
 
                         <td>
@@ -170,7 +202,7 @@ Catálogo de Actividades Municipales
                     {% empty %}
 
                     <tr>
-                        <td colspan="6"
+                        <td colspan="7"
                             class="text-center text-muted py-5">
                             <h5>No existen actividades registradas</h5>
                             <p class="mb-0">

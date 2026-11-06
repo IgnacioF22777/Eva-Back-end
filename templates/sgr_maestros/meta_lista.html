@@ -59,7 +59,7 @@ Gestión de Metas Municipales
 <div class="card shadow-sm border-0 mb-3">
     <div class="card-body">
         <form method="GET" class="row g-2 align-items-end">
-            <div class="col-md-6">
+            <div class="col-md-4">
                 <label class="form-label small fw-semibold" for="q">
                     Buscar
                 </label>
@@ -68,10 +68,30 @@ Gestión de Metas Municipales
                        name="q"
                        value="{{ busqueda }}"
                        class="form-control"
-                       placeholder="Código, nombre, período o actividad">
+                       placeholder="Código, nombre, período, actividad o cargo">
             </div>
 
-            <div class="col-md-4">
+            <div class="col-md-3">
+                <label class="form-label small fw-semibold" for="cargo">
+                    Cargo
+                </label>
+                <select id="cargo" name="cargo" class="form-select">
+                    <option value="" {% if not cargo_id %}selected{% endif %}>
+                        Todos
+                    </option>
+                    <option value="sin" {% if cargo_id == "sin" %}selected{% endif %}>
+                        Sin cargo (metas generales)
+                    </option>
+                    {% for cargo in cargos %}
+                    <option value="{{ cargo.pk }}"
+                        {% if cargo_id == cargo.pk|stringformat:"s" %}selected{% endif %}>
+                        {{ cargo.nombre }}{% if not cargo.activo %} (inactivo){% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-3">
                 <label class="form-label small fw-semibold" for="estado">
                     Estado
                 </label>
@@ -125,6 +145,7 @@ Gestión de Metas Municipales
                         <th>Código</th>
                         <th>Nombre</th>
                         <th>Período</th>
+                        <th>Cargo</th>
                         <th>Actividad</th>
                         <th>Valor Objetivo</th>
                         <th>Ponderación</th>
@@ -159,6 +180,10 @@ Gestión de Metas Municipales
                                         Período cerrado
                                     </span>
                                 {% endif %}
+                            </td>
+
+                            <td>
+                                {{ meta.cargo.nombre|default:"Sin cargo" }}
                             </td>
 
                             <td>
@@ -247,7 +272,7 @@ Gestión de Metas Municipales
 
                         <tr>
 
-                            <td colspan="8"
+                            <td colspan="9"
                                 class="text-center text-muted py-5">
 
                                 <h5>

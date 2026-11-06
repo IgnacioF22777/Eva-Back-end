@@ -7,6 +7,8 @@ from django.db.models import Count, DecimalField, OuterRef, Q, Subquery, Sum
 from django.db.models.functions import Coalesce
 from django.views.decorators.http import require_POST
 
+from seguridadAPP.models import Cargo
+
 from .models import (
     CatalogoActividad,
     Periodo,
@@ -31,6 +33,7 @@ from .forms import (
 def catalogo_lista(request):
     busqueda = request.GET.get("q", "").strip()
     estado = request.GET.get("estado", "activos")
+    tipo = request.GET.get("tipo", "")
 
     actividades = CatalogoActividad.objects.all()
 
@@ -47,6 +50,13 @@ def catalogo_lista(request):
     elif estado == "inactivos":
         actividades = actividades.filter(activo=False)
 
+    # Filtro por tipo de gestión (R5); un valor desconocido se ignora.
+    tipos_validos = dict(CatalogoActividad.TIPO_GESTION_OPCIONES)
+    if tipo in tipos_validos:
+        actividades = actividades.filter(tipo_gestion=tipo)
+    else:
+        tipo = ""
+
     return render(
         request,
         "sgr_maestros/catalogo_lista.html",
@@ -54,6 +64,8 @@ def catalogo_lista(request):
             "actividades": actividades,
             "busqueda": busqueda,
             "estado": estado,
+            "tipo": tipo,
+            "tipos_gestion": CatalogoActividad.TIPO_GESTION_OPCIONES,
             "total_activas": CatalogoActividad.objects.filter(
                 activo=True
             ).count(),
@@ -519,9 +531,12 @@ def meta_lista(request):
     busqueda = request.GET.get("q", "").strip()
     estado = request.GET.get("estado", "activos")
 
+    cargo_id = request.GET.get("cargo", "")
+
     metas = Meta.objects.select_related(
         "periodo",
-        "actividad"
+        "actividad",
+        "cargo",
     ).all()
 
     if busqueda:
@@ -530,7 +545,16 @@ def meta_lista(request):
             | Q(nombre__icontains=busqueda)
             | Q(periodo__codigo__icontains=busqueda)
             | Q(actividad__nombre__icontains=busqueda)
+            | Q(cargo__nombre__icontains=busqueda)
         )
+
+    # Filtro por cargo: "sin" = metas generales; un id inválido se ignora.
+    if cargo_id == "sin":
+        metas = metas.filter(cargo__isnull=True)
+    elif cargo_id.isdigit():
+        metas = metas.filter(cargo_id=int(cargo_id))
+    else:
+        cargo_id = ""
 
     if estado == "activos":
         metas = metas.filter(activo=True)
@@ -544,6 +568,8 @@ def meta_lista(request):
             "metas": metas,
             "busqueda": busqueda,
             "estado": estado,
+            "cargo_id": cargo_id,
+            "cargos": Cargo.objects.order_by("nombre"),
             "total_activas": Meta.objects.filter(activo=True).count(),
             "total_inactivas": Meta.objects.filter(activo=False).count(),
         }
@@ -584,7 +610,8 @@ def meta_editar(request, pk):
     meta = get_object_or_404(
         Meta.objects.select_related(
             "periodo",
-            "actividad"
+            "actividad",
+            "cargo",
         ),
         pk=pk
     )
@@ -632,7 +659,8 @@ def meta_cambiar_estado(request, pk):
     meta = get_object_or_404(
         Meta.objects.select_related(
             "periodo",
-            "actividad"
+            "actividad",
+            "cargo",
         ),
         pk=pk
     )
@@ -654,14 +682,19 @@ def meta_cambiar_estado(request, pk):
 
         return redirect("sgr_maestros:meta_lista")
 
-    # Al reactivar, la suma del período no puede superar el 100%.
+    # Al reactivar, la suma del período (y del cargo de la meta) no
+    # puede superar el 100%.
     if not meta.activo:
-        disponible = 100 - meta.periodo.suma_ponderaciones()
+        disponible = meta.ponderacion_disponible()
 
         if meta.ponderacion > disponible:
+            ambito = (
+                f"el cargo '{meta.cargo.nombre}' en el período"
+                if meta.cargo_id else "el período"
+            )
             messages.error(
                 request,
-                "No puedes reactivar la meta: el período superaría el "
+                f"No puedes reactivar la meta: {ambito} superaría el "
                 f"100% de ponderación (disponible: {disponible}%)."
             )
 

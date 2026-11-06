@@ -61,6 +61,45 @@ def validar_suma_ponderaciones(ponderaciones: list) -> bool:
         raise ValidationError("La suma de ponderaciones debe ser exactamente 100%.")
     return True
 
+def validar_suma_ponderaciones_por_cargo(grupos: dict) -> bool:
+    """
+    Las metas se ponderan por cargo: cada cargo del período debe sumar
+    exactamente 100% (CP-MET-003 y CP-MET-004).
+
+    grupos: {nombre_del_cargo: [ponderaciones]}. Un período sin metas
+    no se valida aquí (lo rechaza validar_suma_ponderaciones).
+    """
+    incompletos = []
+    for nombre, ponderaciones in grupos.items():
+        total = sum(ponderaciones)
+        if round(total, 2) != 100.0:
+            incompletos.append(f"{nombre}: {total}%")
+
+    if incompletos:
+        raise ValidationError(
+            "Cada cargo debe sumar exactamente 100%. Revise: "
+            + "; ".join(incompletos) + "."
+        )
+    return True
+
+# ==========================================
+# CATÁLOGO: TIPO DE GESTIÓN (R5, Ignacio)
+# ==========================================
+TIPO_GESTION_EJECUCION = "EJECUCION"
+TIPO_GESTION_PREPARATORIA = "PREPARATORIA"
+
+
+def tipo_gestion_puntua(tipo_gestion: str) -> bool:
+    """
+    R5: solo la acción realizada da punto. Las gestiones preparatorias
+    (correos, coordinaciones, invitaciones) no suman (CP-CAT-003/004).
+    """
+    if tipo_gestion == TIPO_GESTION_EJECUCION:
+        return True
+    if tipo_gestion == TIPO_GESTION_PREPARATORIA:
+        return False
+    raise ValidationError(f"Tipo de gestión desconocido: {tipo_gestion!r}.")
+
 def validar_rango_fechas(fecha_inicio: date, fecha_termino: date) -> bool:
     """Valida cronología del período (CP-PER-001 y CP-PER-002)."""
     if fecha_termino < fecha_inicio:
