@@ -190,31 +190,60 @@ class Periodo(models.Model):
     def suma_ponderaciones(self, cargo=TODOS_LOS_CARGOS):
         return sum(self.ponderaciones_activas(cargo=cargo), Decimal("0"))
 
-    def ponderaciones_por_cargo(self):
+    GRUPO_SIN_CARGO = "Sin cargo"
+
+    def _grupos_por_cargo(self):
         """
-        {nombre del cargo: [ponderaciones]} de las metas activas. Las
-        metas sin cargo forman el grupo "Sin cargo".
+        {cargo_id: (etiqueta, [ponderaciones])} de las metas activas; las
+        metas generales usan la clave None.
+
+        Se agrupa por id y no por nombre: un cargo que se llame
+        "Sin cargo" no debe mezclarse con las metas generales.
         """
         grupos = {}
         if self.pk is None:
             return grupos
 
-        for nombre, ponderacion in self.metas.filter(activo=True).order_by(
-            "cargo__nombre"
-        ).values_list("cargo__nombre", "ponderacion"):
-            grupos.setdefault(nombre or "Sin cargo", []).append(ponderacion)
+        for cargo_id, nombre, ponderacion in self.metas.filter(
+            activo=True
+        ).order_by("cargo__nombre").values_list(
+            "cargo_id", "cargo__nombre", "ponderacion"
+        ):
+            if cargo_id is None:
+                etiqueta = self.GRUPO_SIN_CARGO
+            elif nombre.strip().lower() == self.GRUPO_SIN_CARGO.lower():
+                etiqueta = f"{nombre} (cargo)"
+            else:
+                etiqueta = nombre
+
+            grupos.setdefault(cargo_id, (etiqueta, []))[1].append(ponderacion)
 
         return grupos
 
+    def ponderaciones_por_cargo(self):
+        """
+        {etiqueta del cargo: [ponderaciones]} de las metas activas. Las
+        metas sin cargo forman el grupo "Sin cargo".
+        """
+        return {
+            etiqueta: ponderaciones
+            for etiqueta, ponderaciones in self._grupos_por_cargo().values()
+        }
+
     def resumen_ponderaciones_por_cargo(self):
-        """Lista de {cargo, suma, completo} para mostrar en el listado."""
+        """
+        Lista de {cargo, suma, completo, general} para mostrar en el
+        listado.
+        """
         return [
             {
-                "cargo": nombre,
+                "cargo": etiqueta,
                 "suma": sum(ponderaciones, Decimal("0")),
                 "completo": sum(ponderaciones, Decimal("0")) == 100,
+                "general": cargo_id is None,
             }
-            for nombre, ponderaciones in self.ponderaciones_por_cargo().items()
+            for cargo_id, (etiqueta, ponderaciones)
+            in self._grupos_por_cargo().items()
         ]
 
     def validar_cierre(self):
@@ -224,9 +253,10 @@ class Periodo(models.Model):
         funcionario queda completa.
         """
         grupos = self.ponderaciones_por_cargo()
+        solo_generales = list(self._grupos_por_cargo()) == [None]
 
         # Sin metas, o solo metas generales: regla original.
-        if not grupos or list(grupos) == ["Sin cargo"]:
+        if not grupos or solo_generales:
             try:
                 validar_suma_ponderaciones(self.ponderaciones_activas())
             except ValidationError:

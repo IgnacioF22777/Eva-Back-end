@@ -135,7 +135,7 @@ Gestión de Períodos de Evaluación
 
                         <td>
                             {% with grupos=periodo.resumen_ponderaciones_por_cargo %}
-                            {% if grupos|length > 1 or grupos and grupos.0.cargo != "Sin cargo" %}
+                            {% if grupos|length > 1 or grupos and not grupos.0.general %}
                                 {% for grupo in grupos %}
                                     <span class="badge {% if grupo.completo %}bg-success{% else %}bg-warning text-dark{% endif %} d-block mb-1 text-start"
                                           title="Para cerrar el período cada cargo debe sumar 100%">

@@ -337,3 +337,61 @@ class PruebasMetasPorCargo(Base):
         self.assertEqual(respuesta.status_code, 200)
         self.assertTrue(Cargo.objects.filter(pk=self.apoyo.pk).exists())
         self.assertContains(respuesta, "funcionarios o metas")
+
+
+class PruebasCargoLlamadoSinCargo(Base):
+    """
+    CP-MET-015 (borde): las metas se agrupan por cargo y no por nombre. Un
+    cargo llamado "Sin cargo" no se mezcla con las metas generales.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.homonimo = Cargo.objects.create(nombre="Sin cargo")
+
+    def meta(self, codigo, ponderacion, cargo=None):
+        return Meta.objects.create(
+            codigo=codigo, nombre=f"Meta {codigo}", periodo=self.periodo,
+            actividad=self.actividad, valor_objetivo=Decimal("10"),
+            ponderacion=Decimal(ponderacion), cargo=cargo,
+        )
+
+    def datos_cierre(self):
+        return {
+            "codigo": "PER-2026", "nombre": "Período 2026",
+            "fecha_inicio": "2026-01-01", "fecha_fin": "2026-12-31",
+            "cerrado": True,
+        }
+
+    def test_CP_MET_015_no_se_suma_con_las_metas_generales(self):
+        self.meta("GEN-1", "30")
+        self.meta("SC-1", "70", cargo=self.homonimo)
+
+        grupos = self.periodo.ponderaciones_por_cargo()
+        self.assertEqual(grupos["Sin cargo"], [Decimal("30.00")])
+        self.assertEqual(grupos["Sin cargo (cargo)"], [Decimal("70.00")])
+
+        # 30% + 70% NO es un 100%: son dos grupos distintos e incompletos.
+        form = PeriodoForm(self.datos_cierre(), instance=self.periodo)
+        self.assertFalse(form.is_valid())
+        self.assertIn("Sin cargo: 30", str(form.errors["cerrado"]))
+
+    def test_CP_MET_016_cada_grupo_completo_permite_cerrar(self):
+        self.meta("GEN-1", "100")
+        self.meta("SC-1", "100", cargo=self.homonimo)
+
+        form = PeriodoForm(self.datos_cierre(), instance=self.periodo)
+        self.assertTrue(form.is_valid(), form.errors)
+
+    def test_CP_MET_017_solo_el_cargo_homonimo_no_es_meta_general(self):
+        # Solo metas de un cargo (aunque se llame "Sin cargo"): se valida
+        # por cargo y el listado lo muestra como cargo, no como general.
+        self.meta("SC-1", "40", cargo=self.homonimo)
+
+        resumen = self.periodo.resumen_ponderaciones_por_cargo()
+        self.assertEqual(len(resumen), 1)
+        self.assertFalse(resumen[0]["general"])
+
+        self.client.force_login(self.admin)
+        respuesta = self.client.get(reverse("sgr_maestros:periodo_lista"))
+        self.assertContains(respuesta, "Sin cargo (cargo): 40% de 100%")
