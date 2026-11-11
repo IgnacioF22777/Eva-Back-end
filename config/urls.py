@@ -22,4 +22,7 @@ urlpatterns = [
 
     # Proyecto Integrado - Seguridad: login, usuarios y roles
     path("seguridad/", include("seguridadAPP.urls")),
+
+    # Programación Back End - API RESTful (JWT, Swagger y ReDoc)
+    path("api/", include("apiAPP.urls")),
 ]

@@ -203,10 +203,76 @@ en vivo:
   no solo en las pruebas: login (`validar_credenciales`), RUT, ámbito por
   delegación, fechas, código único de catálogo, ponderaciones, días y cargos.
 
+## API RESTful (`apiAPP`)
+
+La app `apiAPP` expone los datos del SGR en formato JSON para que otros
+sistemas puedan consumirlos. Está construida con **Django REST Framework**
+usando **vistas basadas en funciones** (`@api_view`) y serializadores,
+protegida con **JWT** y documentada con **Swagger / ReDoc**
+(`drf-spectacular`).
+
+### Cómo usarla
+
+1. Obtener el token con el mismo usuario de la web (RUT, correo o usuario):
+   ```bash
+   curl -X POST http://127.0.0.1:8000/api/token/ -H "Content-Type: application/json" -d '{"username": "12.345.678-5", "password": "su_clave"}'
+   ```
+   La respuesta trae `access` (dura 30 minutos) y `refresh` (dura 8 horas).
+2. Enviar el token `access` en cada solicitud:
+   ```bash
+   curl http://127.0.0.1:8000/api/delegaciones/ -H "Authorization: Bearer <access>"
+   ```
+3. O usar la documentación interactiva en `/api/swagger/`: presionar
+   **Authorize**, pegar el token `access` y probar cada operación.
+   También está disponible en `/api/redoc/` y el esquema OpenAPI en
+   `/api/schema/`.
+
+### Rutas
+
+| Recurso | Colección (GET listar, POST crear) | Detalle (GET, PUT, PATCH, DELETE) | Reactivar (POST) |
+|---|---|---|---|
+| Autenticación | `POST /api/token/`, `POST /api/token/refresh/`, `GET /api/yo/` | — | — |
+| Delegaciones | `/api/delegaciones/` | `/api/delegaciones/<id>/` | `/api/delegaciones/<id>/reactivar/` |
+| Servicios | `/api/servicios/` | `/api/servicios/<id>/` | `/api/servicios/<id>/reactivar/` |
+| Compromisos | `/api/compromisos/` | `/api/compromisos/<id>/` | `/api/compromisos/<id>/reactivar/` |
+| Catálogo de actividades | `/api/catalogo/` | `/api/catalogo/<id>/` | `/api/catalogo/<id>/reactivar/` |
+| Períodos | `/api/periodos/` | `/api/periodos/<id>/` | — |
+| Metas | `/api/metas/` | `/api/metas/<id>/` | `/api/metas/<id>/reactivar/` |
+
+Los listados aceptan filtros en la URL: `?estado=activos|inactivos|todos`
+(por defecto `activos`), `?q=texto` para buscar, y según el recurso
+`?delegacion=<id>`, `?semaforo=verde|amarillo|rojo`,
+`?tipo=EJECUCION|PREPARATORIA`, `?periodo=<id>` o `?cargo=<id>|sin`.
+
+### Reglas que respeta
+
+La API no tiene reglas propias: aplica las mismas que la aplicación web.
+
+- **Mismas validaciones**: cada serializador valida con el formulario del
+  mantenedor web (y este con el modelo), por lo que la ponderación por cargo,
+  el cierre de períodos, el código único del catálogo, el RUT, las fechas o
+  los duplicados se controlan igual en la web y en la API.
+- **Mismos permisos**: cada operación exige el permiso de Django del perfil
+  (Administrador, Supervisor o Administrativo). Sin token responde `401`;
+  sin permiso, `403`.
+- **Mismo ámbito por delegación** en los compromisos: un Administrativo solo
+  ve y opera los de su delegación (`403` fuera de ámbito).
+- **Baja lógica**: `DELETE` deja el registro con `activo=false` y se puede
+  reactivar. La única excepción es el período, que se elimina solo si no
+  tiene detalles ni metas, igual que en la web.
+- **Campos protegidos**: el cumplimiento y el semáforo de un compromiso no se
+  editan por la API; solo cambian con el registro de avance (T2). `activo`
+  solo cambia con `DELETE` o `/reactivar/`.
+- **Reglas de negocio** que impiden una operación válida (ej. dar de baja una
+  delegación con servicios activos o modificar un período cerrado) responden
+  `409` con el motivo.
+
 ## Stack Tecnológico
 
 - **Lenguaje:** Python 3.13
 - **Framework:** Django 5.2 LTS (soporte de seguridad hasta abril de 2028)
+- **API:** Django REST Framework 3.18, Simple JWT 5.5 y drf-spectacular 0.30
+  (Swagger / ReDoc)
 - **Servidor Web:** Nginx + Gunicorn
 - **Base de Datos:** MySQL / MariaDB
 - **Infraestructura:** AWS EC2 (Amazon Linux 2023)
@@ -291,8 +357,8 @@ python manage.py test
 La suite cubre autenticación, recuperación de contraseña, permisos por perfil,
 CRUD de los mantenedores, búsqueda, duplicados, baja lógica, reactivación,
 semáforo, cierre de `/admin/`, las dos transacciones atómicas de la Fase 4
-(incluida la reversión completa cuando falla un paso) y las reglas de la
-Evaluación 3. En total son **266 pruebas** en 8 archivos:
+(incluida la reversión completa cuando falla un paso), las reglas de la
+Evaluación 3 y la API RESTful. En total son **313 pruebas** en 9 archivos:
 
 | Archivo | Pruebas | Cubre |
 |---|---|---|
@@ -304,10 +370,14 @@ Evaluación 3. En total son **266 pruebas** en 8 archivos:
 | `sgr_maestrosAPP/tests.py` | 13 | Búsqueda y baja lógica de las tablas maestras |
 | `sgr_maestrosAPP/test_reglas_y_mantenedores.py` | 27 | Ponderaciones, días computables, Períodos y Cargos |
 | `sgr_maestrosAPP/test_eva3_catalogo_metas.py` | 24 | Tipo de gestión (R5) y metas por cargo (Evaluación 3) |
+| `apiAPP/tests.py` | 47 | API: tokens JWT, bloqueo por intentos, revocación, permisos por perfil, ámbito, validaciones, baja lógica y Swagger (casos CP-API-001 a 035) |
 
 - Las pruebas usan la base configurada en `.env` (MySQL/MariaDB) y crean una
   base temporal `test_<DB_NAME>`, por eso el usuario necesita el permiso del
   paso 0 de la instalación.
+- **313 pruebas en verde** el 11-11-2026 en un equipo local (Python 3.12,
+  Django 5.2.19, base SQLite temporal). Falta repetirlas sobre MariaDB en el
+  servidor después del despliegue.
 - **266 pruebas en verde** el 06-11-2026 (commit `e097d04`), con Python 3.13
   y Django 5.2.19. La versión anterior de la suite (242 pruebas) se ejecutó
   en el servidor contra MariaDB 10.5 el 03-11-2026.
@@ -322,6 +392,9 @@ Evaluación 3. En total son **266 pruebas** en 8 archivos:
 - Control de acceso en el servidor con `@login_required` y
   `@permission_required`; un permiso faltante responde `403`.
 - Todos los formularios POST usan `{% csrf_token %}`.
+- API con tokens JWT de corta duración (30 minutos). El token deja de servir
+  si la cuenta se desactiva o si cambia la contraseña, y `/api/token/`
+  comparte el bloqueo de 15 minutos tras 5 intentos fallidos del login web.
 - Los detalles del incidente de la llave SSH y las medidas aplicadas están en
   [`SECURITY.md`](SECURITY.md).
 
@@ -341,6 +414,7 @@ Evaluación 3. En total son **266 pruebas** en 8 archivos:
 | App | Contenido |
 |---|---|
 | `config/` | Configuración, rutas principales y comprobación de versiones (`sgr.W001`/`sgr.W002`) |
+| `apiAPP` | API RESTful: serializadores, vistas `@api_view`, permisos, rutas JWT y documentación Swagger/ReDoc (sin modelos propios) |
 | `delegacionesAPP` | Delegaciones y servicios; comando `import_data` (datos iniciales de `data/`) |
 | `tubo_gestionAPP` | Compromisos, asignaciones (T1), avances y adjuntos (T2); ámbito por delegación y validadores de reglas de negocio |
 | `sgr_maestrosAPP` | Catálogo de actividades, períodos, detalles de período (feriados y días computables) y metas |
@@ -377,6 +451,7 @@ distribuyen así:
 | Metas y Detalles de período | Orlando Iribarren |
 | **T2: Registro de avance con evidencia** | Orlando Iribarren |
 | Usuarios, Roles y Perfiles (transversal) | Ignacio Figueroa y Orlando Iribarren |
+| API RESTful con JWT y Swagger (`apiAPP`) | Ignacio Figueroa |
 
 ### Cobertura de la pauta
 
@@ -407,7 +482,9 @@ distribuyen así:
 El proyecto fue desarrollado con apoyo de herramientas de IA (**OpenCode**) usadas
 como asistente técnico: revisión de seguridad, diseño de la baja lógica,
 construcción de los mantenedores, redacción de pruebas automatizadas y resolución
-de errores de despliegue en AWS.
+de errores de despliegue en AWS. La API RESTful (`apiAPP`) se desarrolló con
+apoyo de **Claude Code**, siguiendo las guías de la asignatura (API con
+`JsonResponse`, Django REST Framework con funciones, Swagger y JWT).
 
 Las respuestas de la IA fueron **revisadas, corregidas y validadas** contra la
 pauta y contra el entorno real (Python 3.13 y Django 5.2 tanto en local como en el servidor).
@@ -424,6 +501,7 @@ nativos de Django (autenticación, permisos, formularios, ORM y migraciones).
 | Baja lógica | "Ningún registro debe borrarse; solo desactivarse y reactivarse" | Campos `activo`, guardas de baja y pruebas por mantenedor |
 | Fase 4 | "Implementa dos transacciones atómicas con `select_for_update` sobre `Compromiso`" | `compromiso_asignar` y `compromiso_avance`, con reversión total ante fallo |
 | Pruebas | "Escribe pruebas de atomicidad que fallen después de la primera escritura" | 167 pruebas, incluidas las de rollback de T1 y T2 |
+| API RESTful | "Crea una app Django con la API RESTful del proyecto, con DRF por funciones, JWT y Swagger, respetando permisos y reglas de la web" | `apiAPP`: 6 recursos más autenticación, validación con los formularios web, bloqueo de login compartido y 47 pruebas |
 
 > En el documento técnico se incluyen los prompts completos, extractos de las
 > respuestas y las capturas de la aplicación resultante.
