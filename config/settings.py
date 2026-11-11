@@ -1,3 +1,4 @@
+from datetime import timedelta
 from pathlib import Path
 import os
 from dotenv import load_dotenv
@@ -37,6 +38,13 @@ INSTALLED_APPS = [
     'reportesCiudadanosAPP',
     'sgr_maestrosAPP',
     'seguridadAPP',
+
+    # API RESTful (Programación Back End): Django REST Framework,
+    # autenticación JWT y documentación OpenAPI (Swagger / ReDoc).
+    'rest_framework',
+    'rest_framework_simplejwt',
+    'drf_spectacular',
+    'apiAPP',
 ]
 
 MIDDLEWARE = [
@@ -200,3 +208,66 @@ DEFAULT_FROM_EMAIL = os.getenv(
 
 # Vigencia del enlace de recuperación de contraseña (1 hora).
 PASSWORD_RESET_TIMEOUT = int(os.getenv("PASSWORD_RESET_TIMEOUT", "3600"))
+
+
+# ============================================================
+# API RESTFUL (apiAPP)
+# ============================================================
+# https://www.django-rest-framework.org/api-guide/settings/
+#
+# - Autenticación: token JWT (Authorization: Bearer <token>). También se
+#   acepta la sesión web, para que un usuario que ya ingresó al SGR pueda
+#   abrir la API en el navegador (DRF exige CSRF en ese caso).
+# - Por defecto toda ruta exige usuario autenticado. Además, cada vista
+#   comprueba los permisos del perfil (Administrador, Supervisor,
+#   Administrativo) con los mismos permisos de Django que usa la web.
+
+REST_FRAMEWORK = {
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
+    ),
+    "DEFAULT_PERMISSION_CLASSES": (
+        "rest_framework.permissions.IsAuthenticated",
+    ),
+}
+
+# https://django-rest-framework-simplejwt.readthedocs.io/en/latest/settings.html
+SIMPLE_JWT = {
+    # El token de acceso dura poco; el de refresco, lo mismo que la sesión web.
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
+    "REFRESH_TOKEN_LIFETIME": timedelta(hours=8),
+    "AUTH_HEADER_TYPES": ("Bearer",),
+    # Una cuenta desactivada deja de poder usar sus tokens.
+    "CHECK_USER_IS_ACTIVE": True,
+    # Al cambiar la contraseña, los tokens emitidos antes dejan de servir.
+    "CHECK_REVOKE_TOKEN": True,
+}
+
+# https://drf-spectacular.readthedocs.io/en/latest/settings.html
+SPECTACULAR_SETTINGS = {
+    "TITLE": "API SGR - Municipalidad de La Serena",
+    "DESCRIPTION": (
+        "API RESTful del Sistema de Gestión de Resultados (SGR).\n\n"
+        "Para usarla: obtenga un token en POST /api/token/ con su RUT o "
+        "correo y su contraseña, presione **Authorize** y pegue el token "
+        "de acceso (access). Cada perfil solo puede usar las operaciones "
+        "que sus permisos le autorizan, igual que en la aplicación web.\n\n"
+        "Las eliminaciones son **bajas lógicas**: el registro se conserva "
+        "con activo=false y puede reactivarse."
+    ),
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "COMPONENT_SPLIT_REQUEST": True,
+    # Orden de las secciones en Swagger y ReDoc.
+    "TAGS": [
+        {"name": "Autenticación", "description": "Tokens JWT y usuario actual."},
+        {"name": "Delegaciones", "description": "Delegaciones territoriales."},
+        {"name": "Servicios", "description": "Servicios de cada delegación."},
+        {"name": "Compromisos", "description": "Tubo de Gestión con semáforo."},
+        {"name": "Catálogo de actividades", "description": "Actividades de Ejecución o Preparatoria (R5)."},
+        {"name": "Períodos", "description": "Períodos de medición."},
+        {"name": "Metas", "description": "Metas por período y cargo."},
+    ],
+}
