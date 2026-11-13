@@ -24,6 +24,7 @@ APPS_CON_PERMISOS = [
     "sgr_maestrosAPP",
     "emergenciasTerritorialesAPP",
     "reportesCiudadanosAPP",
+    "organizacionesAPP",
 ]
 
 # Permisos de solo lectura sobre la operación municipal.
@@ -37,6 +38,7 @@ VER_OPERACION = [
     "sgr_maestrosAPP.view_periodo",
     "sgr_maestrosAPP.view_detalleperiodo",
     "sgr_maestrosAPP.view_meta",
+    "organizacionesAPP.view_organizacioncomunitaria",
 ]
 
 ROLES = {
@@ -46,6 +48,9 @@ ROLES = {
     # Supervisa la operación y parametriza catálogos, períodos y metas.
     "Supervisor": VER_OPERACION + [
         "auth.view_user",
+        "organizacionesAPP.add_organizacioncomunitaria",
+        "organizacionesAPP.change_organizacioncomunitaria",
+        "organizacionesAPP.delete_organizacioncomunitaria",
         "delegacionesAPP.add_delegacion",
         "delegacionesAPP.change_delegacion",
         "delegacionesAPP.delete_delegacion",

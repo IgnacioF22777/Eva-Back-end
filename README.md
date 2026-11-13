@@ -344,6 +344,14 @@ Windows).
    python manage.py cargar_cargos_metas --dry-run
    python manage.py cargar_cargos_metas
    ```
+   Opcional (Evaluación 3): importar el registro municipal de juntas de
+   vecinos y organizaciones comunitarias (planilla .xlsx, 2.709 registros).
+   La planilla no se versiona en el repositorio. Se puede ejecutar varias
+   veces sin duplicar y no modifica organizaciones ya verificadas:
+   ```bash
+   python manage.py importar_organizaciones "ruta/base datos JJVV.xlsx" --dry-run
+   python manage.py importar_organizaciones "ruta/base datos JJVV.xlsx"
+   ```
 7. Crear el primer usuario (superusuario = perfil Administrador). Sin este
    paso la base no tiene usuarios y nadie puede iniciar sesión:
    ```bash
