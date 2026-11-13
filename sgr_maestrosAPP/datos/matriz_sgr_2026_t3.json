@@ -1,0 +1,144 @@
+{
+  "fuente": "MATRIZ SGR TRIMESTRE 2026 (rev. 1) y Descriptor de Funciones 2026 de la Coordinación de Delegaciones",
+  "nota": "Metas por cargo: cuando las hojas de un mismo cargo difieren, se usa el valor de la mayoría. Diferencias registradas en 'diferencias_por_persona'.",
+  "periodo": {
+    "codigo": "2026-T3",
+    "nombre": "Tercer trimestre 2026 (julio a septiembre)",
+    "fecha_inicio": "2026-07-01",
+    "fecha_fin": "2026-09-30"
+  },
+  "actividades": [
+    {"codigo": "SGR-ATENCION-USUARIO", "nombre": "Atención de usuario teléfono y presencial"},
+    {"codigo": "SGR-LLAMADAS-PREVENTIVAS", "nombre": "Llamadas preventivas a usuarios"},
+    {"codigo": "SGR-INFORME-INVENTARIO", "nombre": "Informe de inventarios"},
+    {"codigo": "SGR-INFORME-COMUNICACIONES", "nombre": "Informe a Comunicaciones"},
+    {"codigo": "SGR-EMERGENCIA", "nombre": "Emergencia", "automatica": "Meta igual al avance: se cumple al 100 % con lo registrado."},
+    {"codigo": "SGR-SOLUCIONES-TUBO", "nombre": "Soluciones de ingresos al tubo", "automatica": "Meta en porcentaje: 0,80 = 80 % de los ingresos al tubo con solución."},
+    {"codigo": "SGR-ATENCION-SOCIAL", "nombre": "Atención social a usuario presencial"},
+    {"codigo": "SGR-VISITA-TERRENO", "nombre": "Visita a terreno"},
+    {"codigo": "SGR-ENTREGA-INFORME", "nombre": "Entrega de informe social"},
+    {"codigo": "SGR-ENTREGA-BENEFICIO", "nombre": "Entrega de beneficio"},
+    {"codigo": "SGR-REUNIONES-ORGANIZACIONES", "nombre": "Visitas y reuniones con organizaciones"},
+    {"codigo": "SGR-CONFORMACION-ORGANIZACIONES", "nombre": "Conformación de organizaciones"},
+    {"codigo": "SGR-TALLERES-ACTIVIDADES", "nombre": "Gestión de talleres y actividades"},
+    {"codigo": "SGR-INFORMES-PERSONAL", "nombre": "Informes de personal"},
+    {"codigo": "SGR-INFORME-TRABAJO", "nombre": "Informe de trabajo"},
+    {"codigo": "SGR-OPERATIVO-DELEGACION", "nombre": "Operativo de la delegación"},
+    {"codigo": "SGR-OPERATIVO-DISERCO", "nombre": "Operativo DISERCO"},
+    {"codigo": "SGR-TALLERES", "nombre": "Talleres"},
+    {"codigo": "SGR-TERRENO", "nombre": "Terreno"},
+    {"codigo": "SGR-ATENCION-REQUERIMIENTO", "nombre": "Atención de requerimiento de usuario"},
+    {"codigo": "SGR-REUNION-SEMANAL", "nombre": "Reunión semanal con el equipo"},
+    {"codigo": "SGR-SOLUCION-PROBLEMAS", "nombre": "Solución de problemas a usuarios particulares"},
+    {"codigo": "SGR-COMITES-SEGURIDAD", "nombre": "Formación de comités de seguridad"},
+    {"codigo": "SGR-INCIVILIDADES", "nombre": "Levantamiento de incivilidades"},
+    {"codigo": "SGR-MEDIACION", "nombre": "Gestión de mediación"},
+    {"codigo": "SGR-ESPACIOS-PUBLICOS", "nombre": "Recuperación de espacios públicos"},
+    {"codigo": "SGR-INFRACCIONES", "nombre": "Infracciones varias"},
+    {"codigo": "SGR-SALIDAS-TERRENO", "nombre": "Salidas a terreno"}
+  ],
+  "cargos": [
+    {
+      "sigla": "DEL",
+      "nombre": "Delegado",
+      "descripcion": "Representante de la alcaldía en el territorio: coordina al equipo, visita JJVV y organizaciones y gestiona soluciones locales.",
+      "metas": []
+    },
+    {
+      "sigla": "GSO",
+      "nombre": "Gestor Social",
+      "descripcion": "Atención de casos sociales, visitas a terreno, informes, beneficios y derivaciones; acciones comunitarias.",
+      "hojas": ["G SOC 1", "G SOC2", "G SOC3", "G SOC4", "G SOC5"],
+      "metas": [
+        {"actividad": "SGR-ATENCION-SOCIAL", "ponderacion": "20", "valor_objetivo": "90"},
+        {"actividad": "SGR-VISITA-TERRENO", "ponderacion": "20", "valor_objetivo": "12"},
+        {"actividad": "SGR-ENTREGA-INFORME", "ponderacion": "25", "valor_objetivo": "40"},
+        {"actividad": "SGR-ENTREGA-BENEFICIO", "ponderacion": "20", "valor_objetivo": "8"},
+        {"actividad": "SGR-EMERGENCIA", "ponderacion": "5", "valor_objetivo": "1"},
+        {"actividad": "SGR-SOLUCIONES-TUBO", "ponderacion": "10", "valor_objetivo": "0.80"}
+      ]
+    },
+    {
+      "sigla": "APA",
+      "nombre": "Apoyo Administrativo",
+      "descripcion": "Agenda del delegado, atención de público, registro de atenciones, inventario trimestral e informes administrativos.",
+      "hojas": ["AP ADM."],
+      "metas": [
+        {"actividad": "SGR-ATENCION-USUARIO", "ponderacion": "20", "valor_objetivo": "240"},
+        {"actividad": "SGR-LLAMADAS-PREVENTIVAS", "ponderacion": "30", "valor_objetivo": "90"},
+        {"actividad": "SGR-INFORME-INVENTARIO", "ponderacion": "25", "valor_objetivo": "1"},
+        {"actividad": "SGR-INFORME-COMUNICACIONES", "ponderacion": "20", "valor_objetivo": "12"},
+        {"actividad": "SGR-EMERGENCIA", "ponderacion": "5", "valor_objetivo": "1"}
+      ]
+    },
+    {
+      "sigla": "TOC",
+      "nombre": "Territorial OO.CC. (Organizaciones Comunitarias)",
+      "descripcion": "Registro de organizaciones (OROC) y asesoría a juntas de vecinos y agrupaciones funcionales (leyes 19.418 y 20.500).",
+      "hojas": ["T OC1", "T OC 2", "T OC 3", "T OC 4"],
+      "metas": [
+        {"actividad": "SGR-ATENCION-USUARIO", "ponderacion": "15", "valor_objetivo": "60"},
+        {"actividad": "SGR-REUNIONES-ORGANIZACIONES", "ponderacion": "15", "valor_objetivo": "24"},
+        {"actividad": "SGR-CONFORMACION-ORGANIZACIONES", "ponderacion": "25", "valor_objetivo": "1"},
+        {"actividad": "SGR-TALLERES-ACTIVIDADES", "ponderacion": "15", "valor_objetivo": "6"},
+        {"actividad": "SGR-EMERGENCIA", "ponderacion": "5", "valor_objetivo": "1"},
+        {"actividad": "SGR-SOLUCIONES-TUBO", "ponderacion": "25", "valor_objetivo": "0.80"}
+      ]
+    },
+    {
+      "sigla": "GCP",
+      "nombre": "Gestor de Compras y Proyectos",
+      "descripcion": "Tramita los requerimientos de adquisiciones de bienes y servicios de la dirección ante las unidades de compra.",
+      "metas": []
+    },
+    {
+      "sigla": "PYG",
+      "nombre": "Gestión y Planificación",
+      "descripcion": "Alinea los objetivos con la operación diaria, coordina procesos internos e informa al delegado sobre la matriz SGR.",
+      "hojas": ["PLAN y CON"],
+      "metas": [
+        {"actividad": "SGR-REUNION-SEMANAL", "ponderacion": "15", "valor_objetivo": "12"},
+        {"actividad": "SGR-SOLUCION-PROBLEMAS", "ponderacion": "30", "valor_objetivo": "8"},
+        {"actividad": "SGR-EMERGENCIA", "ponderacion": "5", "valor_objetivo": "1"},
+        {"actividad": "SGR-SOLUCIONES-TUBO", "ponderacion": "35", "valor_objetivo": "0.80"}
+      ]
+    },
+    {
+      "sigla": "CSC",
+      "nombre": "Coordinador de Servicios Comunitarios",
+      "descripcion": "Planifica y coordina operativos de aseo, ornato y medio ambiente y las cuadrillas de empleabilidad.",
+      "hojas": ["COOR DISERCO"],
+      "metas": [
+        {"actividad": "SGR-INFORMES-PERSONAL", "ponderacion": "10", "valor_objetivo": "3"},
+        {"actividad": "SGR-INFORME-TRABAJO", "ponderacion": "10", "valor_objetivo": "12"},
+        {"actividad": "SGR-OPERATIVO-DELEGACION", "ponderacion": "15", "valor_objetivo": "24"},
+        {"actividad": "SGR-OPERATIVO-DISERCO", "ponderacion": "10", "valor_objetivo": "12"},
+        {"actividad": "SGR-TALLERES", "ponderacion": "10", "valor_objetivo": "12"},
+        {"actividad": "SGR-TERRENO", "ponderacion": "10", "valor_objetivo": "24"},
+        {"actividad": "SGR-ATENCION-REQUERIMIENTO", "ponderacion": "15", "valor_objetivo": "24"},
+        {"actividad": "SGR-EMERGENCIA", "ponderacion": "5", "valor_objetivo": "1"},
+        {"actividad": "SGR-SOLUCIONES-TUBO", "ponderacion": "15", "valor_objetivo": "0.80"}
+      ]
+    },
+    {
+      "sigla": "GSE",
+      "nombre": "Gestor de Seguridad",
+      "descripcion": "Formación de comités de seguridad, levantamiento de incivilidades, mediación y recuperación de espacios públicos.",
+      "hojas": ["GES SEG"],
+      "metas": [
+        {"actividad": "SGR-COMITES-SEGURIDAD", "ponderacion": "20", "valor_objetivo": "36"},
+        {"actividad": "SGR-INCIVILIDADES", "ponderacion": "20", "valor_objetivo": "40"},
+        {"actividad": "SGR-MEDIACION", "ponderacion": "10", "valor_objetivo": "50"},
+        {"actividad": "SGR-ESPACIOS-PUBLICOS", "ponderacion": "10", "valor_objetivo": "50"},
+        {"actividad": "SGR-INFRACCIONES", "ponderacion": "15", "valor_objetivo": "45"},
+        {"actividad": "SGR-SALIDAS-TERRENO", "ponderacion": "10", "valor_objetivo": "45"},
+        {"actividad": "SGR-SOLUCIONES-TUBO", "ponderacion": "15", "valor_objetivo": "0.80"}
+      ]
+    }
+  ],
+  "diferencias_por_persona": [
+    "Gestor Social: las hojas G SOC2 y G SOC3 ponderan Atención social 25 % y Entrega de informe 20 % (la mayoría usa 20 % y 25 %).",
+    "Gestor Social: la hoja G SOC5 fija Entrega de beneficio en 15 (la mayoría usa 8).",
+    "Territorial OO.CC.: la hoja T OC 3 fija Conformación de organizaciones en 10 (la mayoría usa 1)."
+  ]
+}
