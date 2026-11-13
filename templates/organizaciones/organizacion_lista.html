@@ -74,8 +74,10 @@ Organizaciones Comunitarias
             <div class="col-lg-2">
                 <label class="form-label small fw-semibold" for="delegacion">Delegación</label>
                 <select id="delegacion" name="delegacion" class="form-select">
+                    {% if vision_global %}
                     <option value="">Todas</option>
                     <option value="sin" {% if delegacion == 'sin' %}selected{% endif %}>Sin delegación</option>
+                    {% endif %}
                     {% for d in delegaciones %}
                         <option value="{{ d.pk }}" {% if delegacion == d.pk|stringformat:"s" %}selected{% endif %}>{{ d.nombre }}</option>
                     {% endfor %}
