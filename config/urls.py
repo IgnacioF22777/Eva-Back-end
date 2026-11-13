@@ -1,3 +1,4 @@
+
 from django.urls import include, path
 
 
@@ -25,4 +26,7 @@ urlpatterns = [
 
     # Programación Back End - API RESTful (JWT, Swagger y ReDoc)
     path("api/", include("apiAPP.urls")),
+
+    # Proyecto Integrado EVA 3 - Actividades diarias (R1-R5)
+    path("actividades/", include("actividadesAPP.urls")),
 ]
