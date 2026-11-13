@@ -85,6 +85,17 @@
                                 Tubo de Gestión
                             </a>
                         </li>
+
+                        <!-- EVA 3: REGISTRO DIARIO DE ACTIVIDADES -->
+                        {% if perms.actividadesAPP.view_registroactividad %}
+                            <li class="nav-item">
+                                <a class="nav-link"
+                                   href="{% url 'actividades:lista' %}">
+                                    Mis Actividades
+                                </a>
+                            </li>
+                        {% endif %}
+
                     {% endif %}
 
                     <!-- MÓDULOS SGR: SEGÚN PERMISOS DEL PERFIL -->
@@ -233,7 +244,7 @@
                                 {% endif %}
 
                                 <li>
-                                    <!-- El cierre de sesión se hace por POST (protegido con CSRF) -->
+                                    <!-- Cerrar sesión mediante POST con CSRF -->
                                     <form method="POST"
                                           action="{% url 'seguridad:logout' %}">
                                         {% csrf_token %}
@@ -268,7 +279,6 @@
 
     </nav>
 
-
     <!-- ENCABEZADO -->
     <header class="bg-white border-bottom py-3">
 
@@ -286,7 +296,6 @@
 
     </header>
 
-
     <!-- CONTENIDO PRINCIPAL -->
     <main class="flex-grow-1">
 
@@ -298,7 +307,6 @@
         </div>
 
     </main>
-
 
     <!-- PIE DE PÁGINA -->
     <footer class="bg-dark text-white text-center py-4 mt-auto">
@@ -321,36 +329,37 @@
 
     </footer>
 
-
     <!-- BOOTSTRAP JAVASCRIPT -->
     <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
 
     <!-- AYUDAS DE FORMULARIO -->
-    <!-- Solo informan al usuario antes de enviar: el servidor vuelve a
-         validar largo de textos y archivos en cualquier caso. -->
+    <!-- El servidor valida nuevamente los límites de texto y archivos -->
     <script>
     document.addEventListener("DOMContentLoaded", function () {
 
-        // Contador de caracteres en los textos con largo máximo.
+        // Contador de caracteres en campos con maxlength
         document.querySelectorAll("textarea[maxlength]").forEach(function (campo) {
             var maximo = parseInt(campo.getAttribute("maxlength"), 10);
             var contador = document.createElement("div");
+
             contador.className = "form-text text-end";
             campo.insertAdjacentElement("afterend", contador);
 
             function actualizar() {
-                contador.textContent = campo.value.length + " / " + maximo + " caracteres";
+                contador.textContent = campo.value.length + " / " +
+                                       maximo + " caracteres";
             }
 
             campo.addEventListener("input", actualizar);
             actualizar();
         });
 
-        // Límites de cantidad y tamaño de los archivos adjuntos.
+        // Control de cantidad y tamaño de archivos adjuntos
         document.querySelectorAll("input[type=file][data-max-archivos]").forEach(function (campo) {
             var maxArchivos = parseInt(campo.dataset.maxArchivos, 10);
             var maxPorArchivo = parseInt(campo.dataset.maxBytesArchivo, 10);
             var maxTotal = parseInt(campo.dataset.maxBytesTotal, 10);
+
             var aviso = document.createElement("div");
             aviso.className = "text-danger small mt-1";
             campo.insertAdjacentElement("afterend", aviso);
@@ -366,24 +375,30 @@
 
                 archivos.forEach(function (archivo) {
                     total += archivo.size;
+
                     if (!error && archivo.size > maxPorArchivo) {
-                        error = "«" + archivo.name + "» pesa " + megas(archivo.size) +
-                                " y el máximo por archivo es " + megas(maxPorArchivo) + ".";
+                        error = "«" + archivo.name + "» pesa " +
+                                megas(archivo.size) +
+                                " y el máximo por archivo es " +
+                                megas(maxPorArchivo) + ".";
                     }
                 });
 
                 if (!error && archivos.length > maxArchivos) {
-                    error = "Puede adjuntar como máximo " + maxArchivos + " archivos.";
+                    error = "Puede adjuntar como máximo " +
+                            maxArchivos + " archivos.";
                 }
+
                 if (!error && total > maxTotal) {
                     error = "Los archivos suman " + megas(total) +
-                            " y el máximo por avance es " + megas(maxTotal) + ".";
+                            " y el máximo por avance es " +
+                            megas(maxTotal) + ".";
                 }
 
                 aviso.textContent = error;
+
                 if (error) {
-                    // Se descarta la selección para no enviar archivos que
-                    // el servidor rechazará.
+                    // Limpiar la selección de archivos inválidos
                     campo.value = "";
                 }
             });
