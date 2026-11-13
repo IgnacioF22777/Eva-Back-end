@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'seguridadAPP',
     'organizacionesAPP',
     'oficinaPartesAPP',
+    'actividadesAPP',  # EVA 3: registro diario de actividades (R1-R4).
 
     # API RESTful (Programación Back End): Django REST Framework,
     # autenticación JWT y documentación OpenAPI (Swagger / ReDoc).
@@ -218,6 +219,9 @@ DEFAULT_FROM_EMAIL = os.getenv(
 # Vigencia del enlace de recuperación de contraseña (1 hora).
 PASSWORD_RESET_TIMEOUT = int(os.getenv("PASSWORD_RESET_TIMEOUT", "3600"))
 
+
+# EVA 3: límite diario de registros por funcionario (R3).
+MAX_INGRESOS_DIARIOS = 7
 
 # ============================================================
 # API RESTFUL (apiAPP)
