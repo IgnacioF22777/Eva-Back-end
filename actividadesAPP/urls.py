@@ -4,12 +4,14 @@
 from django.urls import path
 
 from . import views
+from .matriz import matriz
 
 app_name = "actividades"
 
 urlpatterns = [
     path("", views.actividad_lista, name="lista"),
     path("nueva/", views.actividad_crear, name="crear"),
+    path("matriz/", matriz, name="matriz"),
     path("<int:pk>/editar/", views.actividad_editar, name="editar"),
     path(
         "<int:pk>/cambiar-estado/",
