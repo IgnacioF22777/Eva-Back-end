@@ -1,7 +1,11 @@
-# Evaluación Sumativa #3: Aplicación Web con CRUD
+# SGR — Sistema de Gestión de Resultados (Municipalidad de La Serena)
 
-Proyecto desarrollado para la asignatura **Programación Back End (TI3041)** de la
-carrera de Ingeniería en Informática / Analista Programador.
+Proyecto desarrollado para las asignaturas **Programación Back End (TI3041)**
+(Evaluación Sumativa #3: Aplicación Web con CRUD) y **Proyecto Integrado**
+(Evaluación 3) de la carrera de Ingeniería en Informática / Analista Programador.
+
+El caso de la Municipalidad de La Serena se usa como contexto académico: la
+solución se plantea para su posterior presentación como propuesta de práctica.
 
 ## Descripción del Proyecto
 
@@ -32,8 +36,8 @@ modificar y dar de baja) se realiza desde interfaces propias.
 ### Mantenedores
 
 Los mantenedores de **Delegaciones, Servicios, Compromisos, Catálogo, Metas,
-Detalles de período y Usuarios** incluyen crear, buscar, listar, modificar, dar
-de baja y reactivar. Ningún registro se elimina definitivamente: la baja es
+Detalles de período, Usuarios y Cargos** incluyen crear, buscar, listar,
+modificar, dar de baja y reactivar. Ningún registro se elimina definitivamente: la baja es
 lógica y reversible.
 
 > **Sobre el requisito "Eliminar" de la pauta:** se implementa como **baja
@@ -46,13 +50,36 @@ lógica y reversible.
 | Delegaciones | `/delegaciones/` | Búsqueda por nombre, encargado, correo o dirección; filtro por estado |
 | Servicios | `/delegaciones/<id>/` | CRUD anidado en la ficha de la delegación, con búsqueda |
 | Compromisos | `/gestion/compromisos/` | Búsqueda por tarea o delegación; filtro por semáforo y estado |
-| Catálogo de Actividades | `/maestros/catalogo/` | Búsqueda por código, nombre, área o descripción |
-| Metas | `/maestros/metas/` | Búsqueda por código, nombre, período o actividad |
+| Catálogo de Actividades | `/maestros/catalogo/` | Búsqueda por código, nombre, área o descripción; filtro por tipo de gestión (Ejecución/Preparatoria) |
+| Metas | `/maestros/metas/` | Búsqueda por código, nombre, período, actividad o cargo; filtro por cargo o "sin cargo" |
 | Detalles de período | `/maestros/detalle-periodos/` | Baja lógica; bloqueado en períodos cerrados; días computables automáticos |
-| Períodos de medición | `/maestros/periodos/` | Búsqueda por código o nombre y filtro abierto/cerrado; muestra la suma de ponderaciones; se elimina solo sin detalles ni metas |
+| Períodos de medición | `/maestros/periodos/` | Búsqueda por código o nombre y filtro abierto/cerrado; muestra la suma de ponderaciones de cada cargo; se elimina solo sin detalles ni metas |
 | Usuarios | `/seguridad/usuarios/` | Baja lógica y reactivación |
 | Roles | `/seguridad/roles/` | Búsqueda por nombre; se elimina solo si no tiene usuarios y no es un perfil base |
-| Cargos | `/seguridad/cargos/` | Búsqueda; baja lógica; se elimina solo sin funcionarios asociados |
+| Cargos | `/seguridad/cargos/` | Búsqueda; baja lógica; se elimina solo sin funcionarios ni metas asociadas |
+
+### Evaluación 3 (Proyecto Integrado): catálogo y metas por cargo
+
+Integrado en `main` mediante el PR #6 (`feature/eva3-catalogo-metas`):
+
+- **Tipo de gestión del catálogo (R5)**: cada actividad es de **Ejecución**
+  (la acción realizada, suma puntaje) o **Preparatoria** (correos,
+  coordinaciones e invitaciones, no suma). Por defecto es Ejecución, también
+  para las actividades existentes (`CatalogoActividad.tipo_gestion`).
+- **Metas por cargo**: cada meta puede asociarse a un cargo
+  (`Meta.cargo`). Las metas activas de un mismo período y cargo no pueden
+  superar el 100 %, y el formulario informa la ponderación disponible. Las
+  metas sin cargo ("metas generales") forman un grupo aparte.
+- **Cierre de período por cargo**: un período solo se cierra cuando las metas
+  activas de **cada** cargo suman exactamente 100 % (`Periodo.validar_cierre`);
+  el mensaje de error nombra el cargo incompleto.
+
+Los demás requerimientos de la Evaluación 3 (actividades diarias R1–R4,
+puntaje R7, alertas R6, felicitaciones y reclamos R8, ausencias R9, puntaje del
+equipo R10, organizaciones comunitarias, atención social, carga de cargos y
+metas reales) se integran por Pull Request a medida que cada integrante los
+termina. Su estado se registra en la matriz de trazabilidad del informe de la
+Evaluación 3.
 
 ### Fase 4: asignación y avance de compromisos
 
@@ -153,9 +180,13 @@ en vivo:
 - **Integridad referencial**: los servicios y compromisos usan `PROTECT`; no se
   puede borrar una delegación con registros asociados.
 - **Períodos cerrados**: sus detalles no se pueden crear, editar ni dar de baja.
-- **Ponderación de metas**: las metas activas de un período no pueden superar
-  el 100 %, y el período solo puede cerrarse cuando suman exactamente 100 %
-  (`validar_suma_ponderaciones`).
+- **Ponderación de metas**: las metas activas de un mismo período y cargo no
+  pueden superar el 100 %, y el período solo puede cerrarse cuando cada cargo
+  suma exactamente 100 % (`validar_suma_ponderaciones` y
+  `validar_suma_ponderaciones_por_cargo`). Si el período solo tiene metas
+  generales (sin cargo), se aplica la regla original sobre el total.
+- **Tipo de gestión (R5)**: solo las actividades de Ejecución suman puntaje
+  (`tipo_gestion_puntua`); un tipo desconocido se rechaza.
 - **Días computables automáticos**: cada detalle de período calcula sus días
   hábiles descontando fines de semana y feriados nacionales de fecha fija y
   Semana Santa (`calcular_dias_computables`); ya no se escriben a mano.
@@ -166,16 +197,82 @@ en vivo:
   con `migrate`.
 - **Actividades con metas activas**: no se pueden dar de baja hasta dar de baja
   o reasignar esas metas.
-- **Cargos protegidos**: un cargo con funcionarios no se elimina
+- **Cargos protegidos**: un cargo con funcionarios o metas no se elimina
   (`verificar_eliminacion_cargo`); se da de baja lógica (`desactivar_cargo`).
 - Los validadores de `tubo_gestionAPP/validadores.py` se usan en el sistema,
   no solo en las pruebas: login (`validar_credenciales`), RUT, ámbito por
   delegación, fechas, código único de catálogo, ponderaciones, días y cargos.
 
+## API RESTful (`apiAPP`)
+
+La app `apiAPP` expone los datos del SGR en formato JSON para que otros
+sistemas puedan consumirlos. Está construida con **Django REST Framework**
+usando **vistas basadas en funciones** (`@api_view`) y serializadores,
+protegida con **JWT** y documentada con **Swagger / ReDoc**
+(`drf-spectacular`).
+
+### Cómo usarla
+
+1. Obtener el token con el mismo usuario de la web (RUT, correo o usuario):
+   ```bash
+   curl -X POST http://127.0.0.1:8000/api/token/ -H "Content-Type: application/json" -d '{"username": "12.345.678-5", "password": "su_clave"}'
+   ```
+   La respuesta trae `access` (dura 30 minutos) y `refresh` (dura 8 horas).
+2. Enviar el token `access` en cada solicitud:
+   ```bash
+   curl http://127.0.0.1:8000/api/delegaciones/ -H "Authorization: Bearer <access>"
+   ```
+3. O usar la documentación interactiva en `/api/swagger/`: presionar
+   **Authorize**, pegar el token `access` y probar cada operación.
+   También está disponible en `/api/redoc/` y el esquema OpenAPI en
+   `/api/schema/`.
+
+### Rutas
+
+| Recurso | Colección (GET listar, POST crear) | Detalle (GET, PUT, PATCH, DELETE) | Reactivar (POST) |
+|---|---|---|---|
+| Autenticación | `POST /api/token/`, `POST /api/token/refresh/`, `GET /api/yo/` | — | — |
+| Delegaciones | `/api/delegaciones/` | `/api/delegaciones/<id>/` | `/api/delegaciones/<id>/reactivar/` |
+| Servicios | `/api/servicios/` | `/api/servicios/<id>/` | `/api/servicios/<id>/reactivar/` |
+| Compromisos | `/api/compromisos/` | `/api/compromisos/<id>/` | `/api/compromisos/<id>/reactivar/` |
+| Catálogo de actividades | `/api/catalogo/` | `/api/catalogo/<id>/` | `/api/catalogo/<id>/reactivar/` |
+| Períodos | `/api/periodos/` | `/api/periodos/<id>/` | — |
+| Metas | `/api/metas/` | `/api/metas/<id>/` | `/api/metas/<id>/reactivar/` |
+
+Los listados aceptan filtros en la URL: `?estado=activos|inactivos|todos`
+(por defecto `activos`), `?q=texto` para buscar, y según el recurso
+`?delegacion=<id>`, `?semaforo=verde|amarillo|rojo`,
+`?tipo=EJECUCION|PREPARATORIA`, `?periodo=<id>` o `?cargo=<id>|sin`.
+
+### Reglas que respeta
+
+La API no tiene reglas propias: aplica las mismas que la aplicación web.
+
+- **Mismas validaciones**: cada serializador valida con el formulario del
+  mantenedor web (y este con el modelo), por lo que la ponderación por cargo,
+  el cierre de períodos, el código único del catálogo, el RUT, las fechas o
+  los duplicados se controlan igual en la web y en la API.
+- **Mismos permisos**: cada operación exige el permiso de Django del perfil
+  (Administrador, Supervisor o Administrativo). Sin token responde `401`;
+  sin permiso, `403`.
+- **Mismo ámbito por delegación** en los compromisos: un Administrativo solo
+  ve y opera los de su delegación (`403` fuera de ámbito).
+- **Baja lógica**: `DELETE` deja el registro con `activo=false` y se puede
+  reactivar. La única excepción es el período, que se elimina solo si no
+  tiene detalles ni metas, igual que en la web.
+- **Campos protegidos**: el cumplimiento y el semáforo de un compromiso no se
+  editan por la API; solo cambian con el registro de avance (T2). `activo`
+  solo cambia con `DELETE` o `/reactivar/`.
+- **Reglas de negocio** que impiden una operación válida (ej. dar de baja una
+  delegación con servicios activos o modificar un período cerrado) responden
+  `409` con el motivo.
+
 ## Stack Tecnológico
 
 - **Lenguaje:** Python 3.13
 - **Framework:** Django 5.2 LTS (soporte de seguridad hasta abril de 2028)
+- **API:** Django REST Framework 3.18, Simple JWT 5.5 y drf-spectacular 0.30
+  (Swagger / ReDoc)
 - **Servidor Web:** Nginx + Gunicorn
 - **Base de Datos:** MySQL / MariaDB
 - **Infraestructura:** AWS EC2 (Amazon Linux 2023)
@@ -267,16 +364,31 @@ python manage.py test
 
 La suite cubre autenticación, recuperación de contraseña, permisos por perfil,
 CRUD de los mantenedores, búsqueda, duplicados, baja lógica, reactivación,
-semáforo, cierre de `/admin/` y las dos transacciones atómicas de la Fase 4
-(incluida la reversión completa cuando falla un paso). En total son **242
-pruebas**; `seguridadAPP/test_cache_compartida.py` cubre el bloqueo con
-varios workers; `sgr_maestrosAPP/test_reglas_y_mantenedores.py` cubre
-ponderaciones, días computables, Períodos y Cargos, y `tubo_gestionAPP/test_ambito_y_adjuntos.py` cubre el ámbito por
-delegación, los límites de largo de texto y los archivos adjuntos (límites,
-extensiones bloqueadas, limpieza ante reversión y descarga protegida).
+semáforo, cierre de `/admin/`, las dos transacciones atómicas de la Fase 4
+(incluida la reversión completa cuando falla un paso), las reglas de la
+Evaluación 3 y la API RESTful. En total son **313 pruebas** en 9 archivos:
 
-- **242 pruebas en verde** en local y en el servidor, con Python 3.13 y
-  Django 5.2.19; en el servidor se ejecutan contra MariaDB 10.5.
+| Archivo | Pruebas | Cubre |
+|---|---|---|
+| `tubo_gestionAPP/tests.py` | 61 | Validadores, semáforo, compromisos, T1 y T2 |
+| `tubo_gestionAPP/test_ambito_y_adjuntos.py` | 41 | Ámbito por delegación, largo de textos y archivos adjuntos (límites, extensiones bloqueadas, limpieza ante reversión y descarga protegida) |
+| `seguridadAPP/tests.py` | 69 | Login, recuperación de contraseña, perfiles, usuarios y roles |
+| `seguridadAPP/test_cache_compartida.py` | 5 | Bloqueo de login compartido entre workers |
+| `delegacionesAPP/tests.py` | 27 | Mantenedores de delegaciones y servicios |
+| `sgr_maestrosAPP/tests.py` | 13 | Búsqueda y baja lógica de las tablas maestras |
+| `sgr_maestrosAPP/test_reglas_y_mantenedores.py` | 27 | Ponderaciones, días computables, Períodos y Cargos |
+| `sgr_maestrosAPP/test_eva3_catalogo_metas.py` | 24 | Tipo de gestión (R5) y metas por cargo (Evaluación 3) |
+| `apiAPP/tests.py` | 47 | API: tokens JWT, bloqueo por intentos, revocación, permisos por perfil, ámbito, validaciones, baja lógica y Swagger (casos CP-API-001 a 035) |
+
+- Las pruebas usan la base configurada en `.env` (MySQL/MariaDB) y crean una
+  base temporal `test_<DB_NAME>`, por eso el usuario necesita el permiso del
+  paso 0 de la instalación.
+- **313 pruebas en verde** el 11-11-2026 en un equipo local (Python 3.12,
+  Django 5.2.19, base SQLite temporal). Falta repetirlas sobre MariaDB en el
+  servidor después del despliegue.
+- **266 pruebas en verde** el 06-11-2026 (commit `e097d04`), con Python 3.13
+  y Django 5.2.19. La versión anterior de la suite (242 pruebas) se ejecutó
+  en el servidor contra MariaDB 10.5 el 03-11-2026.
 - Verificación de extremo a extremo con los tres perfiles en producción,
   ejecutada dentro de una transacción revertida para no dejar datos de prueba.
 
@@ -288,6 +400,9 @@ extensiones bloqueadas, limpieza ante reversión y descarga protegida).
 - Control de acceso en el servidor con `@login_required` y
   `@permission_required`; un permiso faltante responde `403`.
 - Todos los formularios POST usan `{% csrf_token %}`.
+- API con tokens JWT de corta duración (30 minutos). El token deja de servir
+  si la cuenta se desactiva o si cambia la contraseña, y `/api/token/`
+  comparte el bloqueo de 15 minutos tras 5 intentos fallidos del login web.
 - Los detalles del incidente de la llave SSH y las medidas aplicadas están en
   [`SECURITY.md`](SECURITY.md).
 
@@ -302,11 +417,38 @@ extensiones bloqueadas, limpieza ante reversión y descarga protegida).
 - Despliegue validado con respaldo previo de la base, migraciones, recolección
   de estáticos y reinicio de Gunicorn.
 
-## Autoría por Módulo
+## Estructura del Proyecto
+
+| App | Contenido |
+|---|---|
+| `config/` | Configuración, rutas principales y comprobación de versiones (`sgr.W001`/`sgr.W002`) |
+| `apiAPP` | API RESTful: serializadores, vistas `@api_view`, permisos, rutas JWT y documentación Swagger/ReDoc (sin modelos propios) |
+| `delegacionesAPP` | Delegaciones y servicios; comando `import_data` (datos iniciales de `data/`) |
+| `tubo_gestionAPP` | Compromisos, asignaciones (T1), avances y adjuntos (T2); ámbito por delegación y validadores de reglas de negocio |
+| `sgr_maestrosAPP` | Catálogo de actividades, períodos, detalles de período (feriados y días computables) y metas |
+| `seguridadAPP` | Login con RUT o correo, recuperación de contraseña, perfiles, usuarios, roles y cargos; comando `crear_roles` |
+| `emergenciasTerritorialesAPP` | Modelos de zonas de riesgo, alertas y contactos de emergencia (sin interfaz propia; alcance por definir) |
+| `reportesCiudadanosAPP` | Modelo de reportes ciudadanos (sin interfaz propia; alcance por definir) |
+| `templates/`, `static/` | Plantillas Django y Bootstrap |
+| `docs/` | Diagrama de despliegue en AWS y registro de la demostración T1 → T2 |
+
+## Equipo (Proyecto Integrado)
+
+| Integrante | Rol | Responsabilidades de la Evaluación 3 |
+|---|---|---|
+| Camilo Villalobos | Seguridad y líder | Ausencias (R9), felicitaciones y reclamos (R8), regalos para niños, semáforo por funcionario, permisos, revisión de Pull Requests |
+| José Ignacio Villalobos | Desarrollo | Actividades diarias (R1–R4), puntaje «Mi matriz» (R7), tubo de trabajo, resumen de ingresos |
+| Orlando Iribarren | Infraestructura | Organizaciones comunitarias y juntas de vecinos, tubo de cartas, alertas de registros sospechosos (R6), despliegue, respaldo y prueba de estrés |
+| Ignacio Figueroa | Documentación | Tipo de gestión (R5), metas por cargo, tipos de atención social, carga de cargos y metas reales, puntaje del equipo (R10), informe |
+
+Todo cambio entra a `main` por rama y Pull Request revisado por el líder.
+
+## Autoría por Módulo (Programación Back End)
 
 La pauta exige, para un trabajo de **dos integrantes**, un mínimo de **cuatro
-mantenedores y dos transacciones**. El proyecto entrega **siete mantenedores
-completos y dos transacciones atómicas**, distribuidas así:
+mantenedores y dos transacciones**. El proyecto entrega **diez mantenedores
+completos y dos transacciones atómicas**; los módulos evaluados se
+distribuyen así:
 
 | Módulo / Transacción | Responsable |
 |---|---|
@@ -317,6 +459,7 @@ completos y dos transacciones atómicas**, distribuidas así:
 | Metas y Detalles de período | Orlando Iribarren |
 | **T2: Registro de avance con evidencia** | Orlando Iribarren |
 | Usuarios, Roles y Perfiles (transversal) | Ignacio Figueroa y Orlando Iribarren |
+| API RESTful con JWT y Swagger (`apiAPP`) | Ignacio Figueroa |
 
 ### Cobertura de la pauta
 
@@ -347,7 +490,9 @@ completos y dos transacciones atómicas**, distribuidas así:
 El proyecto fue desarrollado con apoyo de herramientas de IA (**OpenCode**) usadas
 como asistente técnico: revisión de seguridad, diseño de la baja lógica,
 construcción de los mantenedores, redacción de pruebas automatizadas y resolución
-de errores de despliegue en AWS.
+de errores de despliegue en AWS. La API RESTful (`apiAPP`) se desarrolló con
+apoyo de **Claude Code**, siguiendo las guías de la asignatura (API con
+`JsonResponse`, Django REST Framework con funciones, Swagger y JWT).
 
 Las respuestas de la IA fueron **revisadas, corregidas y validadas** contra la
 pauta y contra el entorno real (Python 3.13 y Django 5.2 tanto en local como en el servidor).
@@ -364,6 +509,7 @@ nativos de Django (autenticación, permisos, formularios, ORM y migraciones).
 | Baja lógica | "Ningún registro debe borrarse; solo desactivarse y reactivarse" | Campos `activo`, guardas de baja y pruebas por mantenedor |
 | Fase 4 | "Implementa dos transacciones atómicas con `select_for_update` sobre `Compromiso`" | `compromiso_asignar` y `compromiso_avance`, con reversión total ante fallo |
 | Pruebas | "Escribe pruebas de atomicidad que fallen después de la primera escritura" | 167 pruebas, incluidas las de rollback de T1 y T2 |
+| API RESTful | "Crea una app Django con la API RESTful del proyecto, con DRF por funciones, JWT y Swagger, respetando permisos y reglas de la web" | `apiAPP`: 6 recursos más autenticación, validación con los formularios web, bloqueo de login compartido y 47 pruebas |
 
 > En el documento técnico se incluyen los prompts completos, extractos de las
 > respuestas y las capturas de la aplicación resultante.
