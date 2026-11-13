@@ -85,6 +85,33 @@
                                 Tubo de Gestión
                             </a>
                         </li>
+
+                        {% if perms.organizacionesAPP.view_organizacioncomunitaria %}
+                            <li class="nav-item">
+                                <a class="nav-link"
+                                   href="{% url 'organizaciones:organizacion_lista' %}">
+                                    Organizaciones
+                                </a>
+                            </li>
+                        {% endif %}
+
+                        {% if perms.oficinaPartesAPP.view_cartaoficinapartes %}
+                            <li class="nav-item">
+                                <a class="nav-link"
+                                   href="{% url 'oficina_partes:carta_lista' %}">
+                                    Cartas
+                                </a>
+                            </li>
+                        {% endif %}
+
+                        {% if perms.atencionSocialAPP.view_atencionsocial %}
+                            <li class="nav-item">
+                                <a class="nav-link"
+                                   href="{% url 'atencion_social:atencion_lista' %}">
+                                    Atención social
+                                </a>
+                            </li>
+                        {% endif %}
                     {% endif %}
 
                     <!-- MÓDULOS SGR: SEGÚN PERMISOS DEL PERFIL -->

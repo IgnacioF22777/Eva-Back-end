@@ -336,6 +336,22 @@ Windows).
    ```bash
    python manage.py crear_roles
    ```
+   Opcional (Evaluación 3): cargar los 8 cargos del descriptor de funciones y
+   sus metas reales de la matriz SGR del tercer trimestre de 2026. Se puede
+   ejecutar varias veces sin duplicar; `--dry-run` muestra el resultado sin
+   guardar y `--periodo CODIGO` carga las metas en un período existente:
+   ```bash
+   python manage.py cargar_cargos_metas --dry-run
+   python manage.py cargar_cargos_metas
+   ```
+   Opcional (Evaluación 3): importar el registro municipal de juntas de
+   vecinos y organizaciones comunitarias (planilla .xlsx, 2.709 registros).
+   La planilla no se versiona en el repositorio. Se puede ejecutar varias
+   veces sin duplicar y no modifica organizaciones ya verificadas:
+   ```bash
+   python manage.py importar_organizaciones "ruta/base datos JJVV.xlsx" --dry-run
+   python manage.py importar_organizaciones "ruta/base datos JJVV.xlsx"
+   ```
 7. Crear el primer usuario (superusuario = perfil Administrador). Sin este
    paso la base no tiene usuarios y nadie puede iniciar sesión:
    ```bash
