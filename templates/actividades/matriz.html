@@ -1,0 +1,333 @@
+
+{% extends "base.html" %}
+
+{% block title %}Matriz{% endblock %}
+
+{% block header %}Matriz{% endblock %}
+
+{% block content %}
+
+<div class="container">
+
+    <!-- ENCABEZADO -->
+    <div class="mb-4">
+        <h2 class="h4">Matriz de cumplimiento</h2>
+        <p class="text-muted mb-1">
+            Consulta de metas, actividades y puntajes.
+        </p>
+
+        {% if cargo %}
+            <p class="mb-0">
+                <strong>Cargo:</strong> {{ cargo.nombre }}
+            </p>
+        {% endif %}
+    </div>
+
+    <!-- SELECCIÓN DE PERÍODO -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+
+            <form method="get">
+
+                <label for="periodo"
+                       class="form-label fw-semibold">
+                    Período
+                </label>
+
+                <div class="row g-2">
+
+                    <div class="col-md-9">
+                        <select name="periodo"
+                                id="periodo"
+                                class="form-select">
+
+                            {% for opcion in periodos %}
+                                <option
+                                    value="{{ opcion.pk }}"
+                                    {% if periodo.pk == opcion.pk %}selected{% endif %}
+                                >
+                                    {{ opcion.nombre }}
+                                    ({{ opcion.fecha_inicio|date:"d/m/Y" }}
+                                    -
+                                    {{ opcion.fecha_fin|date:"d/m/Y" }})
+                                </option>
+                            {% endfor %}
+
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <button type="submit"
+                                class="btn btn-primary w-100">
+                            Consultar
+                        </button>
+                    </div>
+
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+
+    {% if periodo and matriz %}
+
+        <!-- AVISO DE AUSENCIAS -->
+        {% if not ausencias_integradas %}
+            <div class="alert alert-warning" role="alert">
+                El cálculo todavía no incorpora las ausencias
+                reales del funcionario. Los puntajes son
+                provisionales.
+            </div>
+        {% endif %}
+
+        <!-- RESUMEN GENERAL -->
+        <div class="row g-3 mb-4">
+
+            <div class="col-md-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+
+                        <p class="text-muted mb-2">
+                            Puntaje total
+                        </p>
+
+                        <h3 class="mb-0">
+                            {{ matriz.puntaje_total|floatformat:2 }}
+                        </h3>
+
+                        <small class="text-muted">
+                            Puntos ponderados
+                        </small>
+
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+
+                        <p class="text-muted mb-2">
+                            Total de ingresos
+                        </p>
+
+                        <h3 class="mb-0">
+                            {{ resumen.total_ingresos }}
+                        </h3>
+
+                        <small class="text-muted">
+                            Registros activos del período
+                        </small>
+
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+
+                        <p class="text-muted mb-2">
+                            Promedio diario
+                        </p>
+
+                        <h3 class="mb-0">
+                            {{ resumen.promedio_diario|floatformat:2 }}
+                        </h3>
+
+                        <small class="text-muted">
+                            Ingresos por día computable
+                        </small>
+
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- TABLA DE METAS -->
+        <div class="card shadow-sm mb-4">
+
+            <div class="card-header bg-light">
+                <h3 class="h5 mb-0">
+                    Detalle de metas
+                </h3>
+            </div>
+
+            <div class="card-body p-0">
+
+                <div class="table-responsive">
+
+                    <table class="table table-striped table-hover mb-0">
+
+                        <thead class="table-light">
+                            <tr>
+                                <th>Actividad</th>
+                                <th class="text-center">Meta</th>
+                                <th class="text-center">Meta ajustada</th>
+                                <th class="text-center">Avance</th>
+                                <th class="text-center">Cumplimiento</th>
+                                <th class="text-center">Ponderación</th>
+                                <th class="text-center">Puntaje</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+
+                            {% for item in matriz.items %}
+                                <tr>
+
+                                    <td>
+                                        {{ item.actividad.nombre }}
+                                    </td>
+
+                                    <td class="text-center">
+                                        {{ item.objetivo_original|floatformat:2 }}
+                                    </td>
+
+                                    <td class="text-center">
+                                        {{ item.objetivo_ajustado|floatformat:2 }}
+                                    </td>
+
+                                    <td class="text-center">
+                                        {{ item.avance }}
+                                    </td>
+
+                                    <td class="text-center">
+                                        {% if item.cumplimiento >= 100 %}
+                                            <span class="badge bg-success">
+                                                {{ item.cumplimiento|floatformat:2 }}%
+                                            </span>
+                                        {% elif item.cumplimiento >= 50 %}
+                                            <span class="badge bg-warning text-dark">
+                                                {{ item.cumplimiento|floatformat:2 }}%
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">
+                                                {{ item.cumplimiento|floatformat:2 }}%
+                                            </span>
+                                        {% endif %}
+                                    </td>
+
+                                    <td class="text-center">
+                                        {{ item.ponderacion|floatformat:2 }}%
+                                    </td>
+
+                                    <td class="text-center fw-semibold">
+                                        {{ item.puntaje|floatformat:2 }}
+                                    </td>
+
+                                </tr>
+
+                            {% empty %}
+
+                                <tr>
+                                    <td colspan="7"
+                                        class="text-center text-muted py-4">
+                                        No hay metas configuradas
+                                        para este cargo y período.
+                                    </td>
+                                </tr>
+
+                            {% endfor %}
+
+                        </tbody>
+
+                        <tfoot class="table-light">
+                            <tr>
+                                <th colspan="6" class="text-end">
+                                    Puntaje total
+                                </th>
+                                <th class="text-center">
+                                    {{ matriz.puntaje_total|floatformat:2 }}
+                                </th>
+                            </tr>
+                        </tfoot>
+
+                    </table>
+
+                </div>
+
+            </div>
+        </div>
+
+        <!-- RESUMEN DE INGRESOS -->
+        <div class="card shadow-sm mb-4">
+
+            <div class="card-header bg-light">
+                <h3 class="h5 mb-0">
+                    Resumen de ingresos
+                </h3>
+            </div>
+
+            <div class="card-body">
+
+                <div class="row g-3">
+
+                    <div class="col-md-4">
+                        <strong>Ingresos con puntaje:</strong>
+                        <p class="mb-0">
+                            {{ resumen.ingresos_con_puntaje }}
+                        </p>
+                    </div>
+
+                    <div class="col-md-4">
+                        <strong>Ingresos sin puntaje:</strong>
+                        <p class="mb-0">
+                            {{ resumen.ingresos_sin_puntaje }}
+                        </p>
+                    </div>
+
+                    <div class="col-md-4">
+                        <strong>Días computables:</strong>
+                        <p class="mb-0">
+                            {{ resumen.dias_computables }}
+                        </p>
+                    </div>
+
+                    <div class="col-md-4">
+                        <strong>Ingresos hoy:</strong>
+                        <p class="mb-0">
+                            {{ resumen.ingresos_hoy }}
+                        </p>
+                    </div>
+
+                    <div class="col-md-4">
+                        <strong>Cupos disponibles hoy:</strong>
+                        <p class="mb-0">
+                            {{ resumen.disponibles_hoy }}
+                            de {{ resumen.limite_diario }}
+                        </p>
+                    </div>
+
+                    <div class="col-md-4">
+                        <strong>Último ingreso:</strong>
+                        <p class="mb-0">
+
+                            {% if resumen.ultimo_ingreso %}
+                                {{ resumen.ultimo_ingreso.fecha_ingreso|date:"d/m/Y H:i" }}
+                            {% else %}
+                                Sin registros
+                            {% endif %}
+
+                        </p>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+
+    {% else %}
+
+        <div class="alert alert-info">
+            No hay un período disponible para mostrar
+            la matriz.
+        </div>
+
+    {% endif %}
+
+</div>
+
+{% endblock %}
