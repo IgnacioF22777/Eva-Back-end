@@ -1,0 +1,254 @@
+
+{% extends "base.html" %}
+
+{% block title %}Mis Actividades - SGR{% endblock %}
+
+{% block header %}
+Registro Diario de Actividades
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="h4 mb-1">Mis Actividades</h2>
+        <p class="text-muted mb-0">
+            Sistema de Gestión de Resultados
+        </p>
+    </div>
+
+    {% if perms.actividadesAPP.add_registroactividad %}
+    <a href="{% url 'actividades:crear' %}"
+       class="btn btn-primary">
+        + Nueva Actividad
+    </a>
+    {% endif %}
+</div>
+
+<!-- MENSAJES DEL SISTEMA -->
+{% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show"
+         role="alert">
+        {{ message }}
+        <button type="button"
+                class="btn-close"
+                data-bs-dismiss="alert"
+                aria-label="Cerrar">
+        </button>
+    </div>
+    {% endfor %}
+{% endif %}
+
+<!-- RESUMEN DIARIO -->
+<div class="row g-3 mb-4">
+
+    <div class="col-md-4">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-body text-center">
+                <h6 class="text-muted">Ingresos de hoy</h6>
+                <h2 class="text-primary">{{ usados_hoy }}</h2>
+                <p class="mb-0 small">Actividades registradas</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-body text-center">
+                <h6 class="text-muted">Ingresos disponibles</h6>
+                <h2 class="text-success">{{ restantes_hoy }}</h2>
+                <p class="mb-0 small">Cupos restantes de hoy</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-body text-center">
+                <h6 class="text-muted">Límite diario</h6>
+                <h2>{{ maximo_diario }}</h2>
+                <p class="mb-0 small">Máximo permitido por funcionario</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- FILTRO -->
+<div class="card shadow-sm border-0 mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-2 align-items-end">
+            <div class="col-md-5">
+                <label for="situacion" class="form-label">
+                    Estado de los registros
+                </label>
+
+                <select name="situacion"
+                        id="situacion"
+                        class="form-select">
+                    <option value="activos"
+                        {% if situacion == "activos" %}selected{% endif %}>
+                        Activos
+                    </option>
+
+                    <option value="inactivos"
+                        {% if situacion == "inactivos" %}selected{% endif %}>
+                        Inactivos
+                    </option>
+
+                    <option value="todos"
+                        {% if situacion == "todos" %}selected{% endif %}>
+                        Todos
+                    </option>
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary w-100">
+                    Filtrar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- LISTADO -->
+<div class="card shadow-sm border-0">
+
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">Actividades registradas</h5>
+    </div>
+
+    <div class="card-body">
+
+        <div class="table-responsive">
+            <table class="table table-striped table-hover align-middle">
+
+                <thead class="table-dark">
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Actividad</th>
+                        <th>Vecino / Usuario</th>
+                        <th>Teléfono</th>
+                        <th>Tipo</th>
+                        <th>Puntaje</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for registro in registros %}
+                    <tr>
+                        <td>
+                            {{ registro.fecha_actividad|date:"d/m/Y" }}
+                        </td>
+
+                        <td>
+                            <strong>{{ registro.actividad.nombre }}</strong>
+                            <div class="small text-muted">
+                                Ingreso:
+                                {{ registro.fecha_ingreso|date:"d/m/Y H:i" }}
+                            </div>
+                        </td>
+
+                        <td>
+                            {{ registro.nombre_usuario|default:"Sin nombre" }}
+                        </td>
+
+                        <td>
+                            {{ registro.telefono_usuario|default:"Sin teléfono" }}
+                        </td>
+
+                        <td>
+                            {% if registro.actividad.tipo_gestion == "PREPARATORIA" %}
+                                <span class="badge bg-secondary">
+                                    Preparatoria
+                                </span>
+                            {% else %}
+                                <span class="badge bg-info text-dark">
+                                    Ejecución
+                                </span>
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            {% if registro.puntua %}
+                                <span class="badge bg-success">
+                                    Válida
+                                </span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark"
+                                      title="{{ registro.motivo_sin_puntaje }}">
+                                    Sin puntaje
+                                </span>
+                                <div class="small text-muted">
+                                    {{ registro.motivo_sin_puntaje }}
+                                </div>
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            {% if registro.activo %}
+                                <span class="badge bg-success">
+                                    Activo
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary">
+                                    Inactivo
+                                </span>
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            <div class="d-flex flex-wrap gap-1">
+
+                                {% if registro.activo %}
+                                    {% if perms.actividadesAPP.change_registroactividad %}
+                                    <a href="{% url 'actividades:editar' registro.pk %}"
+                                       class="btn btn-sm btn-outline-primary">
+                                        Editar
+                                    </a>
+                                    {% endif %}
+                                {% endif %}
+
+                                {% if perms.actividadesAPP.delete_registroactividad %}
+                                <form method="POST"
+                                      action="{% url 'actividades:cambiar_estado' registro.pk %}">
+                                    {% csrf_token %}
+
+                                    {% if registro.activo %}
+                                    <button type="submit"
+                                            class="btn btn-sm btn-outline-danger">
+                                        Dar de baja
+                                    </button>
+                                    {% else %}
+                                    <button type="submit"
+                                            class="btn btn-sm btn-outline-success">
+                                        Reactivar
+                                    </button>
+                                    {% endif %}
+                                </form>
+                                {% endif %}
+
+                            </div>
+                        </td>
+                    </tr>
+
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center text-muted py-4">
+                            No se encontraron actividades registradas.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+
+            </table>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}

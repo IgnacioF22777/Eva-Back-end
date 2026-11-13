@@ -1,0 +1,122 @@
+
+{% extends "base.html" %}
+
+{% block title %}{{ titulo }} - SGR{% endblock %}
+
+{% block header %}
+{{ titulo }}
+{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+
+        <div class="card shadow-sm border-0">
+
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">{{ titulo }}</h5>
+            </div>
+
+            <div class="card-body p-4">
+
+                <p class="text-muted">
+                    Completa los datos de la actividad realizada.
+                    El sistema calculará automáticamente si
+                    corresponde otorgar puntaje.
+                </p>
+
+                <div class="alert alert-info">
+                    <strong>Reglas de registro:</strong>
+                    <ul class="mb-0 mt-2">
+                        <li>Máximo 7 ingresos diarios por funcionario.</li>
+                        <li>Las actividades de semanas anteriores
+                            se pueden ingresar hasta el lunes siguiente.</li>
+                        <li>Sin nombre o teléfono válido del usuario,
+                            la actividad no suma puntaje.</li>
+                        <li>Las gestiones del delegado no generan puntaje.</li>
+                        <li>Las actividades preparatorias no suman puntos.</li>
+                    </ul>
+                </div>
+
+                <form method="POST" novalidate>
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}
+                            <div>{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    {% for campo in form %}
+                    <div class="mb-3">
+
+                        <label for="{{ campo.id_for_label }}"
+                               class="form-label fw-semibold">
+
+                            {{ campo.label }}
+
+                            {% if campo.field.required %}
+                                <span class="text-danger">*</span>
+                            {% endif %}
+
+                        </label>
+
+                        {{ campo }}
+
+                        {% if campo.help_text %}
+                        <div class="form-text">
+                            {{ campo.help_text }}
+                        </div>
+                        {% endif %}
+
+                        {% for error in campo.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ error }}
+                        </div>
+                        {% endfor %}
+
+                    </div>
+                    {% endfor %}
+
+                    <div class="alert alert-warning small">
+                        <strong>Importante:</strong>
+                        Las actividades sin datos completos
+                        pueden guardarse, pero no generan puntaje.
+                        El funcionario y la fecha de ingreso
+                        se asignan automáticamente desde el servidor.
+                    </div>
+
+                    <hr>
+
+                    <div class="d-flex justify-content-end gap-2">
+
+                        <a href="{% url 'actividades:lista' %}"
+                           class="btn btn-outline-secondary">
+                            Cancelar
+                        </a>
+
+                        <button type="submit"
+                                class="btn btn-primary">
+
+                            {% if es_edicion %}
+                                Guardar cambios
+                            {% else %}
+                                Registrar actividad
+                            {% endif %}
+
+                        </button>
+
+                    </div>
+
+                </form>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}
