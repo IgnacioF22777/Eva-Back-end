@@ -38,6 +38,8 @@ INSTALLED_APPS = [
     'reportesCiudadanosAPP',
     'sgr_maestrosAPP',
     'seguridadAPP',
+    'organizacionesAPP',
+    'oficinaPartesAPP',
     'actividadesAPP',  # EVA 3: registro diario de actividades (R1-R4).
 
     # API RESTful (Programación Back End): Django REST Framework,
