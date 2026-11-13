@@ -21,6 +21,7 @@ APPS_CON_PERMISOS = [
     "reportesCiudadanosAPP",
     "organizacionesAPP",
     "oficinaPartesAPP",
+    "atencionSocialAPP",
     "actividadesAPP",
 ]
 
@@ -38,6 +39,7 @@ VER_OPERACION = [
     "sgr_maestrosAPP.view_meta",
     "organizacionesAPP.view_organizacioncomunitaria",
     "oficinaPartesAPP.view_cartaoficinapartes",
+    "atencionSocialAPP.view_atencionsocial",
 
     # EVA 3: actividades diarias.
     "actividadesAPP.view_registroactividad",
@@ -57,6 +59,9 @@ ROLES = {
         "oficinaPartesAPP.add_cartaoficinapartes",
         "oficinaPartesAPP.change_cartaoficinapartes",
         "oficinaPartesAPP.delete_cartaoficinapartes",
+        "atencionSocialAPP.add_atencionsocial",
+        "atencionSocialAPP.change_atencionsocial",
+        "atencionSocialAPP.delete_atencionsocial",
 
         "delegacionesAPP.add_delegacion",
         "delegacionesAPP.change_delegacion",
@@ -97,6 +102,10 @@ ROLES = {
         # llegan por carta y Oficina de Partes.
         "oficinaPartesAPP.add_cartaoficinapartes",
         "oficinaPartesAPP.change_cartaoficinapartes",
+
+        # EVA 3: el Gestor Social registra sus atenciones (sin dar de baja).
+        "atencionSocialAPP.add_atencionsocial",
+        "atencionSocialAPP.change_atencionsocial",
 
         # EVA 3: actividades propias.
         "actividadesAPP.add_registroactividad",

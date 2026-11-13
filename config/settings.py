@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'seguridadAPP',
     'organizacionesAPP',
     'oficinaPartesAPP',
+    'atencionSocialAPP',  # EVA 3: tipos de atención social (RC-05).
     'actividadesAPP',  # EVA 3: registro diario de actividades (R1-R4).
 
     # API RESTful (Programación Back End): Django REST Framework,
