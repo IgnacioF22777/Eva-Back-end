@@ -19,6 +19,7 @@ APPS_CON_PERMISOS = [
     "sgr_maestrosAPP",
     "emergenciasTerritorialesAPP",
     "reportesCiudadanosAPP",
+    "organizacionesAPP",
     "actividadesAPP",
 ]
 
@@ -34,6 +35,7 @@ VER_OPERACION = [
     "sgr_maestrosAPP.view_periodo",
     "sgr_maestrosAPP.view_detalleperiodo",
     "sgr_maestrosAPP.view_meta",
+    "organizacionesAPP.view_organizacioncomunitaria",
 
     # EVA 3: actividades diarias.
     "actividadesAPP.view_registroactividad",
@@ -47,6 +49,9 @@ ROLES = {
     # Supervisor: mantenedores y actividades diarias.
     "Supervisor": VER_OPERACION + [
         "auth.view_user",
+        "organizacionesAPP.add_organizacioncomunitaria",
+        "organizacionesAPP.change_organizacioncomunitaria",
+        "organizacionesAPP.delete_organizacioncomunitaria",
 
         "delegacionesAPP.add_delegacion",
         "delegacionesAPP.change_delegacion",
