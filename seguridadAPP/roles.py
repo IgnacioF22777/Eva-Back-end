@@ -25,6 +25,7 @@ APPS_CON_PERMISOS = [
     "emergenciasTerritorialesAPP",
     "reportesCiudadanosAPP",
     "organizacionesAPP",
+    "oficinaPartesAPP",
 ]
 
 # Permisos de solo lectura sobre la operación municipal.
@@ -39,6 +40,7 @@ VER_OPERACION = [
     "sgr_maestrosAPP.view_detalleperiodo",
     "sgr_maestrosAPP.view_meta",
     "organizacionesAPP.view_organizacioncomunitaria",
+    "oficinaPartesAPP.view_cartaoficinapartes",
 ]
 
 ROLES = {
@@ -51,6 +53,9 @@ ROLES = {
         "organizacionesAPP.add_organizacioncomunitaria",
         "organizacionesAPP.change_organizacioncomunitaria",
         "organizacionesAPP.delete_organizacioncomunitaria",
+        "oficinaPartesAPP.add_cartaoficinapartes",
+        "oficinaPartesAPP.change_cartaoficinapartes",
+        "oficinaPartesAPP.delete_cartaoficinapartes",
         "delegacionesAPP.add_delegacion",
         "delegacionesAPP.change_delegacion",
         "delegacionesAPP.delete_delegacion",
@@ -75,6 +80,10 @@ ROLES = {
     "Administrativo": VER_OPERACION + [
         "tubo_gestionAPP.add_compromiso",
         "tubo_gestionAPP.add_registroavance",
+        # Descriptor: el Apoyo Administrativo registra las solicitudes que
+        # llegan por carta y Oficina de Partes.
+        "oficinaPartesAPP.add_cartaoficinapartes",
+        "oficinaPartesAPP.change_cartaoficinapartes",
     ],
 }
 

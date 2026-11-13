@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'sgr_maestrosAPP',
     'seguridadAPP',
     'organizacionesAPP',
+    'oficinaPartesAPP',
 
     # API RESTful (Programación Back End): Django REST Framework,
     # autenticación JWT y documentación OpenAPI (Swagger / ReDoc).
