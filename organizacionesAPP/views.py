@@ -50,14 +50,22 @@ def organizacion_lista(request):
     estado = request.GET.get("estado", "activos")
     verificacion = request.GET.get("verificacion", "")
 
-    # Por defecto cada funcionario parte viendo su propia delegación.
-    if "delegacion" in request.GET:
-        delegacion = request.GET.get("delegacion", "")
-    else:
-        propia = None if es_global(request.user) else delegacion_id_de(request.user)
-        delegacion = str(propia) if propia else ""
+    # Ámbito: solo el Administrador elige delegación en el filtro. El resto
+    # ve siempre la suya y se ignora lo que venga en la URL (?delegacion=).
+    vision_global = es_global(request.user)
+    visibles = OrganizacionComunitaria.objects.select_related("delegacion")
 
-    organizaciones = OrganizacionComunitaria.objects.select_related("delegacion")
+    if vision_global:
+        delegacion = request.GET.get("delegacion", "")
+        delegaciones = Delegacion.objects.order_by("nombre")
+    else:
+        propia = delegacion_id_de(request.user)
+        # Sin delegación asignada no se ve ninguna organización.
+        visibles = visibles.filter(delegacion_id=propia) if propia else visibles.none()
+        delegacion = str(propia) if propia else ""
+        delegaciones = Delegacion.objects.filter(pk=propia)
+
+    organizaciones = visibles
 
     if busqueda:
         organizaciones = organizaciones.filter(
@@ -72,12 +80,14 @@ def organizacion_lista(request):
     else:
         tipo = ""
 
-    if delegacion == "sin":
-        organizaciones = organizaciones.filter(delegacion__isnull=True)
-    elif delegacion.isdigit():
-        organizaciones = organizaciones.filter(delegacion_id=int(delegacion))
-    else:
-        delegacion = ""
+    # El filtro de la URL solo se aplica con visión global.
+    if vision_global:
+        if delegacion == "sin":
+            organizaciones = organizaciones.filter(delegacion__isnull=True)
+        elif delegacion.isdigit():
+            organizaciones = organizaciones.filter(delegacion_id=int(delegacion))
+        else:
+            delegacion = ""
 
     if verificacion == "si":
         organizaciones = organizaciones.filter(verificada=True)
@@ -101,7 +111,8 @@ def organizacion_lista(request):
     parametros.pop("pagina", None)
     parametros["delegacion"] = delegacion
 
-    todas = OrganizacionComunitaria.objects
+    # Los contadores también respetan el ámbito del usuario.
+    todas = visibles
     return render(
         request,
         "organizaciones/organizacion_lista.html",
@@ -115,7 +126,8 @@ def organizacion_lista(request):
             "estado": estado,
             "parametros": parametros.urlencode(),
             "tipos": OrganizacionComunitaria.TIPOS,
-            "delegaciones": Delegacion.objects.order_by("nombre"),
+            "delegaciones": delegaciones,
+            "vision_global": vision_global,
             "total_vigentes": todas.filter(activo=True).count(),
             "total_por_verificar": todas.filter(activo=True, verificada=False).count(),
             "total_sin_delegacion": todas.filter(activo=True, delegacion__isnull=True).count(),

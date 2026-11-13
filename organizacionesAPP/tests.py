@@ -366,8 +366,8 @@ class PruebasMantenedor(BaseOrganizaciones):
         respuesta = self.client.get(reverse("organizaciones:organizacion_lista"), {"pagina": 2})
         self.assertEqual(len(respuesta.context["pagina"].object_list), 12)
 
-    def test_CP_ORG_017_supervisor_parte_viendo_su_delegacion(self):
-        """CP-ORG-017: el listado del Supervisor parte filtrado por su delegación; puede ver todas."""
+    def test_CP_ORG_017_supervisor_ve_solo_su_delegacion(self):
+        """CP-ORG-017: el listado del Supervisor muestra solo su delegación, aunque pida «Todas»."""
         self.client.force_login(self.supervisor)
         url = reverse("organizaciones:organizacion_lista")
 
@@ -376,7 +376,8 @@ class PruebasMantenedor(BaseOrganizaciones):
         self.assertNotContains(respuesta, "CLUB DEPORTIVO LA PAMPA")
 
         respuesta = self.client.get(url, {"delegacion": ""})
-        self.assertContains(respuesta, "CLUB DEPORTIVO LA PAMPA")
+        self.assertContains(respuesta, "CENTRO HISTORICO")
+        self.assertNotContains(respuesta, "CLUB DEPORTIVO LA PAMPA")
 
     def test_CP_ORG_018_supervisor_crea_en_su_delegacion(self):
         """CP-ORG-018: el Supervisor crea en su delegación; otra delegación es opción no válida."""
@@ -450,6 +451,47 @@ class PruebasMantenedor(BaseOrganizaciones):
         self.client.post(reverse("organizaciones:organizacion_verificar", args=[pk]))
         self.org_centro.refresh_from_db()
         self.assertTrue(self.org_centro.verificada)
+
+    def test_CP_ORG_024_listado_ignora_delegacion_de_la_url(self):
+        """CP-ORG-024 (borde, seguridad): sin perfil Administrador, cambiar ?delegacion= no muestra otras delegaciones."""
+        sin_delegacion = OrganizacionComunitaria.objects.create(
+            nombre="COMITE SIN TERRITORIO", numero_registro="30",
+            tipo=OrganizacionComunitaria.FUNCIONAL,
+        )
+        url = reverse("organizaciones:organizacion_lista")
+
+        for usuario in (self.administrativo, self.supervisor):
+            self.client.force_login(usuario)
+            for valor in (str(self.pampa.pk), "sin", "", "abc"):
+                respuesta = self.client.get(url, {"delegacion": valor})
+                self.assertEqual(respuesta.status_code, 200)
+                listadas = set(respuesta.context["pagina"].object_list)
+                self.assertEqual(listadas, {self.org_centro}, f"{usuario} con delegacion={valor!r}")
+                self.assertEqual(respuesta.context["delegacion"], str(self.centro.pk))
+
+            # Los contadores tampoco revelan datos de otras delegaciones.
+            self.assertEqual(respuesta.context["total_vigentes"], 1)
+            self.assertEqual(respuesta.context["total_sin_delegacion"], 0)
+            self.assertNotContains(respuesta, "Delegación La Pampa")
+
+        # El Administrador sí puede elegir cualquier delegación o las sin asignar.
+        self.client.force_login(self.admin)
+        respuesta = self.client.get(url, {"delegacion": self.pampa.pk})
+        self.assertEqual(set(respuesta.context["pagina"].object_list), {self.org_pampa})
+        respuesta = self.client.get(url, {"delegacion": "sin"})
+        self.assertEqual(set(respuesta.context["pagina"].object_list), {sin_delegacion})
+
+    def test_CP_ORG_025_usuario_sin_delegacion_no_ve_organizaciones(self):
+        """CP-ORG-025 (borde): un Administrativo sin delegación asignada no ve ninguna organización."""
+        huerfano = crear_usuario("13.131.313-3", "sindel@laserena.cl", ADMINISTRATIVO)
+        self.client.force_login(huerfano)
+
+        for valor in (None, str(self.centro.pk), "sin"):
+            parametros = {} if valor is None else {"delegacion": valor}
+            respuesta = self.client.get(reverse("organizaciones:organizacion_lista"), parametros)
+            self.assertEqual(respuesta.status_code, 200)
+            self.assertEqual(respuesta.context["total_filtradas"], 0)
+            self.assertEqual(respuesta.context["total_vigentes"], 0)
 
     def test_CP_ORG_023_no_redirige_a_sitios_externos(self):
         """CP-ORG-023 (borde, seguridad): un «volver» a otro sitio se ignora y vuelve al listado."""
