@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'sgr_maestrosAPP',
     'seguridadAPP',
     'actividadesAPP',  # EVA 3: registro diario de actividades (R1-R4).
+    'puntajeEquipoAPP',  # EVA 3: pantalla de puntaje del equipo (R10).
 
     # API RESTful (Programación Back End): Django REST Framework,
     # autenticación JWT y documentación OpenAPI (Swagger / ReDoc).

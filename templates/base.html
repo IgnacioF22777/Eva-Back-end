@@ -143,6 +143,16 @@
                                     </a>
                                 </li>
 
+                                <!-- PUNTAJE DEL EQUIPO: SOLO ADMINISTRADOR Y SUPERVISOR -->
+                                {% if perfil_etiqueta == 'Administrador' or perfil_etiqueta == 'Supervisor' %}
+                                    <li>
+                                        <a class="dropdown-item"
+                                           href="{% url 'puntaje_equipo:equipo' %}">
+                                            Puntaje del Equipo
+                                        </a>
+                                    </li>
+                                {% endif %}
+
                             </ul>
 
                         </li>
