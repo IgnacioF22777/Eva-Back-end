@@ -16,11 +16,17 @@ Delegaciones Municipales
         </p>
     </div>
 
-    {% if perms.delegacionesAPP.add_delegacion %}
-        <a href="{% url 'delegacion_crear' %}" class="btn btn-primary">
-            + Nueva delegación
-        </a>
-    {% endif %}
+    <div class="d-flex flex-wrap gap-2">
+        {% url 'exportar_delegaciones_pdf' as url_pdf %}
+        {% url 'exportar_delegaciones_excel' as url_excel %}
+        {% include '_botones_exportar.html' %}
+
+        {% if perms.delegacionesAPP.add_delegacion %}
+            <a href="{% url 'delegacion_crear' %}" class="btn btn-primary">
+                + Nueva delegación
+            </a>
+        {% endif %}
+    </div>
 </div>
 
 {% include 'seguridad/_mensajes.html' %}

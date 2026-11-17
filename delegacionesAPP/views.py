@@ -5,6 +5,8 @@ from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
+from config import exportar
+
 from .forms import DelegacionForm, ServicioForm
 from .models import Delegacion, Servicio
 
@@ -13,9 +15,8 @@ from .models import Delegacion, Servicio
 # MANTENEDOR 1: DELEGACIONES
 # ============================================================
 
-@login_required
-@permission_required("delegacionesAPP.view_delegacion", raise_exception=True)
-def delegacion_lista(request):
+def filtrar_delegaciones(request):
+    """Filtros del listado de delegaciones (también los usa la exportación)."""
     busqueda = request.GET.get("q", "").strip()
     estado = request.GET.get("estado", "activos")
 
@@ -44,6 +45,14 @@ def delegacion_lista(request):
         delegaciones = delegaciones.filter(activo=True)
     elif estado == "inactivos":
         delegaciones = delegaciones.filter(activo=False)
+
+    return delegaciones, busqueda, estado
+
+
+@login_required
+@permission_required("delegacionesAPP.view_delegacion", raise_exception=True)
+def delegacion_lista(request):
+    delegaciones, busqueda, estado = filtrar_delegaciones(request)
 
     return render(
         request,
@@ -403,4 +412,75 @@ def inicio(request):
         request,
         "delegaciones/inicio.html",
         {"delegaciones": data},
+    )
+
+
+# ============================================================
+# EXPORTACIÓN A EXCEL Y PDF
+# ============================================================
+# Usa los mismos filtros y permisos que el listado de delegaciones.
+
+ENCABEZADOS_DELEGACIONES = [
+    "Delegación", "Dirección", "Encargado", "Correo", "Teléfono",
+    "Celular", "Servicios activos", "Compromisos activos", "Estado",
+]
+
+ETIQUETAS_ESTADO = {
+    "activos": "Activas",
+    "inactivos": "Inactivas",
+    "todos": "Todas",
+}
+
+
+def datos_delegaciones(request):
+    delegaciones, busqueda, estado = filtrar_delegaciones(request)
+    filas = [
+        [
+            delegacion.nombre,
+            delegacion.direccion,
+            delegacion.encargado,
+            delegacion.email,
+            delegacion.telefono,
+            delegacion.celular,
+            delegacion.total_servicios,
+            delegacion.total_compromisos,
+            "Activa" if delegacion.activo else "Inactiva",
+        ]
+        for delegacion in delegaciones
+    ]
+
+    partes = []
+    if busqueda:
+        partes.append(f'búsqueda "{busqueda}"')
+    partes.append(f"estado: {ETIQUETAS_ESTADO.get(estado, 'Todas')}")
+
+    return filas, "; ".join(partes)
+
+
+@login_required
+@permission_required("delegacionesAPP.view_delegacion", raise_exception=True)
+def exportar_delegaciones_excel(request):
+    filas, _ = datos_delegaciones(request)
+    return exportar.exportar_excel(
+        "Delegaciones Municipales",
+        ENCABEZADOS_DELEGACIONES,
+        filas,
+        "delegaciones",
+        usuario=request.user,
+    )
+
+
+@login_required
+@permission_required("delegacionesAPP.view_delegacion", raise_exception=True)
+def exportar_delegaciones_pdf(request):
+    filas, filtros = datos_delegaciones(request)
+    return exportar.exportar_pdf(
+        "Delegaciones Municipales",
+        ENCABEZADOS_DELEGACIONES,
+        filas,
+        "delegaciones",
+        usuario=request.user,
+        anchos=[1.5, 2, 1.5, 2, 1, 1, 0.9, 1.1, 0.8],
+        horizontal=True,
+        filtros=filtros,
     )

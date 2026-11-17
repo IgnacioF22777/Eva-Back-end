@@ -19,10 +19,16 @@ Gestión de Períodos de Evaluación
         </p>
     </div>
 
-    <a href="{% url 'sgr_maestros:periodo_crear' %}"
-       class="btn btn-primary">
-        + Nuevo Período
-    </a>
+    <div class="d-flex flex-wrap gap-2">
+        {% url 'sgr_maestros:exportar_periodos_pdf' as url_pdf %}
+        {% url 'sgr_maestros:exportar_periodos_excel' as url_excel %}
+        {% include '_botones_exportar.html' %}
+
+        <a href="{% url 'sgr_maestros:periodo_crear' %}"
+           class="btn btn-primary">
+            + Nuevo Período
+        </a>
+    </div>
 </div>
 
 <!-- MENSAJES DEL SISTEMA -->

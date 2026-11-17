@@ -120,4 +120,23 @@ urlpatterns = [
         name="meta_cambiar_estado"
     ),
 
+    # ========================================================
+    # EXPORTACIÓN A EXCEL Y PDF (respetan los filtros del listado)
+    # ========================================================
+
+    path("catalogo/exportar/excel/", views.exportar_catalogo_excel,
+         name="exportar_catalogo_excel"),
+    path("catalogo/exportar/pdf/", views.exportar_catalogo_pdf,
+         name="exportar_catalogo_pdf"),
+
+    path("periodos/exportar/excel/", views.exportar_periodos_excel,
+         name="exportar_periodos_excel"),
+    path("periodos/exportar/pdf/", views.exportar_periodos_pdf,
+         name="exportar_periodos_pdf"),
+
+    path("metas/exportar/excel/", views.exportar_metas_excel,
+         name="exportar_metas_excel"),
+    path("metas/exportar/pdf/", views.exportar_metas_pdf,
+         name="exportar_metas_pdf"),
+
 ]
