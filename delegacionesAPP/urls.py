@@ -15,6 +15,17 @@ urlpatterns = [
         views.delegacion_lista,
         name="delegacion_lista",
     ),
+    # Exportación a Excel y PDF (respeta los filtros del listado)
+    path(
+        "delegaciones/exportar/excel/",
+        views.exportar_delegaciones_excel,
+        name="exportar_delegaciones_excel",
+    ),
+    path(
+        "delegaciones/exportar/pdf/",
+        views.exportar_delegaciones_pdf,
+        name="exportar_delegaciones_pdf",
+    ),
     path(
         "delegaciones/nueva/",
         views.delegacion_crear,

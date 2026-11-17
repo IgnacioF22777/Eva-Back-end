@@ -12,6 +12,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
+from config import exportar
+
 from .forms import RegistroActividadForm
 from .models import RegistroActividad, ZONA_CHILE, rango_dia_chile
 
@@ -38,10 +40,8 @@ def agregar_error_guardado(formulario, error):
     formulario.add_error(None, " ".join(error.messages))
 
 
-@login_required
-@permission_required("actividadesAPP.view_registroactividad", raise_exception=True)
-def actividad_lista(request):
-    """Mis actividades y cupos restantes del día chileno."""
+def filtrar_registros(request):
+    """Filtro de situación del listado (también lo usa la exportación)."""
     registros = registros_propios(request.user).select_related("actividad")
 
     situacion = request.GET.get("situacion", "activos")
@@ -50,6 +50,15 @@ def actividad_lista(request):
     elif situacion != "todos":
         situacion = "activos"
         registros = registros.filter(activo=True)
+
+    return registros, situacion
+
+
+@login_required
+@permission_required("actividadesAPP.view_registroactividad", raise_exception=True)
+def actividad_lista(request):
+    """Mis actividades y cupos restantes del día chileno."""
+    registros, situacion = filtrar_registros(request)
 
     hoy = timezone.localdate(timezone.now(), timezone=ZONA_CHILE)
     inicio, fin = rango_dia_chile(hoy)
@@ -176,3 +185,73 @@ def actividad_cambiar_estado(request, pk):
         else:
             messages.success(request, "Actividad dada de baja sin borrar el historial.")
     return redirect("actividades:lista")
+
+
+# ============================================================
+# EXPORTACIÓN A EXCEL Y PDF
+# ============================================================
+# Igual que el listado, cada funcionario exporta solo sus propios registros.
+
+ENCABEZADOS_ACTIVIDADES = [
+    "Fecha", "Actividad", "Tipo", "Solicitante", "Vecino / Usuario",
+    "Teléfono", "Puntaje", "Motivo sin puntaje", "Fecha de ingreso", "Estado",
+]
+
+ETIQUETAS_SITUACION = {
+    "activos": "Activas",
+    "inactivos": "Inactivas",
+    "todos": "Todas",
+}
+
+
+def datos_actividades(request):
+    registros, situacion = filtrar_registros(request)
+    filas = [
+        [
+            registro.fecha_actividad,
+            registro.actividad.nombre,
+            (
+                "Preparatoria"
+                if registro.actividad.tipo_gestion == "PREPARATORIA"
+                else "Ejecución"
+            ),
+            registro.get_solicitante_tipo_display(),
+            registro.nombre_usuario or "Sin nombre",
+            registro.telefono_usuario or "Sin teléfono",
+            "Válida" if registro.puntua else "Sin puntaje",
+            registro.motivo_sin_puntaje,
+            registro.fecha_ingreso,
+            exportar.activo_inactivo(registro.activo),
+        ]
+        for registro in registros
+    ]
+    return filas, f"situación: {ETIQUETAS_SITUACION[situacion]}"
+
+
+@login_required
+@permission_required("actividadesAPP.view_registroactividad", raise_exception=True)
+def exportar_actividades_excel(request):
+    filas, _ = datos_actividades(request)
+    return exportar.exportar_excel(
+        "Mis Actividades Diarias",
+        ENCABEZADOS_ACTIVIDADES,
+        filas,
+        "mis_actividades",
+        usuario=request.user,
+    )
+
+
+@login_required
+@permission_required("actividadesAPP.view_registroactividad", raise_exception=True)
+def exportar_actividades_pdf(request):
+    filas, filtros = datos_actividades(request)
+    return exportar.exportar_pdf(
+        "Mis Actividades Diarias",
+        ENCABEZADOS_ACTIVIDADES,
+        filas,
+        "mis_actividades",
+        usuario=request.user,
+        anchos=[0.9, 2, 1, 1.2, 1.5, 1, 0.9, 1.9, 1.2, 0.8],
+        horizontal=True,
+        filtros=filtros,
+    )

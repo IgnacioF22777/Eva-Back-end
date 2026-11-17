@@ -7,6 +7,7 @@ from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
+from config import exportar
 from delegacionesAPP.models import Servicio
 
 from .ambito import (
@@ -62,9 +63,11 @@ def eliminar_archivos(storage, nombres):
 # MANTENEDOR: COMPROMISOS DEL TUBO DE GESTIÓN
 # ============================================================
 
-@login_required
-@permission_required("tubo_gestionAPP.view_compromiso", raise_exception=True)
-def compromiso_lista(request):
+def filtrar_compromisos(request):
+    """
+    Filtros del listado de compromisos (también los usa la exportación).
+    Devuelve los compromisos filtrados y todos los visibles del usuario.
+    """
     busqueda = request.GET.get("q", "").strip()
     estado = request.GET.get("estado", "")
     situacion = request.GET.get("situacion", "activos")
@@ -88,6 +91,16 @@ def compromiso_lista(request):
         compromisos = compromisos.filter(activo=True)
     elif situacion == "inactivos":
         compromisos = compromisos.filter(activo=False)
+
+    return compromisos, visibles, busqueda, estado, situacion
+
+
+@login_required
+@permission_required("tubo_gestionAPP.view_compromiso", raise_exception=True)
+def compromiso_lista(request):
+    compromisos, visibles, busqueda, estado, situacion = filtrar_compromisos(
+        request
+    )
 
     return render(
         request,
@@ -524,4 +537,78 @@ def inicio(request):
             "resumen": resumen,
             "total": sum(resumen.values()),
         },
+    )
+
+
+# ============================================================
+# EXPORTACIÓN A EXCEL Y PDF
+# ============================================================
+# Usa los mismos filtros y el mismo ámbito por delegación que el listado:
+# cada perfil exporta solo los compromisos que puede ver.
+
+ENCABEZADOS_COMPROMISOS = [
+    "N°", "Tarea", "Delegación", "Servicio", "Cumplimiento (%)",
+    "Estado (semáforo)", "Situación",
+]
+
+ETIQUETAS_SITUACION = {
+    "activos": "Activos",
+    "inactivos": "Inactivos",
+    "todos": "Todos",
+}
+
+
+def datos_compromisos(request):
+    compromisos, _, busqueda, estado, situacion = filtrar_compromisos(request)
+    filas = [
+        [
+            compromiso.pk,
+            compromiso.tarea,
+            compromiso.delegacion.nombre if compromiso.delegacion else "",
+            compromiso.servicio.nombre if compromiso.servicio else "",
+            compromiso.cumplimiento,
+            compromiso.get_estado_display(),
+            exportar.activo_inactivo(compromiso.activo),
+        ]
+        for compromiso in compromisos
+    ]
+
+    partes = []
+    if busqueda:
+        partes.append(f'búsqueda "{busqueda}"')
+    if estado in ("verde", "amarillo", "rojo"):
+        partes.append(f"semáforo: {dict(Compromiso.ESTADOS)[estado]}")
+    partes.append(
+        f"situación: {ETIQUETAS_SITUACION.get(situacion, 'Todos')}"
+    )
+
+    return filas, "; ".join(partes)
+
+
+@login_required
+@permission_required("tubo_gestionAPP.view_compromiso", raise_exception=True)
+def exportar_compromisos_excel(request):
+    filas, _ = datos_compromisos(request)
+    return exportar.exportar_excel(
+        "Compromisos del Tubo de Gestión",
+        ENCABEZADOS_COMPROMISOS,
+        filas,
+        "compromisos",
+        usuario=request.user,
+    )
+
+
+@login_required
+@permission_required("tubo_gestionAPP.view_compromiso", raise_exception=True)
+def exportar_compromisos_pdf(request):
+    filas, filtros = datos_compromisos(request)
+    return exportar.exportar_pdf(
+        "Compromisos del Tubo de Gestión",
+        ENCABEZADOS_COMPROMISOS,
+        filas,
+        "compromisos",
+        usuario=request.user,
+        anchos=[0.5, 3.2, 1.6, 1.6, 1.1, 1.1, 0.9],
+        horizontal=True,
+        filtros=filtros,
     )

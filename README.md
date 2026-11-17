@@ -267,12 +267,43 @@ La API no tiene reglas propias: aplica las mismas que la aplicación web.
   delegación con servicios activos o modificar un período cerrado) responden
   `409` con el motivo.
 
+## Exportación a Excel y PDF
+
+Los listados principales tienen los botones **Exportar a PDF** y **Exportar a
+Excel**. El archivo contiene exactamente lo que se ve en pantalla: usa los
+mismos filtros (búsqueda, estado, tipo, cargo, semáforo), los mismos permisos
+y el mismo ámbito por delegación que el listado.
+
+| Listado | Excel | PDF |
+|---|---|---|
+| Delegaciones | `/delegaciones/exportar/excel/` | `/delegaciones/exportar/pdf/` |
+| Compromisos (tubo de gestión) | `/gestion/compromisos/exportar/excel/` | `/gestion/compromisos/exportar/pdf/` |
+| Catálogo de actividades | `/maestros/catalogo/exportar/excel/` | `/maestros/catalogo/exportar/pdf/` |
+| Períodos de evaluación | `/maestros/periodos/exportar/excel/` | `/maestros/periodos/exportar/pdf/` |
+| Metas | `/maestros/metas/exportar/excel/` | `/maestros/metas/exportar/pdf/` |
+| Mis actividades diarias | `/actividades/exportar/excel/` | `/actividades/exportar/pdf/` |
+
+- **Excel (`openpyxl`)**: título, institución, fecha y usuario que lo genera,
+  encabezados con estilo, encabezados fijos al desplazarse, filtros
+  automáticos y ancho de columnas según el contenido. Números y fechas quedan
+  como números y fechas (se pueden sumar y ordenar). Un texto que comienza con
+  `=` se guarda como texto, no como fórmula.
+- **PDF (`ReportLab`)**: encabezado con institución, fecha, usuario y filtros
+  aplicados, logo municipal, título, tabla con estilo (el encabezado se repite
+  en cada página) y pie de página con **«Página X de Y»** (`NumberedCanvas`).
+- La lógica compartida está en `config/exportar.py`; cada app solo arma las
+  columnas y las filas en su `views.py`.
+- Sin sesión redirige al login; sin permiso de lectura del listado responde
+  `403`. Un Administrativo exporta solo los compromisos de su delegación y
+  cada funcionario solo sus propias actividades.
+
 ## Stack Tecnológico
 
 - **Lenguaje:** Python 3.13
 - **Framework:** Django 5.2 LTS (soporte de seguridad hasta abril de 2028)
 - **API:** Django REST Framework 3.18, Simple JWT 5.5 y drf-spectacular 0.30
   (Swagger / ReDoc)
+- **Reportes:** openpyxl 3.1 (Excel) y ReportLab 5.1 (PDF)
 - **Servidor Web:** Nginx + Gunicorn
 - **Base de Datos:** MySQL / MariaDB
 - **Infraestructura:** AWS EC2 (Amazon Linux 2023)
@@ -358,7 +389,8 @@ La suite cubre autenticación, recuperación de contraseña, permisos por perfil
 CRUD de los mantenedores, búsqueda, duplicados, baja lógica, reactivación,
 semáforo, cierre de `/admin/`, las dos transacciones atómicas de la Fase 4
 (incluida la reversión completa cuando falla un paso), las reglas de la
-Evaluación 3 y la API RESTful. En total son **313 pruebas** en 9 archivos:
+Evaluación 3, la API RESTful y la exportación a Excel y PDF. En total son
+**329 pruebas** en 10 archivos:
 
 | Archivo | Pruebas | Cubre |
 |---|---|---|
@@ -371,10 +403,14 @@ Evaluación 3 y la API RESTful. En total son **313 pruebas** en 9 archivos:
 | `sgr_maestrosAPP/test_reglas_y_mantenedores.py` | 27 | Ponderaciones, días computables, Períodos y Cargos |
 | `sgr_maestrosAPP/test_eva3_catalogo_metas.py` | 24 | Tipo de gestión (R5) y metas por cargo (Evaluación 3) |
 | `apiAPP/tests.py` | 47 | API: tokens JWT, bloqueo por intentos, revocación, permisos por perfil, ámbito, validaciones, baja lógica y Swagger (casos CP-API-001 a 035) |
+| `config/test_exportar.py` | 16 | Exportación a Excel y PDF: permisos, contenido, filtros, ámbito por delegación, registros propios, listado vacío, textos con `<` o `=`, varias páginas y «Página X de Y» (casos CP-EXP-001 a 016) |
 
 - Las pruebas usan la base configurada en `.env` (MySQL/MariaDB) y crean una
   base temporal `test_<DB_NAME>`, por eso el usuario necesita el permiso del
   paso 0 de la instalación.
+- **329 pruebas en verde** el 17-11-2026 en un equipo local (Python 3.12,
+  Django 5.2.19, base SQLite temporal), tras agregar la exportación a Excel
+  y PDF.
 - **313 pruebas en verde** el 11-11-2026 en un equipo local (Python 3.12,
   Django 5.2.19, base SQLite temporal). Falta repetirlas sobre MariaDB en el
   servidor después del despliegue.
@@ -413,7 +449,7 @@ Evaluación 3 y la API RESTful. En total son **313 pruebas** en 9 archivos:
 
 | App | Contenido |
 |---|---|
-| `config/` | Configuración, rutas principales y comprobación de versiones (`sgr.W001`/`sgr.W002`) |
+| `config/` | Configuración, rutas principales, comprobación de versiones (`sgr.W001`/`sgr.W002`) y exportación compartida a Excel y PDF (`exportar.py`) |
 | `apiAPP` | API RESTful: serializadores, vistas `@api_view`, permisos, rutas JWT y documentación Swagger/ReDoc (sin modelos propios) |
 | `delegacionesAPP` | Delegaciones y servicios; comando `import_data` (datos iniciales de `data/`) |
 | `tubo_gestionAPP` | Compromisos, asignaciones (T1), avances y adjuntos (T2); ámbito por delegación y validadores de reglas de negocio |
@@ -452,6 +488,7 @@ distribuyen así:
 | **T2: Registro de avance con evidencia** | Orlando Iribarren |
 | Usuarios, Roles y Perfiles (transversal) | Ignacio Figueroa y Orlando Iribarren |
 | API RESTful con JWT y Swagger (`apiAPP`) | Ignacio Figueroa |
+| Exportación de listados a Excel y PDF | Ignacio Figueroa |
 
 ### Cobertura de la pauta
 

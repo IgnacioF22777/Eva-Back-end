@@ -17,11 +17,17 @@ Tubo de Gestión
         </p>
     </div>
 
-    {% if perms.tubo_gestionAPP.add_compromiso %}
-        <a href="{% url 'compromiso_crear' %}" class="btn btn-primary">
-            + Nuevo compromiso
-        </a>
-    {% endif %}
+    <div class="d-flex flex-wrap gap-2">
+        {% url 'exportar_compromisos_pdf' as url_pdf %}
+        {% url 'exportar_compromisos_excel' as url_excel %}
+        {% include '_botones_exportar.html' %}
+
+        {% if perms.tubo_gestionAPP.add_compromiso %}
+            <a href="{% url 'compromiso_crear' %}" class="btn btn-primary">
+                + Nuevo compromiso
+            </a>
+        {% endif %}
+    </div>
 </div>
 
 {% include 'seguridad/_mensajes.html' %}

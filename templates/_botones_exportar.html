@@ -1,0 +1,19 @@
+{% comment %}
+Botones "Exportar a PDF" y "Exportar a Excel" de los listados.
+Uso:
+    {% url 'app:exportar_x_pdf' as url_pdf %}
+    {% url 'app:exportar_x_excel' as url_excel %}
+    {% include '_botones_exportar.html' %}
+Los enlaces conservan los filtros actuales (búsqueda, estado, etc.), así el
+archivo contiene lo mismo que se ve en pantalla.
+{% endcomment %}
+<a href="{{ url_pdf }}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}"
+   class="btn btn-secondary"
+   title="Descargar el listado filtrado en PDF">
+    Exportar a PDF
+</a>
+<a href="{{ url_excel }}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}"
+   class="btn btn-success"
+   title="Descargar el listado filtrado en Excel">
+    Exportar a Excel
+</a>
