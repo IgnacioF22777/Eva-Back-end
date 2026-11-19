@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ titulo }} - SGR{% endblock %}
+
+{% block header %}
+{{ titulo }}
+{% endblock %}
+
+{% block content %}
+
+{% include 'seguridad/_mensajes.html' %}
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+
+        <div class="alert alert-light border mb-4">
+            <strong>{{ reporte.get_tipo_display }}</strong> en {{ reporte.ubicacion }}
+            ({{ reporte.delegacion.nombre }}) —
+            {{ reporte.descripcion|truncatechars:120 }}
+        </div>
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">{{ titulo }}</h5>
+            </div>
+
+            <div class="card-body p-4">
+                <p class="text-muted small">
+                    Solo se ofrecen zonas y contactos activos de la delegación del reporte.
+                    La operación es atómica: si falla una validación, no se guarda nada.
+                </p>
+
+                <form method="POST" novalidate>
+                    {% csrf_token %}
+
+                    {% for campo in form %}
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold" for="{{ campo.id_for_label }}">
+                                {{ campo.label }}
+                                {% if campo.field.required %}<span class="text-danger">*</span>{% endif %}
+                            </label>
+                            {{ campo }}
+                            {% for error in campo.errors %}
+                                <div class="text-danger small mt-1">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    {% endfor %}
+
+                    <div class="d-flex flex-wrap gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                        <a href="{% url 'reportes:reporte_detalle' reporte.pk %}" class="btn btn-outline-secondary">Cancelar</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}

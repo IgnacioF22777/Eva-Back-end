@@ -238,6 +238,10 @@ protegida con **JWT** y documentada con **Swagger / ReDoc**
 | Catálogo de actividades | `/api/catalogo/` | `/api/catalogo/<id>/` | `/api/catalogo/<id>/reactivar/` |
 | Períodos | `/api/periodos/` | `/api/periodos/<id>/` | — |
 | Metas | `/api/metas/` | `/api/metas/<id>/` | `/api/metas/<id>/reactivar/` |
+| Zonas de riesgo | `/api/zonas-riesgo/` | `/api/zonas-riesgo/<id>/` | `/api/zonas-riesgo/<id>/reactivar/` |
+| Contactos de emergencia | `/api/contactos-emergencia/` | `/api/contactos-emergencia/<id>/` | `/api/contactos-emergencia/<id>/reactivar/` |
+| Reportes ciudadanos | `/api/reportes/` | `/api/reportes/<id>/` | `/api/reportes/<id>/reactivar/` |
+| Derivaciones (transacción) | `/api/derivaciones/` (GET historial, POST derivar) | `/api/derivaciones/<id>/` (PUT modificar, DELETE anular) | `POST /api/reportes/<id>/resolver/` |
 
 Los listados aceptan filtros en la URL: `?estado=activos|inactivos|todos`
 (por defecto `activos`), `?q=texto` para buscar, y según el recurso
@@ -266,6 +270,37 @@ La API no tiene reglas propias: aplica las mismas que la aplicación web.
 - **Reglas de negocio** que impiden una operación válida (ej. dar de baja una
   delegación con servicios activos o modificar un período cerrado) responden
   `409` con el motivo.
+
+## Emergencias territoriales y reportes ciudadanos
+
+Las apps `emergenciasTerritorialesAPP` y `reportesCiudadanosAPP` tienen
+interfaz web (menú **Emergencias**) y API propia:
+
+| Módulo | Web | API |
+|---|---|---|
+| Mantenedor 1: Zonas de riesgo | `/emergencias/zonas/` | `/api/zonas-riesgo/` |
+| Mantenedor 2: Contactos de emergencia | `/emergencias/contactos/` | `/api/contactos-emergencia/` |
+| Reportes ciudadanos | `/reportes/` | `/api/reportes/` |
+| **Transacción: derivación del reporte** | `/reportes/<id>/` (derivar, modificar, anular, resolver) | `/api/derivaciones/` |
+
+- **Transacción atómica** (`reportesCiudadanosAPP/transaccion.py`, la usan la
+  web y la API): bloquea el reporte con `select_for_update()`, vuelve a
+  comprobar el ámbito, valida que la zona y el contacto estén activos y sean
+  de la delegación del reporte, deja la derivación anterior como historial y
+  marca el reporte como derivado. Si un paso falla, se revierte todo.
+- **Datos sensibles por perfil**: en la API, teléfono y correo de los
+  contactos, coordenadas de las zonas, datos del vecino y nombre del
+  funcionario que derivó solo los recibe el **Administrador**; para
+  Supervisor y Administrativo esos campos no se envían.
+- **Baja lógica e integridad**: los registros tienen `activo` y las
+  relaciones usan `PROTECT` (antes `CASCADE`): borrar una delegación ya no
+  arrastra zonas, alertas, contactos ni reportes.
+- **Ámbito por delegación**: Supervisor y Administrativo solo ven y operan
+  los registros de su delegación (`403` fuera de ámbito).
+- **Perfiles**: el Supervisor administra zonas, contactos y reportes y
+  ejecuta la transacción; el Administrativo consulta y registra reportes.
+- Tras desplegar se debe ejecutar `python manage.py migrate` y
+  `python manage.py crear_roles` para crear los permisos nuevos.
 
 ## Exportación a Excel y PDF
 
@@ -489,6 +524,8 @@ distribuyen así:
 | Usuarios, Roles y Perfiles (transversal) | Ignacio Figueroa y Orlando Iribarren |
 | API RESTful con JWT y Swagger (`apiAPP`) | Ignacio Figueroa |
 | Exportación de listados a Excel y PDF | Ignacio Figueroa |
+| Zonas de riesgo y Contactos de emergencia (`emergenciasTerritorialesAPP`) | Orlando Iribarren |
+| **Derivación de reportes ciudadanos** (`reportesCiudadanosAPP`) | Orlando Iribarren |
 
 ### Cobertura de la pauta
 

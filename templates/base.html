@@ -149,6 +149,59 @@
 
                     {% endif %}
 
+                    <!-- EMERGENCIAS Y REPORTES CIUDADANOS: SEGÚN PERMISOS -->
+                    {% if perms.emergenciasTerritorialesAPP.view_zonariesgo or perms.emergenciasTerritorialesAPP.view_contactoemergencia or perms.reportesCiudadanosAPP.view_reporteciudadano %}
+
+                        <li class="nav-item dropdown">
+
+                            <a class="nav-link dropdown-toggle"
+                               href="#"
+                               id="menuEmergencias"
+                               role="button"
+                               data-bs-toggle="dropdown"
+                               aria-expanded="false">
+                                Emergencias
+                            </a>
+
+                            <ul class="dropdown-menu dropdown-menu-end"
+                                aria-labelledby="menuEmergencias">
+
+                                {% if perms.emergenciasTerritorialesAPP.view_zonariesgo %}
+                                    <li>
+                                        <a class="dropdown-item"
+                                           href="{% url 'emergencias:zona_lista' %}">
+                                            Zonas de Riesgo
+                                        </a>
+                                    </li>
+                                {% endif %}
+
+                                {% if perms.emergenciasTerritorialesAPP.view_contactoemergencia %}
+                                    <li>
+                                        <a class="dropdown-item"
+                                           href="{% url 'emergencias:contacto_lista' %}">
+                                            Contactos de Emergencia
+                                        </a>
+                                    </li>
+                                {% endif %}
+
+                                {% if perms.reportesCiudadanosAPP.view_reporteciudadano %}
+                                    <li>
+                                        <hr class="dropdown-divider">
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item"
+                                           href="{% url 'reportes:reporte_lista' %}">
+                                            Reportes Ciudadanos
+                                        </a>
+                                    </li>
+                                {% endif %}
+
+                            </ul>
+
+                        </li>
+
+                    {% endif %}
+
                     <!-- SEGURIDAD: SEGÚN PERMISOS DEL ROL -->
                     {% if perms.auth.view_user or perms.auth.view_group or perms.seguridadAPP.view_cargo %}
 

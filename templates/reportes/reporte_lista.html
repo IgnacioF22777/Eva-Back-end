@@ -1,0 +1,193 @@
+{% extends 'base.html' %}
+
+{% block title %}Reportes ciudadanos - SGR{% endblock %}
+
+{% block header %}
+Reportes Ciudadanos
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+    <div>
+        <h2 class="h4 mb-1">Reportes Ciudadanos y Derivación</h2>
+        <p class="text-muted mb-0">
+            Registrar reportes de vecinos, derivarlos a una zona y un contacto
+            de emergencia, y resolverlos.
+        </p>
+    </div>
+
+    {% if perms.reportesCiudadanosAPP.add_reporteciudadano %}
+        <a href="{% url 'reportes:reporte_crear' %}" class="btn btn-primary">
+            + Nuevo reporte
+        </a>
+    {% endif %}
+</div>
+
+{% include 'seguridad/_mensajes.html' %}
+
+<div class="row g-3 mb-4">
+    <div class="col-sm-4 col-lg-2">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <p class="text-muted text-uppercase small mb-1">Pendientes</p>
+                <p class="display-6 fw-bold mb-0 text-danger">{{ total_pendientes }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-4 col-lg-2">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <p class="text-muted text-uppercase small mb-1">Derivados</p>
+                <p class="display-6 fw-bold mb-0 text-warning">{{ total_derivados }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-4 col-lg-2">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <p class="text-muted text-uppercase small mb-1">Resueltos</p>
+                <p class="display-6 fw-bold mb-0 text-success">{{ total_resueltos }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <form method="GET" class="row g-2 align-items-end">
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold" for="q">Buscar</label>
+                        <input type="search" id="q" name="q" value="{{ busqueda }}"
+                               class="form-control" placeholder="Descripción, ubicación o zona">
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label small fw-semibold" for="situacion">Situación</label>
+                        <select id="situacion" name="situacion" class="form-select">
+                            <option value="">Todas</option>
+                            {% for valor, etiqueta in situaciones %}
+                                <option value="{{ valor }}" {% if situacion == valor %}selected{% endif %}>{{ etiqueta }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label small fw-semibold" for="tipo">Tipo</label>
+                        <select id="tipo" name="tipo" class="form-select">
+                            <option value="">Todos</option>
+                            {% for valor, etiqueta in tipos %}
+                                <option value="{{ valor }}" {% if tipo == valor %}selected{% endif %}>{{ etiqueta }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-2 d-grid">
+                        <input type="hidden" name="estado" value="{{ estado }}">
+                        <button type="submit" class="btn btn-primary">Buscar</button>
+                    </div>
+                </form>
+
+                <div class="small mt-2">
+                    Mostrar:
+                    <a href="?estado=activos" class="{% if estado == 'activos' %}fw-bold{% endif %}">activos</a> ·
+                    <a href="?estado=inactivos" class="{% if estado == 'inactivos' %}fw-bold{% endif %}">dados de baja</a> ·
+                    <a href="?estado=todos" class="{% if estado == 'todos' %}fw-bold{% endif %}">todos</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">Listado de reportes</h5>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-striped table-hover align-middle mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th>N.°</th>
+                    <th>Reporte</th>
+                    <th>Delegación</th>
+                    <th>Prioridad</th>
+                    <th>Situación</th>
+                    <th>Derivado a</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for reporte in reportes %}
+                    <tr>
+                        <td>{{ reporte.pk }}</td>
+
+                        <td>
+                            <span class="fw-semibold">{{ reporte.get_tipo_display }}</span>
+                            <div class="small text-muted">{{ reporte.ubicacion }}</div>
+                            <div class="small">{{ reporte.descripcion|truncatechars:70 }}</div>
+                        </td>
+
+                        <td>{{ reporte.delegacion.nombre }}</td>
+
+                        <td>{{ reporte.get_prioridad_display }}</td>
+
+                        <td>
+                            {% if reporte.estado == 'resuelto' %}
+                                <span class="badge bg-success">{{ reporte.get_estado_display }}</span>
+                            {% elif reporte.estado == 'derivado' %}
+                                <span class="badge bg-warning text-dark">{{ reporte.get_estado_display }}</span>
+                            {% else %}
+                                <span class="badge bg-danger">{{ reporte.get_estado_display }}</span>
+                            {% endif %}
+                            {% if not reporte.activo %}
+                                <span class="badge bg-secondary">Dado de baja</span>
+                            {% endif %}
+                        </td>
+
+                        <td class="small">
+                            {% if reporte.zona %}
+                                {{ reporte.zona.nombre }}
+                                <div class="text-muted">{{ reporte.contacto.nombre }}</div>
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            <div class="d-flex flex-wrap gap-2">
+                                <a href="{% url 'reportes:reporte_detalle' reporte.pk %}"
+                                   class="btn btn-outline-primary btn-sm">Ver</a>
+
+                                {% if perms.reportesCiudadanosAPP.delete_reporteciudadano %}
+                                    <form method="POST"
+                                          action="{% url 'reportes:reporte_cambiar_estado' reporte.pk %}"
+                                          onsubmit="return confirm('{% if reporte.activo %}¿Dar de baja este reporte? Se conservará el registro.{% else %}¿Reactivar este reporte?{% endif %}');">
+                                        {% csrf_token %}
+                                        {% if reporte.activo %}
+                                            <button type="submit" class="btn btn-outline-danger btn-sm">Dar de baja</button>
+                                        {% else %}
+                                            <button type="submit" class="btn btn-outline-success btn-sm">Reactivar</button>
+                                        {% endif %}
+                                    </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-5">
+                            <h5>No se encontraron reportes</h5>
+                            <p class="mb-0">Ajuste los filtros o registre un nuevo reporte.</p>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

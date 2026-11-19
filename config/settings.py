@@ -273,5 +273,9 @@ SPECTACULAR_SETTINGS = {
         {"name": "Catálogo de actividades", "description": "Actividades de Ejecución o Preparatoria (R5)."},
         {"name": "Períodos", "description": "Períodos de medición."},
         {"name": "Metas", "description": "Metas por período y cargo."},
+        {"name": "Zonas de riesgo", "description": "Mantenedor de zonas de riesgo por delegación."},
+        {"name": "Contactos de emergencia", "description": "Mantenedor de contactos; teléfono y correo solo para el Administrador."},
+        {"name": "Reportes ciudadanos", "description": "Reportes de vecinos; sus datos personales solo para el Administrador."},
+        {"name": "Derivaciones (transacción)", "description": "Transacción: derivar, modificar, anular y resolver reportes."},
     ],
 }

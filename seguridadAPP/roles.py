@@ -37,6 +37,12 @@ VER_OPERACION = [
 
     # EVA 3: actividades diarias.
     "actividadesAPP.view_registroactividad",
+
+    # Back End: emergencias territoriales y reportes ciudadanos.
+    "emergenciasTerritorialesAPP.view_zonariesgo",
+    "emergenciasTerritorialesAPP.view_contactoemergencia",
+    "reportesCiudadanosAPP.view_reporteciudadano",
+    "reportesCiudadanosAPP.view_derivacionreporte",
 ]
 
 
@@ -77,6 +83,24 @@ ROLES = {
         "actividadesAPP.add_registroactividad",
         "actividadesAPP.change_registroactividad",
         "actividadesAPP.delete_registroactividad",
+
+        # Back End: mantenedores de emergencias de su delegación.
+        "emergenciasTerritorialesAPP.add_zonariesgo",
+        "emergenciasTerritorialesAPP.change_zonariesgo",
+        "emergenciasTerritorialesAPP.delete_zonariesgo",
+
+        "emergenciasTerritorialesAPP.add_contactoemergencia",
+        "emergenciasTerritorialesAPP.change_contactoemergencia",
+        "emergenciasTerritorialesAPP.delete_contactoemergencia",
+
+        # Back End: reportes ciudadanos y transacción de derivación.
+        "reportesCiudadanosAPP.add_reporteciudadano",
+        "reportesCiudadanosAPP.change_reporteciudadano",
+        "reportesCiudadanosAPP.delete_reporteciudadano",
+
+        "reportesCiudadanosAPP.add_derivacionreporte",
+        "reportesCiudadanosAPP.change_derivacionreporte",
+        "reportesCiudadanosAPP.delete_derivacionreporte",
     ],
 
     # Administrativo: consulta, ingreso y edición.
@@ -87,6 +111,9 @@ ROLES = {
         # EVA 3: actividades propias.
         "actividadesAPP.add_registroactividad",
         "actividadesAPP.change_registroactividad",
+
+        # Back End: registra los reportes que informan los vecinos.
+        "reportesCiudadanosAPP.add_reporteciudadano",
     ],
 }
 
