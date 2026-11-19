@@ -20,12 +20,18 @@ Gestión de Metas Municipales
         </p>
     </div>
 
-    {% if perms.sgr_maestrosAPP.add_meta %}
-        <a href="{% url 'sgr_maestros:meta_crear' %}"
-           class="btn btn-primary">
-            + Nueva Meta
-        </a>
-    {% endif %}
+    <div class="d-flex flex-wrap gap-2">
+        {% url 'sgr_maestros:exportar_metas_pdf' as url_pdf %}
+        {% url 'sgr_maestros:exportar_metas_excel' as url_excel %}
+        {% include '_botones_exportar.html' %}
+
+        {% if perms.sgr_maestrosAPP.add_meta %}
+            <a href="{% url 'sgr_maestros:meta_crear' %}"
+               class="btn btn-primary">
+                + Nueva Meta
+            </a>
+        {% endif %}
+    </div>
 
 </div>
 

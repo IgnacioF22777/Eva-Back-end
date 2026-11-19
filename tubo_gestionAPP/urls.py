@@ -17,6 +17,17 @@ urlpatterns = [
         views.compromiso_lista,
         name="compromiso_lista",
     ),
+    # Exportación a Excel y PDF (respeta filtros y ámbito por delegación)
+    path(
+        "compromisos/exportar/excel/",
+        views.exportar_compromisos_excel,
+        name="exportar_compromisos_excel",
+    ),
+    path(
+        "compromisos/exportar/pdf/",
+        views.exportar_compromisos_pdf,
+        name="exportar_compromisos_pdf",
+    ),
     path(
         "compromisos/nuevo/",
         views.compromiso_crear,

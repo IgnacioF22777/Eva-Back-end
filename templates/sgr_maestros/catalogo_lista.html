@@ -17,12 +17,18 @@ Catálogo de Actividades Municipales
         </p>
     </div>
 
-    {% if perms.sgr_maestrosAPP.add_catalogoactividad %}
-        <a href="{% url 'sgr_maestros:catalogo_crear' %}"
-           class="btn btn-primary">
-            + Nueva Actividad
-        </a>
-    {% endif %}
+    <div class="d-flex flex-wrap gap-2">
+        {% url 'sgr_maestros:exportar_catalogo_pdf' as url_pdf %}
+        {% url 'sgr_maestros:exportar_catalogo_excel' as url_excel %}
+        {% include '_botones_exportar.html' %}
+
+        {% if perms.sgr_maestrosAPP.add_catalogoactividad %}
+            <a href="{% url 'sgr_maestros:catalogo_crear' %}"
+               class="btn btn-primary">
+                + Nueva Actividad
+            </a>
+        {% endif %}
+    </div>
 </div>
 
 {% if messages %}

@@ -7,6 +7,7 @@ from django.db.models import Count, DecimalField, OuterRef, Q, Subquery, Sum
 from django.db.models.functions import Coalesce
 from django.views.decorators.http import require_POST
 
+from config import exportar
 from seguridadAPP.models import Cargo
 
 from .models import (
@@ -28,9 +29,8 @@ from .forms import (
 # CRUD 1: CATÁLOGO DE ACTIVIDADES
 # ============================================================
 
-@login_required
-@permission_required("sgr_maestrosAPP.view_catalogoactividad", raise_exception=True)
-def catalogo_lista(request):
+def filtrar_catalogo(request):
+    """Filtros del listado del catálogo (también los usa la exportación)."""
     busqueda = request.GET.get("q", "").strip()
     estado = request.GET.get("estado", "activos")
     tipo = request.GET.get("tipo", "")
@@ -56,6 +56,14 @@ def catalogo_lista(request):
         actividades = actividades.filter(tipo_gestion=tipo)
     else:
         tipo = ""
+
+    return actividades, busqueda, estado, tipo
+
+
+@login_required
+@permission_required("sgr_maestrosAPP.view_catalogoactividad", raise_exception=True)
+def catalogo_lista(request):
+    actividades, busqueda, estado, tipo = filtrar_catalogo(request)
 
     return render(
         request,
@@ -170,9 +178,8 @@ def catalogo_cambiar_estado(request, pk):
 # CRUD 2: GESTIÓN DE PERÍODOS
 # ============================================================
 
-@login_required
-@permission_required("sgr_maestrosAPP.view_periodo", raise_exception=True)
-def periodo_lista(request):
+def filtrar_periodos(request):
+    """Filtros del listado de períodos (también los usa la exportación)."""
     busqueda = request.GET.get("q", "").strip()
     estado = request.GET.get("estado", "todos")
 
@@ -204,6 +211,14 @@ def periodo_lista(request):
         periodos = periodos.filter(cerrado=False)
     elif estado == "cerrados":
         periodos = periodos.filter(cerrado=True)
+
+    return periodos, busqueda, estado
+
+
+@login_required
+@permission_required("sgr_maestrosAPP.view_periodo", raise_exception=True)
+def periodo_lista(request):
+    periodos, busqueda, estado = filtrar_periodos(request)
 
     return render(
         request,
@@ -525,9 +540,8 @@ def detalle_periodo_eliminar(request, pk):
 # CRUD 4: GESTIÓN DE METAS
 # ============================================================
 
-@login_required
-@permission_required("sgr_maestrosAPP.view_meta", raise_exception=True)
-def meta_lista(request):
+def filtrar_metas(request):
+    """Filtros del listado de metas (también los usa la exportación)."""
     busqueda = request.GET.get("q", "").strip()
     estado = request.GET.get("estado", "activos")
 
@@ -560,6 +574,14 @@ def meta_lista(request):
         metas = metas.filter(activo=True)
     elif estado == "inactivos":
         metas = metas.filter(activo=False)
+
+    return metas, busqueda, estado, cargo_id
+
+
+@login_required
+@permission_required("sgr_maestrosAPP.view_meta", raise_exception=True)
+def meta_lista(request):
+    metas, busqueda, estado, cargo_id = filtrar_metas(request)
 
     return render(
         request,
@@ -709,3 +731,216 @@ def meta_cambiar_estado(request, pk):
     )
 
     return redirect("sgr_maestros:meta_lista")
+
+
+# ============================================================
+# EXPORTACIÓN A EXCEL Y PDF
+# ============================================================
+# Cada exportación usa los mismos filtros y permisos que su listado, de
+# modo que el archivo contiene exactamente lo que el usuario ve en pantalla.
+
+ETIQUETAS_ESTADO = {
+    "activos": "Activos",
+    "inactivos": "Inactivos",
+    "todos": "Todos",
+    "abiertos": "Abiertos",
+    "cerrados": "Cerrados",
+}
+
+
+def describir_filtros(busqueda, estado, **otros):
+    """Texto con los filtros aplicados, para el encabezado del PDF."""
+    partes = []
+    if busqueda:
+        partes.append(f'búsqueda "{busqueda}"')
+    partes.append(f"estado: {ETIQUETAS_ESTADO.get(estado, 'Todos')}")
+    for nombre, valor in otros.items():
+        if valor:
+            partes.append(f"{nombre}: {valor}")
+    return "; ".join(partes)
+
+
+# --- CATÁLOGO DE ACTIVIDADES ---
+
+ENCABEZADOS_CATALOGO = [
+    "Código", "Nombre", "Área", "Tipo de gestión", "Descripción", "Estado",
+]
+
+
+def datos_catalogo(request):
+    actividades, busqueda, estado, tipo = filtrar_catalogo(request)
+    filas = [
+        [
+            actividad.codigo,
+            actividad.nombre,
+            actividad.area,
+            actividad.get_tipo_gestion_display(),
+            actividad.descripcion,
+            exportar.activo_inactivo(actividad.activo),
+        ]
+        for actividad in actividades
+    ]
+    tipo_texto = dict(CatalogoActividad.TIPO_GESTION_OPCIONES).get(tipo, "")
+    return filas, describir_filtros(busqueda, estado, tipo=tipo_texto)
+
+
+@login_required
+@permission_required("sgr_maestrosAPP.view_catalogoactividad", raise_exception=True)
+def exportar_catalogo_excel(request):
+    filas, _ = datos_catalogo(request)
+    return exportar.exportar_excel(
+        "Catálogo de Actividades",
+        ENCABEZADOS_CATALOGO,
+        filas,
+        "catalogo_actividades",
+        usuario=request.user,
+    )
+
+
+@login_required
+@permission_required("sgr_maestrosAPP.view_catalogoactividad", raise_exception=True)
+def exportar_catalogo_pdf(request):
+    filas, filtros = datos_catalogo(request)
+    return exportar.exportar_pdf(
+        "Catálogo de Actividades",
+        ENCABEZADOS_CATALOGO,
+        filas,
+        "catalogo_actividades",
+        usuario=request.user,
+        anchos=[1, 2, 1.3, 1.5, 3, 0.9],
+        horizontal=True,
+        filtros=filtros,
+    )
+
+
+# --- PERÍODOS DE EVALUACIÓN ---
+
+ENCABEZADOS_PERIODOS = [
+    "Código", "Nombre", "Fecha de inicio", "Fecha de término",
+    "Detalles", "Metas", "Ponderación de metas", "Estado",
+]
+
+
+def texto_ponderacion(periodo):
+    """Igual que el listado: la suma por cargo, o el total si no hay cargos."""
+    grupos = periodo.resumen_ponderaciones_por_cargo()
+    if len(grupos) > 1 or (grupos and not grupos[0]["general"]):
+        return "; ".join(
+            f"{grupo['cargo']}: {exportar.a_texto(grupo['suma'])}%"
+            + ("" if grupo["completo"] else " de 100%")
+            for grupo in grupos
+        )
+    suma = exportar.a_texto(periodo.suma_ponderaciones)
+    if periodo.suma_ponderaciones == 100:
+        return f"{suma}%"
+    return f"{suma}% de 100%"
+
+
+def datos_periodos(request):
+    periodos, busqueda, estado = filtrar_periodos(request)
+    filas = [
+        [
+            periodo.codigo,
+            periodo.nombre,
+            periodo.fecha_inicio,
+            periodo.fecha_fin,
+            periodo.total_detalles,
+            periodo.total_metas,
+            texto_ponderacion(periodo),
+            "Cerrado" if periodo.cerrado else "Abierto",
+        ]
+        for periodo in periodos
+    ]
+    return filas, describir_filtros(busqueda, estado)
+
+
+@login_required
+@permission_required("sgr_maestrosAPP.view_periodo", raise_exception=True)
+def exportar_periodos_excel(request):
+    filas, _ = datos_periodos(request)
+    return exportar.exportar_excel(
+        "Períodos de Evaluación",
+        ENCABEZADOS_PERIODOS,
+        filas,
+        "periodos_evaluacion",
+        usuario=request.user,
+    )
+
+
+@login_required
+@permission_required("sgr_maestrosAPP.view_periodo", raise_exception=True)
+def exportar_periodos_pdf(request):
+    filas, filtros = datos_periodos(request)
+    return exportar.exportar_pdf(
+        "Períodos de Evaluación",
+        ENCABEZADOS_PERIODOS,
+        filas,
+        "periodos_evaluacion",
+        usuario=request.user,
+        anchos=[1, 2, 1.1, 1.1, 0.8, 0.7, 2.6, 0.9],
+        horizontal=True,
+        filtros=filtros,
+    )
+
+
+# --- METAS ---
+
+ENCABEZADOS_METAS = [
+    "Código", "Nombre", "Período", "Cargo", "Actividad",
+    "Valor objetivo", "Ponderación (%)", "Estado",
+]
+
+
+def datos_metas(request):
+    metas, busqueda, estado, cargo_id = filtrar_metas(request)
+    filas = [
+        [
+            meta.codigo,
+            meta.nombre,
+            meta.periodo.codigo,
+            meta.cargo.nombre if meta.cargo else "Sin cargo (general)",
+            meta.actividad.nombre,
+            meta.valor_objetivo,
+            meta.ponderacion,
+            exportar.activo_inactivo(meta.activo),
+        ]
+        for meta in metas
+    ]
+
+    cargo_texto = ""
+    if cargo_id == "sin":
+        cargo_texto = "Sin cargo (general)"
+    elif cargo_id:
+        cargo = Cargo.objects.filter(pk=cargo_id).first()
+        cargo_texto = cargo.nombre if cargo else ""
+
+    return filas, describir_filtros(busqueda, estado, cargo=cargo_texto)
+
+
+@login_required
+@permission_required("sgr_maestrosAPP.view_meta", raise_exception=True)
+def exportar_metas_excel(request):
+    filas, _ = datos_metas(request)
+    return exportar.exportar_excel(
+        "Metas Municipales",
+        ENCABEZADOS_METAS,
+        filas,
+        "metas",
+        usuario=request.user,
+    )
+
+
+@login_required
+@permission_required("sgr_maestrosAPP.view_meta", raise_exception=True)
+def exportar_metas_pdf(request):
+    filas, filtros = datos_metas(request)
+    return exportar.exportar_pdf(
+        "Metas Municipales",
+        ENCABEZADOS_METAS,
+        filas,
+        "metas",
+        usuario=request.user,
+        anchos=[1, 2.2, 1, 1.6, 2, 1, 1, 0.9],
+        horizontal=True,
+        filtros=filtros,
+    )

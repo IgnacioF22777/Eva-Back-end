@@ -17,12 +17,18 @@ Registro Diario de Actividades
         </p>
     </div>
 
-    {% if perms.actividadesAPP.add_registroactividad %}
-    <a href="{% url 'actividades:crear' %}"
-       class="btn btn-primary">
-        + Nueva Actividad
-    </a>
-    {% endif %}
+    <div class="d-flex flex-wrap gap-2">
+        {% url 'actividades:exportar_pdf' as url_pdf %}
+        {% url 'actividades:exportar_excel' as url_excel %}
+        {% include '_botones_exportar.html' %}
+
+        {% if perms.actividadesAPP.add_registroactividad %}
+        <a href="{% url 'actividades:crear' %}"
+           class="btn btn-primary">
+            + Nueva Actividad
+        </a>
+        {% endif %}
+    </div>
 </div>
 
 <!-- MENSAJES DEL SISTEMA -->
