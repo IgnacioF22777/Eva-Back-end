@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+
+{% block title %}Campañas de regalos - SGR{% endblock %}
+
+{% block header %}
+Campañas de regalos
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="h4 mb-1">Campañas</h2>
+        <p class="text-muted mb-0">
+            Navidad, Día del Niño y Aniversario. Las delegaciones inscriben
+            niños solo mientras la campaña está vigente y dentro de sus fechas.
+        </p>
+    </div>
+    <a href="{% url 'beneficios:campana_crear' %}" class="btn btn-primary">+ Nueva campaña</a>
+</div>
+
+{% include 'seguridad/_mensajes.html' %}
+
+<div class="card shadow-sm border-0">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Campaña</th>
+                        <th>Inscripciones</th>
+                        <th>Edad máxima</th>
+                        <th>Inscritos vigentes</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for campana in campanas %}
+                    <tr>
+                        <td><strong>{{ campana }}</strong></td>
+                        <td>{{ campana.fecha_inicio|date:"d-m-Y" }} al {{ campana.fecha_fin|date:"d-m-Y" }}</td>
+                        <td>{{ campana.edad_maxima }} años</td>
+                        <td>{{ campana.total }}</td>
+                        <td>
+                            {% if campana.inscripciones_abiertas %}
+                                <span class="badge bg-success">Abierta</span>
+                            {% elif campana.activo %}
+                                <span class="badge bg-warning text-dark">Fuera de fecha</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Cerrada</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="d-flex flex-wrap gap-2">
+                                <a href="{% url 'beneficios:campana_editar' campana.pk %}"
+                                   class="btn btn-warning btn-sm">Editar</a>
+                                <form method="POST" action="{% url 'beneficios:campana_cambiar_estado' campana.pk %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-outline-secondary btn-sm">
+                                        {% if campana.activo %}Cerrar{% else %}Reabrir{% endif %}
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-5">
+                            <h5>No hay campañas</h5>
+                            <p class="mb-0">Cree la primera campaña de regalos.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -235,6 +235,55 @@
                                     </li>
                                 {% endif %}
 
+                                {% if perms.matrizAPP.change_configuracionmatriz %}
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <a class="dropdown-item"
+                                           href="{% url 'matriz:configuracion' %}">
+                                            Configuración de porcentajes
+                                        </a>
+                                    </li>
+                                {% endif %}
+
+                            </ul>
+
+                        </li>
+
+                    {% endif %}
+
+                    <!-- REGALOS PARA NIÑOS (EVA 3): CAMPAÑAS E INSCRIPCIONES -->
+                    {% if perms.beneficiosAPP.view_ninoinscrito %}
+
+                        <li class="nav-item dropdown">
+
+                            <a class="nav-link dropdown-toggle"
+                               href="#"
+                               id="menuRegalos"
+                               role="button"
+                               data-bs-toggle="dropdown"
+                               aria-expanded="false">
+                                Regalos
+                            </a>
+
+                            <ul class="dropdown-menu dropdown-menu-end"
+                                aria-labelledby="menuRegalos">
+
+                                <li>
+                                    <a class="dropdown-item"
+                                       href="{% url 'beneficios:nino_lista' %}">
+                                        Niños inscritos
+                                    </a>
+                                </li>
+
+                                {% if perms.beneficiosAPP.add_campanaregalo %}
+                                    <li>
+                                        <a class="dropdown-item"
+                                           href="{% url 'beneficios:campana_lista' %}">
+                                            Campañas
+                                        </a>
+                                    </li>
+                                {% endif %}
+
                             </ul>
 
                         </li>

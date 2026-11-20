@@ -98,8 +98,8 @@
 
                         <small class="text-muted">
                             Base {{ matriz.puntaje_total|floatformat:2 }}
-                            · {{ matriz.felicitaciones }} felicitación(es) (+10 %)
-                            · {{ matriz.reclamos }} reclamo(s) (−20 %)
+                            · {{ matriz.felicitaciones }} felicitación(es) (+{{ config_matriz.bono_felicitacion_pct }} %)
+                            · {{ matriz.reclamos }} reclamo(s) (−{{ config_matriz.descuento_reclamo_pct }} %)
                             · {{ matriz.dias_ausencia }} día(s) de ausencia
                         </small>
 

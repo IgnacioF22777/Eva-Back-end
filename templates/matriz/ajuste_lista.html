@@ -12,8 +12,8 @@ Felicitaciones y reclamos
     <div>
         <h2 class="h4 mb-1">Felicitaciones y reclamos</h2>
         <p class="text-muted mb-0">
-            Felicitación +10%, reclamo −20%. Solo con respaldo escrito y
-            registrados por el delegado. El cumplimiento total nunca supera 120%.
+            Felicitación +{{ config_matriz.bono_felicitacion_pct }}%, reclamo −{{ config_matriz.descuento_reclamo_pct }}%. Solo con respaldo escrito y
+            registrados por el delegado. {% if config_matriz.limitar_felicitaciones_al_tope %}El cumplimiento total nunca supera 120%.{% else %}Las felicitaciones pueden superar el tope de 120%.{% endif %}
         </p>
     </div>
 
@@ -58,9 +58,9 @@ Felicitaciones y reclamos
                         <td>{{ ajuste.fecha|date:"d-m-Y" }}</td>
                         <td>
                             {% if ajuste.es_felicitacion %}
-                                <span class="badge bg-success">Felicitación +10%</span>
+                                <span class="badge bg-success">Felicitación +{{ config_matriz.bono_felicitacion_pct }}%</span>
                             {% else %}
-                                <span class="badge bg-danger">Reclamo −20%</span>
+                                <span class="badge bg-danger">Reclamo −{{ config_matriz.descuento_reclamo_pct }}%</span>
                             {% endif %}
                         </td>
                         <td><strong>{{ ajuste.funcionario.get_full_name|default:ajuste.funcionario.username }}</strong></td>
