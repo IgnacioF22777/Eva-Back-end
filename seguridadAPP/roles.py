@@ -21,6 +21,7 @@ APPS_CON_PERMISOS = [
     "emergenciasTerritorialesAPP",
     "reportesCiudadanosAPP",
     "organizacionesAPP",
+    "oficinaPartesAPP",
     "actividadesAPP",
 ]
 
@@ -37,6 +38,7 @@ VER_OPERACION = [
     "sgr_maestrosAPP.view_detalleperiodo",
     "sgr_maestrosAPP.view_meta",
     "organizacionesAPP.view_organizacioncomunitaria",
+    "oficinaPartesAPP.view_cartaoficinapartes",
 
     # EVA 3: actividades diarias.
     "actividadesAPP.view_registroactividad",
@@ -53,6 +55,9 @@ ROLES = {
         "organizacionesAPP.add_organizacioncomunitaria",
         "organizacionesAPP.change_organizacioncomunitaria",
         "organizacionesAPP.delete_organizacioncomunitaria",
+        "oficinaPartesAPP.add_cartaoficinapartes",
+        "oficinaPartesAPP.change_cartaoficinapartes",
+        "oficinaPartesAPP.delete_cartaoficinapartes",
 
         "delegacionesAPP.add_delegacion",
         "delegacionesAPP.change_delegacion",
@@ -103,6 +108,10 @@ ROLES = {
         "matrizAPP.view_ajustedesempeno",
         "tubo_gestionAPP.add_compromiso",
         "tubo_gestionAPP.add_registroavance",
+        # Descriptor: el Apoyo Administrativo registra las solicitudes que
+        # llegan por carta y Oficina de Partes.
+        "oficinaPartesAPP.add_cartaoficinapartes",
+        "oficinaPartesAPP.change_cartaoficinapartes",
 
         # EVA 3: actividades propias.
         "actividadesAPP.add_registroactividad",
