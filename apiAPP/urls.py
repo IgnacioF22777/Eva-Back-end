@@ -101,6 +101,9 @@ urlpatterns = [
         name="api_meta_reactivar",
     ),
 
+    # Transacción T2: registro de avance de compromisos
+    path("", include("tubo_gestionAPP.api_urls")),
+
     # Emergencias territoriales y reportes ciudadanos: las rutas viven en
     # sus propias apps (mantenedores y transacción de derivación).
     path("", include("emergenciasTerritorialesAPP.api_urls")),

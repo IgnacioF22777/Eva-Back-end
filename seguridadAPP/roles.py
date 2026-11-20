@@ -66,6 +66,11 @@ ROLES = {
         "tubo_gestionAPP.change_compromiso",
         "tubo_gestionAPP.delete_compromiso",
 
+        # T2: el Supervisor corrige o anula el último avance (no lo
+        # registra: eso lo hace el Administrativo).
+        "tubo_gestionAPP.change_registroavance",
+        "tubo_gestionAPP.delete_registroavance",
+
         "sgr_maestrosAPP.add_catalogoactividad",
         "sgr_maestrosAPP.change_catalogoactividad",
 

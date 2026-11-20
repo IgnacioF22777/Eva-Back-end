@@ -24,6 +24,7 @@ from .forms import (
     RegistroAvanceForm,
 )
 from .models import AdjuntoAvance, AsignacionCompromiso, Compromiso
+from .transacciones import eliminar_archivos, registrar_avance  # noqa: F401
 
 
 def resumen_semaforo(compromisos):
@@ -48,15 +49,6 @@ def obtener_compromiso(usuario, pk, queryset=None):
     verificar_acceso_compromiso(usuario, compromiso)
 
     return compromiso
-
-
-def eliminar_archivos(storage, nombres):
-    """Borra del disco los archivos de una transacción que se revirtió."""
-    for nombre in nombres:
-        try:
-            storage.delete(nombre)
-        except OSError:
-            pass
 
 
 # ============================================================
@@ -354,79 +346,21 @@ def compromiso_avance(request, pk):
         form = RegistroAvanceForm(request.POST, request.FILES)
 
         if form.is_valid():
-            storage = AdjuntoAvance._meta.get_field("archivo").storage
-            guardados = []
-
+            # La lógica de la transacción está en transacciones.py y la
+            # comparte la API (bloqueo, ámbito, reglas, archivos y
+            # limpieza del disco si se revierte).
             try:
-                with transaction.atomic():
-                    compromiso = Compromiso.objects.select_for_update().get(
-                        pk=pk
-                    )
-
-                    # Con la fila bloqueada se repite el control de
-                    # ámbito: el compromiso pudo reasignarse a otra
-                    # delegación entre la carga de la página y este POST.
-                    verificar_acceso_compromiso(request.user, compromiso)
-
-                    if not compromiso.activo:
-                        raise ValidationError(
-                            "No se puede registrar avance en un compromiso "
-                            "dado de baja."
-                        )
-
-                    if not compromiso.asignaciones.filter(
-                        activo=True
-                    ).exists():
-                        raise ValidationError(
-                            "El compromiso no tiene una asignación vigente. "
-                            "Solicite al Supervisor que lo asigne antes de "
-                            "registrar avances."
-                        )
-
-                    nuevo_porcentaje = form.cleaned_data["porcentaje_avance"]
-
-                    # Con la fila bloqueada, la comparación es confiable:
-                    # ningún otro usuario puede haber subido el
-                    # cumplimiento entre la validación y el guardado.
-                    if nuevo_porcentaje < compromiso.cumplimiento:
-                        raise ValidationError(
-                            "El avance no puede ser menor al cumplimiento "
-                            f"actual ({compromiso.cumplimiento}%). Si hubo "
-                            "un error, registre la corrección con una "
-                            "observación que la explique."
-                        )
-
-                    registro = form.save(commit=False)
-                    registro.compromiso = compromiso
-                    registro.usuario_registro = request.user
-                    registro.save()
-
-                    for archivo in form.cleaned_data["adjuntos"]:
-                        adjunto = AdjuntoAvance(
-                            registro=registro,
-                            nombre_original=archivo.name,
-                            tamano=archivo.size,
-                            tipo_contenido=(
-                                getattr(archivo, "content_type", "") or ""
-                            )[:100],
-                        )
-                        adjunto.archivo.save(archivo.name, archivo, save=False)
-                        guardados.append(adjunto.archivo.name)
-                        adjunto.save()
-
-                    compromiso.cumplimiento = registro.porcentaje_avance
-                    compromiso.save(
-                        update_fields=["cumplimiento", "estado"]
-                    )
-
+                registro, compromiso = registrar_avance(
+                    request.user,
+                    pk,
+                    form.cleaned_data["porcentaje_avance"],
+                    form.cleaned_data["evidencia"],
+                    form.cleaned_data.get("observacion", ""),
+                    form.cleaned_data["adjuntos"],
+                )
             except ValidationError as error:
-                eliminar_archivos(storage, guardados)
-
                 for mensaje in error.messages:
                     form.add_error(None, mensaje)
-            except BaseException:
-                eliminar_archivos(storage, guardados)
-                raise
             else:
                 messages.success(
                     request,

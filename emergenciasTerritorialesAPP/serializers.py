@@ -1,40 +1,18 @@
 from rest_framework import serializers
 
-from apiAPP.serializers import ValidacionWebMixin
-from seguridadAPP.perfiles import ADMINISTRADOR, perfil_de
+from apiAPP.serializers import (  # noqa: F401 (se reexportan)
+    SOLO_ADMINISTRADOR,
+    CamposSensiblesMixin,
+    ValidacionWebMixin,
+)
 
 from .forms import ContactoEmergenciaForm, ZonaRiesgoForm
 from .models import ContactoEmergencia, ZonaRiesgo
 
 
-# ============================================================
-# PROTECCIÓN DE DATOS SENSIBLES POR PERFIL
-# ============================================================
-# Perfil Administrador -> ve todos los campos.
-# Perfil Usuario (Supervisor y Administrativo) -> no ve los campos
-# definidos como sensibles (teléfonos, correos, coordenadas exactas y
-# datos personales de vecinos o funcionarios). Los campos no se envían
-# vacíos: se quitan de la respuesta JSON.
-
-class CamposSensiblesMixin:
-    """Quita de la respuesta los `campos_sensibles` si no es Administrador."""
-
-    campos_sensibles = ()
-
-    def ve_datos_sensibles(self):
-        request = self.context.get("request")
-        usuario = getattr(request, "user", None)
-        return perfil_de(usuario) == ADMINISTRADOR
-
-    def to_representation(self, instancia):
-        datos = super().to_representation(instancia)
-
-        if not self.ve_datos_sensibles():
-            for campo in self.campos_sensibles:
-                datos.pop(campo, None)
-
-        return datos
-
+# Los datos sensibles se ocultan con CamposSensiblesMixin (apiAPP): el
+# perfil Administrador los recibe y el perfil Usuario (Supervisor y
+# Administrativo) no.
 
 class FormularioConUsuarioMixin:
     """Entrega el usuario al formulario web para aplicar el ámbito."""
@@ -42,9 +20,6 @@ class FormularioConUsuarioMixin:
     def argumentos_formulario(self, attrs):
         request = self.context.get("request")
         return {"usuario": getattr(request, "user", None)}
-
-
-SOLO_ADMINISTRADOR = " Dato sensible: solo lo recibe el perfil Administrador."
 
 
 # ============================================================

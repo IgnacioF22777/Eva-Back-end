@@ -241,6 +241,7 @@ protegida con **JWT** y documentada con **Swagger / ReDoc**
 | Zonas de riesgo | `/api/zonas-riesgo/` | `/api/zonas-riesgo/<id>/` | `/api/zonas-riesgo/<id>/reactivar/` |
 | Contactos de emergencia | `/api/contactos-emergencia/` | `/api/contactos-emergencia/<id>/` | `/api/contactos-emergencia/<id>/reactivar/` |
 | Reportes ciudadanos | `/api/reportes/` | `/api/reportes/<id>/` | `/api/reportes/<id>/reactivar/` |
+| Avances (transacción T2) | `/api/avances/` (GET historial, POST registrar) | `/api/avances/<id>/` (PUT corregir evidencia, DELETE anular con motivo) | — |
 | Derivaciones (transacción) | `/api/derivaciones/` (GET historial, POST derivar) | `/api/derivaciones/<id>/` (PUT modificar, DELETE anular) | `POST /api/reportes/<id>/resolver/` |
 
 Los listados aceptan filtros en la URL: `?estado=activos|inactivos|todos`
@@ -270,6 +271,24 @@ La API no tiene reglas propias: aplica las mismas que la aplicación web.
 - **Reglas de negocio** que impiden una operación válida (ej. dar de baja una
   delegación con servicios activos o modificar un período cerrado) responden
   `409` con el motivo.
+
+### Transacción T2 por API (`/api/avances/`)
+
+La lógica de T2 está en `tubo_gestionAPP/transacciones.py` y la comparten la
+web y la API (bloqueo `select_for_update()`, ámbito, asignación vigente,
+avance que no retrocede, evidencia obligatoria, archivos y limpieza del disco
+si se revierte).
+
+- **POST** registra el avance (JSON, o `multipart/form-data` con `adjuntos`).
+  Lo hace el Administrativo.
+- **PUT/PATCH** corrige la evidencia o la observación del **último** avance
+  vigente; el porcentaje no se corrige.
+- **DELETE** anula el último avance (baja lógica, motivo obligatorio): queda
+  en el historial como anulado y el cumplimiento vuelve al avance vigente
+  anterior (o 0 %). Así se corrige un porcentaje mal informado sin perder
+  trazabilidad. Corregir y anular lo hace el Supervisor.
+- El nombre del funcionario que registró o anuló solo lo recibe el
+  Administrador. El historial web marca los avances anulados con su motivo.
 
 ## Emergencias territoriales y reportes ciudadanos
 

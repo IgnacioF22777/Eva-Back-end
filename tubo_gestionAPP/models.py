@@ -275,6 +275,36 @@ class RegistroAvance(models.Model):
         verbose_name="Fecha de registro",
     )
 
+    # Anulación (baja lógica): el avance mal informado no se borra; queda
+    # en el historial marcado como anulado, con el motivo y quién lo anuló.
+    # Solo se anula el último avance vigente del compromiso.
+    anulado = models.BooleanField(
+        default=False,
+        verbose_name="Anulado",
+    )
+
+    motivo_anulacion = models.TextField(
+        blank=True,
+        max_length=MAX_OBSERVACION,
+        validators=[MaxLengthValidator(MAX_OBSERVACION)],
+        verbose_name="Motivo de la anulación",
+    )
+
+    anulado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name="avances_compromiso_anulados",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        verbose_name="Anulado por",
+    )
+
+    fecha_anulacion = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Fecha de anulación",
+    )
+
     class Meta:
         verbose_name = "Registro de avance"
         verbose_name_plural = "Registros de avance"
