@@ -167,10 +167,14 @@ class BaseEquipo(TestCase):
 
     def registrar(self, funcionario, actividad, veces=1):
         for _ in range(veces):
-            RegistroActividad.objects.create(
+            registro = RegistroActividad.objects.create(
                 funcionario=funcionario, actividad=actividad,
                 fecha_actividad=date(2026, 11, 10), solicitante_tipo="VECINO",
                 nombre_usuario="Vecina de prueba", telefono_usuario="987654321",
+            )
+            # Solo los registros aprobados por el delegado suman a la meta.
+            RegistroActividad.objects.filter(pk=registro.pk).update(
+                estado_verificacion=RegistroActividad.APROBADA
             )
 
     def cargar_actividades(self):

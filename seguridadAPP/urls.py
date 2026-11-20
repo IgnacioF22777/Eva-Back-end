@@ -24,6 +24,12 @@ urlpatterns = [
         name="logout"
     ),
 
+    path(
+        "cambiar-password/",
+        views.cambiar_password,
+        name="cambiar_password"
+    ),
+
     # ========================================================
     # RECUPERACIÓN DE CONTRASEÑA
     # ========================================================

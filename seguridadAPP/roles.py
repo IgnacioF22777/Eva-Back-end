@@ -104,6 +104,8 @@ ROLES = {
         "actividadesAPP.add_registroactividad",
         "actividadesAPP.change_registroactividad",
         "actividadesAPP.delete_registroactividad",
+        # El delegado aprueba, rechaza o pide antecedentes (Eva 3).
+        "actividadesAPP.verificar_registroactividad",
 
         # Matriz SGR (Eva 3): el delegado registra ausencias (R9) y
         # felicitaciones o reclamos (R8) de los funcionarios de su

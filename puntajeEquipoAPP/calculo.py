@@ -21,7 +21,11 @@ from decimal import Decimal, ROUND_HALF_UP
 from django.utils import timezone
 
 from actividadesAPP.models import ZONA_CHILE
-from actividadesAPP.puntajes import obtener_dias_periodo, obtener_mi_matriz
+from actividadesAPP.puntajes import (
+    dias_ausencia_en_periodo,
+    obtener_dias_periodo,
+    obtener_mi_matriz,
+)
 from actividadesAPP.resumen_ingresos import obtener_resumen_ingresos
 from sgr_maestrosAPP.feriados import feriados_entre
 from tubo_gestionAPP.validadores import calcular_dias_computables
@@ -190,7 +194,8 @@ def calcular_fila(funcionario, periodo, fecha_referencia, objetivo, dias_ausenci
     )
 
     cantidad_metas = len(matriz["items"])
-    puntaje = matriz["puntaje_total"]
+    # Puntaje final: incluye felicitaciones y reclamos (R8).
+    puntaje = matriz["puntaje_final"]
 
     ultimo = ingresos["ultimo_ingreso"]
     dias_sin_ingresar = None
@@ -218,8 +223,8 @@ def calcular_resumen_equipo(funcionarios, periodo, fecha_referencia):
     """
     Arma la tabla del equipo, ordenada de mayor a menor puntaje.
 
-    Las ausencias todavía no existen en el sistema (módulo de Camilo), por
-    eso se calculan con 0 días, igual que en «Mi matriz».
+    Las ausencias de cada funcionario (R9, registradas por el delegado)
+    ajustan su meta, igual que en «Mi matriz».
     """
     dias_periodo = obtener_dias_periodo(periodo)
     dias_pasados = dias_transcurridos(periodo, fecha_referencia)
@@ -234,7 +239,10 @@ def calcular_resumen_equipo(funcionarios, periodo, fecha_referencia):
     )
 
     for funcionario in funcionarios:
-        resumen.filas.append(calcular_fila(funcionario, periodo, fecha_referencia, objetivo))
+        resumen.filas.append(calcular_fila(
+            funcionario, periodo, fecha_referencia, objetivo,
+            dias_ausencia=dias_ausencia_en_periodo(funcionario, periodo),
+        ))
 
     resumen.filas.sort(
         key=lambda fila: (

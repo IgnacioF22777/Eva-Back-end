@@ -81,6 +81,36 @@ metas reales) se integran por Pull Request a medida que cada integrante los
 termina. Su estado se registra en la matriz de trazabilidad del informe de la
 Evaluación 3.
 
+### Evaluación 3: verificación, tubo de seguimiento, dashboard y contraseña temporal
+
+| Requisito de la pauta | Implementación | Ruta |
+|---|---|---|
+| Flujo de verificación (pendiente, aprobada, rechazada, más antecedentes) | El delegado (Supervisor) verifica los registros de su equipo; rechazar o pedir antecedentes exige observación; nadie se verifica a sí mismo | `/actividades/verificacion/` |
+| Un registro aprobado no se modifica | Bloqueo en el modelo (`save`), en la edición, en la baja lógica y en el tubo | — |
+| Solo suman a la meta los registros aprobados | `actividadesAPP/puntajes.py` cuenta solo `APROBADA` | `/actividades/matriz/` |
+| Evidencias con control de acceso | Archivo PDF/JPG/PNG (10 MB) con nombre aleatorio; lo descargan la dueña, su delegado y el Administrador | `/actividades/<id>/evidencia/` |
+| Tubo de seguimiento por delegación | Toda la delegación consulta; cada funcionario actualiza solo lo propio mientras no esté aprobado | `/actividades/tubo/` |
+| Búsqueda dinámica al escribir | Por código, RUT o nombre del solicitante (`fetch` con las mismas reglas de ámbito); filtros por funcionario, fechas y estado | `/actividades/tubo/` |
+| Códigos y fechas automáticos | `ACT-AAAA-000000` y fecha de ingreso los asigna el servidor | — |
+| Metas automáticas | «Soluciones de ingresos al tubo» (% solucionado vs. 80 %) y «Emergencia» | `/actividades/matriz/` |
+| Ausencias ajustan la meta (R9) y felicitaciones/reclamos (R8) | Integradas en «Mi matriz», puntaje del equipo y semáforo | `/puntaje-equipo/` |
+| Dashboard con filtros y gráficos | Cumplimiento por funcionario con semáforo, verificación, carga de trabajo, tendencia semanal, tubo y compromisos | `/puntaje-equipo/dashboard/` |
+| Contraseña temporal y cambio obligatorio | Usuario creado o restablecido por el administrador debe cambiarla en su primer ingreso (middleware) | `/seguridad/cambiar-password/` |
+
+**Datos de demostración** (ficticios, sobre las delegaciones reales):
+
+```bash
+python manage.py cargar_datos_demo --clave "<clave de las cuentas demo>"
+python manage.py cargar_datos_demo --clave "<clave>" --reiniciar   # regenera
+```
+
+Crea equipos en la Delegación Centro y en Las Compañías (un funcionario por
+cargo de la matriz), el período 2026-T4 con sus metas, actividades de
+octubre y noviembre con verificación y tubo, ausencias, felicitaciones,
+reclamos, cartas, atenciones sociales, zonas de riesgo y reportes. La clave
+nunca queda en el repositorio; una cuenta queda con contraseña temporal para
+demostrar el cambio obligatorio.
+
 ### Fase 4: asignación y avance de compromisos
 
 El flujo de ejecución de un compromiso se divide en dos transacciones atómicas
@@ -463,8 +493,12 @@ python manage.py test --settings=config.settings_pruebas
 
 Con todas las ramas de la Evaluación 3 integradas (rama
 `integracion/eva3`, 20-11-2026) se ejecutaron **586 pruebas con resultado
-OK** de esta forma (Python 3.12, Django 5.2.19). El detalle por archivo de
-la tabla siguiente corresponde a `main` antes de la integración.
+OK** de esta forma y también sobre MariaDB en la EC2. Con la verificación,
+el tubo, el dashboard, la contraseña temporal y los datos demo la batería
+sube a **629 pruebas OK** (archivos nuevos: `actividadesAPP/test_verificacion_tubo.py`,
+`seguridadAPP/test_password_temporal.py`, `puntajeEquipoAPP/test_dashboard.py`
+y `puntajeEquipoAPP/test_datos_demo.py`). El detalle por archivo de la tabla
+siguiente corresponde a `main` antes de la integración.
 
 La suite cubre autenticación, recuperación de contraseña, permisos por perfil,
 CRUD de los mantenedores, búsqueda, duplicados, baja lógica, reactivación,

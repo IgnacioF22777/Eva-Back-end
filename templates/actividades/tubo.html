@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block title %}Tubo de seguimiento - SGR{% endblock %}
+
+{% block header %}Tubo de seguimiento de la delegación{% endblock %}
+
+{% block content %}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+        <h2 class="h4 mb-1">Tubo de seguimiento</h2>
+        <p class="text-muted mb-0">
+            Solicitudes de vecinos que requieren seguimiento hasta su solución.
+            Todo el equipo de la delegación las consulta; cada funcionario actualiza solo las suyas
+            mientras no estén aprobadas.
+        </p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <a href="{% url 'actividades:lista' %}" class="btn btn-outline-secondary">Mis actividades</a>
+        {% if perms.actividadesAPP.add_registroactividad %}
+        <a href="{% url 'actividades:crear' %}" class="btn btn-primary">+ Nuevo ingreso</a>
+        {% endif %}
+    </div>
+</div>
+
+{% include "seguridad/_mensajes.html" %}
+
+<div class="row g-2 mb-3">
+    <div class="col-6 col-md">
+        <div class="card border-0 shadow-sm h-100"><div class="card-body py-2 text-center">
+            <div class="small text-muted">Ingresos al tubo</div>
+            <div class="h4 mb-0">{{ total_tubo }}</div>
+        </div></div>
+    </div>
+    {% for item in resumen %}
+    <div class="col-6 col-md">
+        <div class="card border-0 shadow-sm h-100"><div class="card-body py-2 text-center">
+            <div class="small text-muted">{{ item.nombre }}</div>
+            <div class="h4 mb-0">{{ item.total }}</div>
+        </div></div>
+    </div>
+    {% endfor %}
+    <div class="col-12 col-md">
+        <div class="card border-0 shadow-sm h-100"><div class="card-body py-2 text-center">
+            <div class="small text-muted">Soluciones (meta 80 %)</div>
+            <div class="h4 mb-0 {% if porcentaje_soluciones >= 80 %}text-success{% else %}text-danger{% endif %}">
+                {{ porcentaje_soluciones }} %
+            </div>
+        </div></div>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0 mb-3">
+    <div class="card-body">
+        <form method="GET" id="form-tubo" class="row g-2 align-items-end" role="search">
+            <div class="col-md-5">
+                <label class="form-label small" for="busqueda-tubo">Buscar por código, RUT o nombre del solicitante</label>
+                <input id="busqueda-tubo" type="search" name="q" class="form-control"
+                       value="{{ filtros.q }}" autocomplete="off"
+                       placeholder="Escriba y los resultados se actualizan…">
+            </div>
+            {% if delegaciones %}
+            <div class="col-md-3">
+                <label class="form-label small" for="t-delegacion">Delegación</label>
+                <select id="t-delegacion" name="delegacion" class="form-select">
+                    <option value="">Todas</option>
+                    {% for d in delegaciones %}
+                    <option value="{{ d.pk }}" {% if delegacion.pk == d.pk %}selected{% endif %}>{{ d.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            <div class="col-md-2">
+                <label class="form-label small" for="t-estado">Estado</label>
+                <select id="t-estado" name="estado" class="form-select">
+                    <option value="">Todos</option>
+                    {% for clave, nombre in estados %}
+                    <option value="{{ clave }}" {% if estado == clave %}selected{% endif %}>{{ nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small" for="t-funcionario">Funcionario</label>
+                <select id="t-funcionario" name="funcionario" class="form-select">
+                    <option value="">Todos</option>
+                    {% for f in funcionarios %}
+                    <option value="{{ f.pk }}" {% if filtros.funcionario == f.pk %}selected{% endif %}>
+                        {{ f.usuario.get_full_name|default:f.usuario.username }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small" for="t-desde">Desde</label>
+                <input id="t-desde" type="date" name="desde" class="form-control" value="{{ filtros.desde|date:'Y-m-d' }}">
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small" for="t-hasta">Hasta</label>
+                <input id="t-hasta" type="date" name="hasta" class="form-control" value="{{ filtros.hasta|date:'Y-m-d' }}">
+            </div>
+            <div class="col-md-3">
+                <div class="form-check mt-4">
+                    <input class="form-check-input" type="checkbox" name="emergencia" value="1" id="t-emergencia"
+                           {% if solo_emergencias %}checked{% endif %}>
+                    <label class="form-check-label" for="t-emergencia">Solo emergencias</label>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-primary w-100">Filtrar</button>
+            </div>
+            <div class="col-md-2">
+                <a href="{% url 'actividades:tubo' %}" class="btn btn-outline-secondary w-100">Limpiar</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <caption class="px-3">
+                    Ingresos al tubo (máximo 300). <span id="estado-busqueda" aria-live="polite"></span>
+                </caption>
+                <thead class="table-dark">
+                    <tr>
+                        <th>Código</th>
+                        <th>Solicitante</th>
+                        <th>Gestión</th>
+                        <th>Responsable</th>
+                        <th>Estado</th>
+                        <th>Verificación</th>
+                        <th>Seguimiento</th>
+                    </tr>
+                </thead>
+                <tbody id="filas-tubo">
+                    {% include "actividades/_tubo_filas.html" %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+// Búsqueda dinámica: al escribir se piden solo las filas al servidor
+// (mismos permisos y ámbito que la página completa).
+(function () {
+    var formulario = document.getElementById("form-tubo");
+    var campo = document.getElementById("busqueda-tubo");
+    var cuerpo = document.getElementById("filas-tubo");
+    var aviso = document.getElementById("estado-busqueda");
+    var espera = null;
+    var ultima = 0;
+
+    function buscar() {
+        var parametros = new URLSearchParams(new FormData(formulario));
+        parametros.set("parcial", "1");
+        var numero = ++ultima;
+        aviso.textContent = "Buscando…";
+        fetch("{% url 'actividades:tubo' %}?" + parametros.toString(), {
+            headers: {"X-Requested-With": "XMLHttpRequest"},
+            credentials: "same-origin"
+        })
+            .then(function (respuesta) {
+                if (!respuesta.ok) { throw new Error(respuesta.status); }
+                return respuesta.text();
+            })
+            .then(function (html) {
+                if (numero !== ultima) { return; }
+                cuerpo.innerHTML = html;
+                aviso.textContent = "";
+                parametros.delete("parcial");
+                history.replaceState(null, "", "?" + parametros.toString());
+            })
+            .catch(function () { aviso.textContent = "No se pudo actualizar la búsqueda."; });
+    }
+
+    campo.addEventListener("input", function () {
+        clearTimeout(espera);
+        espera = setTimeout(buscar, 300);
+    });
+    formulario.querySelectorAll("select, input[type=date], input[type=checkbox]").forEach(function (control) {
+        control.addEventListener("change", buscar);
+    });
+})();
+</script>
+
+{% endblock %}
