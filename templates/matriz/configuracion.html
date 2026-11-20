@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+
+{% block title %}Configuración de la matriz - SGR{% endblock %}
+
+{% block header %}
+Configuración de felicitaciones y reclamos
+{% endblock %}
+
+{% block content %}
+
+{% include 'seguridad/_mensajes.html' %}
+
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Porcentajes de la matriz SGR</h5>
+            </div>
+
+            <div class="card-body p-4">
+                <div class="alert alert-info small">
+                    Estos valores se aplican al puntaje final de todos los
+                    funcionarios. El descuento por reclamo debe estar entre
+                    20% y 30%. Solo el Administrador puede cambiarlos.
+                </div>
+
+                <form method="POST" novalidate>
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                    {% endif %}
+
+                    {% for campo in form %}
+                        {% if campo.name == 'limitar_felicitaciones_al_tope' %}
+                            <div class="form-check mb-1">
+                                {{ campo }}
+                                <label class="form-check-label fw-semibold"
+                                       for="{{ campo.id_for_label }}">{{ campo.label }}</label>
+                            </div>
+                        {% else %}
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold"
+                                       for="{{ campo.id_for_label }}">{{ campo.label }}</label>
+                                {{ campo }}
+                        {% endif %}
+                                {% if campo.help_text %}
+                                    <div class="form-text mb-3">{{ campo.help_text }}</div>
+                                {% endif %}
+                                {% for error in campo.errors %}
+                                    <div class="text-danger small mt-1">{{ error }}</div>
+                                {% endfor %}
+                        {% if campo.name != 'limitar_felicitaciones_al_tope' %}
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+
+                    <div class="d-flex justify-content-between align-items-center mt-4">
+                        <span class="text-muted small">
+                            {% if config.actualizado_por %}
+                                Última modificación:
+                                {{ config.actualizado_por.get_full_name|default:config.actualizado_por.username }},
+                                {{ config.fecha_actualizacion|date:"d-m-Y H:i" }}
+                            {% endif %}
+                        </span>
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}

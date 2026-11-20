@@ -19,4 +19,7 @@ urlpatterns = [
     path("felicitaciones-reclamos/<int:pk>/editar/", views.ajuste_editar, name="ajuste_editar"),
     path("felicitaciones-reclamos/<int:pk>/estado/", views.ajuste_cambiar_estado, name="ajuste_cambiar_estado"),
     path("felicitaciones-reclamos/<int:pk>/respaldo/", views.ajuste_respaldo, name="ajuste_respaldo"),
+
+    # Configuración de porcentajes (solo Administrador)
+    path("configuracion/", views.configuracion, name="configuracion"),
 ]

@@ -17,6 +17,7 @@ APPS_CON_PERMISOS = [
     "delegacionesAPP",
     "tubo_gestionAPP",
     "matrizAPP",
+    "beneficiosAPP",
     "sgr_maestrosAPP",
     "emergenciasTerritorialesAPP",
     "reportesCiudadanosAPP",
@@ -113,6 +114,13 @@ ROLES = {
         "matrizAPP.add_ajustedesempeno",
         "matrizAPP.change_ajustedesempeno",
 
+        # Regalos para niños (Eva 3): inscribe, corrige y anula en su delegación.
+        "beneficiosAPP.view_campanaregalo",
+        "beneficiosAPP.view_ninoinscrito",
+        "beneficiosAPP.add_ninoinscrito",
+        "beneficiosAPP.change_ninoinscrito",
+        "beneficiosAPP.delete_ninoinscrito",
+
         # Back End: mantenedores de emergencias de su delegación.
         "emergenciasTerritorialesAPP.add_zonariesgo",
         "emergenciasTerritorialesAPP.change_zonariesgo",
@@ -138,6 +146,11 @@ ROLES = {
         # ausencias, felicitaciones y reclamos; no puede registrarlos.
         "matrizAPP.view_ausencia",
         "matrizAPP.view_ajustedesempeno",
+        # Regalos para niños: el funcionario inscribe (respuesta del profesor).
+        "beneficiosAPP.view_campanaregalo",
+        "beneficiosAPP.view_ninoinscrito",
+        "beneficiosAPP.add_ninoinscrito",
+        "beneficiosAPP.change_ninoinscrito",
         "tubo_gestionAPP.add_compromiso",
         "tubo_gestionAPP.add_registroavance",
         # Descriptor: el Apoyo Administrativo registra las solicitudes que
