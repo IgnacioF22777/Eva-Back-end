@@ -28,9 +28,26 @@ urlpatterns = [
     # Proyecto Integrado - Seguridad: login, usuarios y roles
     path("seguridad/", include("seguridadAPP.urls")),
 
+    # Proyecto Integrado (Eva 3) - Organizaciones comunitarias y JJVV
+    path("organizaciones/", include("organizacionesAPP.urls")),
+
+    # Proyecto Integrado (Eva 3) - Tubo de cartas de Oficina de Partes
+    path("oficina-partes/", include("oficinaPartesAPP.urls")),
+
+    # Proyecto Integrado EVA 3 - Tipos de atención social (RC-05)
+    path("atencion-social/", include("atencionSocialAPP.urls")),
+
     # Programación Back End - API RESTful (JWT, Swagger y ReDoc)
     path("api/", include("apiAPP.urls")),
 
+    # Programación Back End - Emergencias territoriales y reportes
+    # ciudadanos (mantenedores y transacción de derivación)
+    path("emergencias/", include("emergenciasTerritorialesAPP.urls")),
+    path("reportes/", include("reportesCiudadanosAPP.urls")),
+
     # Proyecto Integrado EVA 3 - Actividades diarias (R1-R5)
     path("actividades/", include("actividadesAPP.urls")),
+
+    # Proyecto Integrado EVA 3 - Puntaje del equipo de la delegación (R10)
+    path("puntaje-equipo/", include("puntajeEquipoAPP.urls")),
 ]

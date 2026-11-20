@@ -20,6 +20,9 @@ APPS_CON_PERMISOS = [
     "sgr_maestrosAPP",
     "emergenciasTerritorialesAPP",
     "reportesCiudadanosAPP",
+    "organizacionesAPP",
+    "oficinaPartesAPP",
+    "atencionSocialAPP",
     "actividadesAPP",
 ]
 
@@ -35,9 +38,18 @@ VER_OPERACION = [
     "sgr_maestrosAPP.view_periodo",
     "sgr_maestrosAPP.view_detalleperiodo",
     "sgr_maestrosAPP.view_meta",
+    "organizacionesAPP.view_organizacioncomunitaria",
+    "oficinaPartesAPP.view_cartaoficinapartes",
+    "atencionSocialAPP.view_atencionsocial",
 
     # EVA 3: actividades diarias.
     "actividadesAPP.view_registroactividad",
+
+    # Back End: emergencias territoriales y reportes ciudadanos.
+    "emergenciasTerritorialesAPP.view_zonariesgo",
+    "emergenciasTerritorialesAPP.view_contactoemergencia",
+    "reportesCiudadanosAPP.view_reporteciudadano",
+    "reportesCiudadanosAPP.view_derivacionreporte",
 ]
 
 
@@ -48,6 +60,15 @@ ROLES = {
     # Supervisor: mantenedores y actividades diarias.
     "Supervisor": VER_OPERACION + [
         "auth.view_user",
+        "organizacionesAPP.add_organizacioncomunitaria",
+        "organizacionesAPP.change_organizacioncomunitaria",
+        "organizacionesAPP.delete_organizacioncomunitaria",
+        "oficinaPartesAPP.add_cartaoficinapartes",
+        "oficinaPartesAPP.change_cartaoficinapartes",
+        "oficinaPartesAPP.delete_cartaoficinapartes",
+        "atencionSocialAPP.add_atencionsocial",
+        "atencionSocialAPP.change_atencionsocial",
+        "atencionSocialAPP.delete_atencionsocial",
 
         "delegacionesAPP.add_delegacion",
         "delegacionesAPP.change_delegacion",
@@ -60,6 +81,11 @@ ROLES = {
         "tubo_gestionAPP.add_compromiso",
         "tubo_gestionAPP.change_compromiso",
         "tubo_gestionAPP.delete_compromiso",
+
+        # T2: el Supervisor corrige o anula el último avance (no lo
+        # registra: eso lo hace el Administrativo).
+        "tubo_gestionAPP.change_registroavance",
+        "tubo_gestionAPP.delete_registroavance",
 
         "sgr_maestrosAPP.add_catalogoactividad",
         "sgr_maestrosAPP.change_catalogoactividad",
@@ -88,6 +114,24 @@ ROLES = {
         "matrizAPP.view_ajustedesempeno",
         "matrizAPP.add_ajustedesempeno",
         "matrizAPP.change_ajustedesempeno",
+
+        # Back End: mantenedores de emergencias de su delegación.
+        "emergenciasTerritorialesAPP.add_zonariesgo",
+        "emergenciasTerritorialesAPP.change_zonariesgo",
+        "emergenciasTerritorialesAPP.delete_zonariesgo",
+
+        "emergenciasTerritorialesAPP.add_contactoemergencia",
+        "emergenciasTerritorialesAPP.change_contactoemergencia",
+        "emergenciasTerritorialesAPP.delete_contactoemergencia",
+
+        # Back End: reportes ciudadanos y transacción de derivación.
+        "reportesCiudadanosAPP.add_reporteciudadano",
+        "reportesCiudadanosAPP.change_reporteciudadano",
+        "reportesCiudadanosAPP.delete_reporteciudadano",
+
+        "reportesCiudadanosAPP.add_derivacionreporte",
+        "reportesCiudadanosAPP.change_derivacionreporte",
+        "reportesCiudadanosAPP.delete_derivacionreporte",
     ],
 
     # Administrativo: consulta, ingreso y edición.
@@ -98,10 +142,21 @@ ROLES = {
         "matrizAPP.view_ajustedesempeno",
         "tubo_gestionAPP.add_compromiso",
         "tubo_gestionAPP.add_registroavance",
+        # Descriptor: el Apoyo Administrativo registra las solicitudes que
+        # llegan por carta y Oficina de Partes.
+        "oficinaPartesAPP.add_cartaoficinapartes",
+        "oficinaPartesAPP.change_cartaoficinapartes",
+
+        # EVA 3: el Gestor Social registra sus atenciones (sin dar de baja).
+        "atencionSocialAPP.add_atencionsocial",
+        "atencionSocialAPP.change_atencionsocial",
 
         # EVA 3: actividades propias.
         "actividadesAPP.add_registroactividad",
         "actividadesAPP.change_registroactividad",
+
+        # Back End: registra los reportes que informan los vecinos.
+        "reportesCiudadanosAPP.add_reporteciudadano",
     ],
 }
 

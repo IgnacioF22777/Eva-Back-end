@@ -238,6 +238,11 @@ protegida con **JWT** y documentada con **Swagger / ReDoc**
 | Catálogo de actividades | `/api/catalogo/` | `/api/catalogo/<id>/` | `/api/catalogo/<id>/reactivar/` |
 | Períodos | `/api/periodos/` | `/api/periodos/<id>/` | — |
 | Metas | `/api/metas/` | `/api/metas/<id>/` | `/api/metas/<id>/reactivar/` |
+| Zonas de riesgo | `/api/zonas-riesgo/` | `/api/zonas-riesgo/<id>/` | `/api/zonas-riesgo/<id>/reactivar/` |
+| Contactos de emergencia | `/api/contactos-emergencia/` | `/api/contactos-emergencia/<id>/` | `/api/contactos-emergencia/<id>/reactivar/` |
+| Reportes ciudadanos | `/api/reportes/` | `/api/reportes/<id>/` | `/api/reportes/<id>/reactivar/` |
+| Avances (transacción T2) | `/api/avances/` (GET historial, POST registrar) | `/api/avances/<id>/` (PUT corregir evidencia, DELETE anular con motivo) | — |
+| Derivaciones (transacción) | `/api/derivaciones/` (GET historial, POST derivar) | `/api/derivaciones/<id>/` (PUT modificar, DELETE anular) | `POST /api/reportes/<id>/resolver/` |
 
 Los listados aceptan filtros en la URL: `?estado=activos|inactivos|todos`
 (por defecto `activos`), `?q=texto` para buscar, y según el recurso
@@ -266,6 +271,55 @@ La API no tiene reglas propias: aplica las mismas que la aplicación web.
 - **Reglas de negocio** que impiden una operación válida (ej. dar de baja una
   delegación con servicios activos o modificar un período cerrado) responden
   `409` con el motivo.
+
+### Transacción T2 por API (`/api/avances/`)
+
+La lógica de T2 está en `tubo_gestionAPP/transacciones.py` y la comparten la
+web y la API (bloqueo `select_for_update()`, ámbito, asignación vigente,
+avance que no retrocede, evidencia obligatoria, archivos y limpieza del disco
+si se revierte).
+
+- **POST** registra el avance (JSON, o `multipart/form-data` con `adjuntos`).
+  Lo hace el Administrativo.
+- **PUT/PATCH** corrige la evidencia o la observación del **último** avance
+  vigente; el porcentaje no se corrige.
+- **DELETE** anula el último avance (baja lógica, motivo obligatorio): queda
+  en el historial como anulado y el cumplimiento vuelve al avance vigente
+  anterior (o 0 %). Así se corrige un porcentaje mal informado sin perder
+  trazabilidad. Corregir y anular lo hace el Supervisor.
+- El nombre del funcionario que registró o anuló solo lo recibe el
+  Administrador. El historial web marca los avances anulados con su motivo.
+
+## Emergencias territoriales y reportes ciudadanos
+
+Las apps `emergenciasTerritorialesAPP` y `reportesCiudadanosAPP` tienen
+interfaz web (menú **Emergencias**) y API propia:
+
+| Módulo | Web | API |
+|---|---|---|
+| Mantenedor 1: Zonas de riesgo | `/emergencias/zonas/` | `/api/zonas-riesgo/` |
+| Mantenedor 2: Contactos de emergencia | `/emergencias/contactos/` | `/api/contactos-emergencia/` |
+| Reportes ciudadanos | `/reportes/` | `/api/reportes/` |
+| **Transacción: derivación del reporte** | `/reportes/<id>/` (derivar, modificar, anular, resolver) | `/api/derivaciones/` |
+
+- **Transacción atómica** (`reportesCiudadanosAPP/transaccion.py`, la usan la
+  web y la API): bloquea el reporte con `select_for_update()`, vuelve a
+  comprobar el ámbito, valida que la zona y el contacto estén activos y sean
+  de la delegación del reporte, deja la derivación anterior como historial y
+  marca el reporte como derivado. Si un paso falla, se revierte todo.
+- **Datos sensibles por perfil**: en la API, teléfono y correo de los
+  contactos, coordenadas de las zonas, datos del vecino y nombre del
+  funcionario que derivó solo los recibe el **Administrador**; para
+  Supervisor y Administrativo esos campos no se envían.
+- **Baja lógica e integridad**: los registros tienen `activo` y las
+  relaciones usan `PROTECT` (antes `CASCADE`): borrar una delegación ya no
+  arrastra zonas, alertas, contactos ni reportes.
+- **Ámbito por delegación**: Supervisor y Administrativo solo ven y operan
+  los registros de su delegación (`403` fuera de ámbito).
+- **Perfiles**: el Supervisor administra zonas, contactos y reportes y
+  ejecuta la transacción; el Administrativo consulta y registra reportes.
+- Tras desplegar se debe ejecutar `python manage.py migrate` y
+  `python manage.py crear_roles` para crear los permisos nuevos.
 
 ## Exportación a Excel y PDF
 
@@ -343,16 +397,15 @@ Windows).
    5.2.19). Si el entorno tiene otra versión instalada, `manage.py check`,
    `runserver`, `migrate` y las pruebas lo advierten (`sgr.W002`), sin
    detener la aplicación.
-4. Crear el archivo `.env` en la carpeta del proyecto (junto a `manage.py`):
+4. Crear el archivo `.env` a partir del ejemplo versionado
+   [`.env.example`](.env.example), que documenta todas las variables
+   (Django, base de datos, correo, adjuntos y reglas de la matriz) sin
+   credenciales reales:
+   ```bash
+   cp .env.example .env            # Linux/Mac
+   copy .env.example .env          # Windows
    ```
-   SECRET_KEY=tu_clave_secreta
-   DB_NAME=evaluacion_db
-   DB_USER=usuario
-   DB_PASSWORD=clave
-   DB_HOST=127.0.0.1
-   DB_PORT=3306
-   DEBUG=True
-   ```
+   Luego reemplazar como mínimo `SECRET_KEY`, `DB_USER` y `DB_PASSWORD`.
    En un equipo local se usa `DEBUG=True`: con `DEBUG=False`, `runserver` no
    entrega los archivos estáticos y la página se ve sin estilos de Bootstrap.
    En el servidor de producción va `DEBUG=False` (Nginx entrega los
@@ -366,6 +419,22 @@ Windows).
 6. Crear los roles y permisos base:
    ```bash
    python manage.py crear_roles
+   ```
+   Opcional (Evaluación 3): cargar los 8 cargos del descriptor de funciones y
+   sus metas reales de la matriz SGR del tercer trimestre de 2026. Se puede
+   ejecutar varias veces sin duplicar; `--dry-run` muestra el resultado sin
+   guardar y `--periodo CODIGO` carga las metas en un período existente:
+   ```bash
+   python manage.py cargar_cargos_metas --dry-run
+   python manage.py cargar_cargos_metas
+   ```
+   Opcional (Evaluación 3): importar el registro municipal de juntas de
+   vecinos y organizaciones comunitarias (planilla .xlsx, 2.709 registros).
+   La planilla no se versiona en el repositorio. Se puede ejecutar varias
+   veces sin duplicar y no modifica organizaciones ya verificadas:
+   ```bash
+   python manage.py importar_organizaciones "ruta/base datos JJVV.xlsx" --dry-run
+   python manage.py importar_organizaciones "ruta/base datos JJVV.xlsx"
    ```
 7. Crear el primer usuario (superusuario = perfil Administrador). Sin este
    paso la base no tiene usuarios y nadie puede iniciar sesión:
@@ -384,6 +453,18 @@ Windows).
 ```bash
 python manage.py test
 ```
+
+Sin MariaDB ni archivo `.env` (por ejemplo, en el equipo de un evaluador),
+la batería completa se ejecuta con SQLite en memoria:
+
+```bash
+python manage.py test --settings=config.settings_pruebas
+```
+
+Con todas las ramas de la Evaluación 3 integradas (rama
+`integracion/eva3`, 20-11-2026) se ejecutaron **586 pruebas con resultado
+OK** de esta forma (Python 3.12, Django 5.2.19). El detalle por archivo de
+la tabla siguiente corresponde a `main` antes de la integración.
 
 La suite cubre autenticación, recuperación de contraseña, permisos por perfil,
 CRUD de los mantenedores, búsqueda, duplicados, baja lógica, reactivación,
@@ -489,6 +570,8 @@ distribuyen así:
 | Usuarios, Roles y Perfiles (transversal) | Ignacio Figueroa y Orlando Iribarren |
 | API RESTful con JWT y Swagger (`apiAPP`) | Ignacio Figueroa |
 | Exportación de listados a Excel y PDF | Ignacio Figueroa |
+| Zonas de riesgo y Contactos de emergencia (`emergenciasTerritorialesAPP`) | Orlando Iribarren |
+| **Derivación de reportes ciudadanos** (`reportesCiudadanosAPP`) | Orlando Iribarren |
 
 ### Cobertura de la pauta
 

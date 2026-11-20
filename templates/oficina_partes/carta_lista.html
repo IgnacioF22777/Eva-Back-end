@@ -1,0 +1,196 @@
+{% extends 'base.html' %}
+
+{% block title %}Tubo de cartas - SGR{% endblock %}
+
+{% block header %}
+Tubo de Cartas de Oficina de Partes
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+    <div>
+        <h2 class="h4 mb-1">Seguimiento de cartas</h2>
+        <p class="text-muted mb-0">
+            Cartas recibidas por Oficina de Partes: estado, encargado y derivación.
+        </p>
+    </div>
+
+    {% if perms.oficinaPartesAPP.add_cartaoficinapartes and not sin_delegacion %}
+        <a href="{% url 'oficina_partes:carta_crear' %}" class="btn btn-primary">+ Registrar carta</a>
+    {% endif %}
+</div>
+
+{% include 'seguridad/_mensajes.html' %}
+
+{% if sin_delegacion %}
+    <div class="alert alert-warning">{{ aviso_sin_delegacion }}</div>
+{% endif %}
+
+<div class="row g-3 mb-4">
+    {% for item in resumen %}
+        <div class="col-6 col-lg-2">
+            <a href="?estado={{ item.clave }}" class="text-decoration-none text-reset">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body">
+                        <p class="text-muted text-uppercase small mb-1">{{ item.nombre }}</p>
+                        <p class="h2 fw-bold mb-0">{{ item.total }}</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+    {% endfor %}
+    <div class="col-6 col-lg-2">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <p class="text-muted text-uppercase small mb-1">Total</p>
+                <p class="h2 fw-bold mb-0">{{ total_vigentes }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-2">
+        <a href="?atrasadas=1" class="text-decoration-none text-reset">
+            <div class="card border-0 shadow-sm h-100 {% if total_atrasadas %}border-start border-danger border-4{% endif %}">
+                <div class="card-body">
+                    <p class="text-muted text-uppercase small mb-1">Atrasadas (+{{ dias_alerta }} días)</p>
+                    <p class="h2 fw-bold mb-0 {% if total_atrasadas %}text-danger{% endif %}">{{ total_atrasadas }}</p>
+                </div>
+            </div>
+        </a>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-2 align-items-end">
+            <div class="col-lg-4">
+                <label class="form-label small fw-semibold" for="q">Buscar</label>
+                <input type="search" id="q" name="q" value="{{ busqueda }}" class="form-control"
+                       placeholder="Remitente, tema, N° de ingreso o encargado">
+            </div>
+            <div class="col-lg-2">
+                <label class="form-label small fw-semibold" for="estado">Estado</label>
+                <select id="estado" name="estado" class="form-select">
+                    <option value="">Todos</option>
+                    {% for valor, etiqueta in estados %}
+                        <option value="{{ valor }}" {% if estado == valor %}selected{% endif %}>{{ etiqueta }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-lg-2">
+                <label class="form-label small fw-semibold" for="destinatario">Dirigida a</label>
+                <select id="destinatario" name="destinatario" class="form-select">
+                    <option value="">Todos</option>
+                    {% for valor, etiqueta in destinatarios %}
+                        <option value="{{ valor }}" {% if destinatario == valor %}selected{% endif %}>{{ etiqueta }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-lg-2">
+                <label class="form-label small fw-semibold" for="vigencia">Vigencia</label>
+                <select id="vigencia" name="vigencia" class="form-select">
+                    <option value="activos" {% if vigencia == 'activos' %}selected{% endif %}>Vigentes</option>
+                    <option value="inactivos" {% if vigencia == 'inactivos' %}selected{% endif %}>Anuladas</option>
+                    <option value="todos" {% if vigencia == 'todos' %}selected{% endif %}>Todas</option>
+                </select>
+            </div>
+            <div class="col-lg-2 d-flex gap-2">
+                <div class="form-check mt-2">
+                    <input class="form-check-input" type="checkbox" id="atrasadas" name="atrasadas" value="1" {% if solo_atrasadas %}checked{% endif %}>
+                    <label class="form-check-label small" for="atrasadas">Atrasadas</label>
+                </div>
+                <button type="submit" class="btn btn-primary flex-grow-1">Buscar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-primary text-white d-flex justify-content-between">
+        <h5 class="mb-0">Cartas</h5>
+        <span>{{ pagina.paginator.count }} resultado{{ pagina.paginator.count|pluralize }}</span>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-striped table-hover align-middle mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th>Recepción</th>
+                    <th>Remitente</th>
+                    <th>Tema</th>
+                    <th>Seguimiento</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for carta in pagina %}
+                    <tr>
+                        <td class="small text-nowrap">
+                            {{ carta.fecha_recepcion|date:"d-m-Y" }}
+                            {% if carta.numero_ingreso %}<div class="text-muted">N° {{ carta.numero_ingreso }}</div>{% endif %}
+                            <div class="text-muted">Para: {{ carta.get_destinatario_display }}</div>
+                        </td>
+                        <td class="small">
+                            <span class="fw-semibold">{{ carta.remitente }}</span>
+                            {% if carta.telefono_contacto %}<div class="text-muted">{{ carta.telefono_contacto }}</div>{% endif %}
+                        </td>
+                        <td class="small text-break">
+                            {{ carta.tema|truncatechars:110 }}
+                            {% if carta.fecha_actividad %}<div class="text-muted">Actividad: {{ carta.fecha_actividad }}</div>{% endif %}
+                        </td>
+                        <td class="small">
+                            {{ carta.encargado_seguimiento|default:"Sin encargado" }}
+                            {% if carta.derivada_a %}<div class="text-muted">Derivada a {{ carta.derivada_a }}</div>{% endif %}
+                            {% if carta.pronunciamiento %}<div class="text-muted">Pronunciamiento: {{ carta.get_pronunciamiento_display }}</div>{% endif %}
+                        </td>
+                        <td class="small">
+                            {% if carta.estado == 'EN_PROCESO' %}
+                                <span class="badge bg-warning text-dark">En proceso</span>
+                            {% elif carta.estado == 'APROBADA' %}
+                                <span class="badge bg-info text-dark">Aprobada</span>
+                            {% elif carta.estado == 'FINALIZADA' %}
+                                <span class="badge bg-success">Finalizada</span>
+                            {% else %}
+                                <span class="badge bg-secondary">No aplica</span>
+                            {% endif %}
+                            {% if carta.atrasada %}<span class="badge bg-danger">Atrasada</span>{% endif %}
+                            {% if not carta.activo %}<span class="badge bg-dark">Anulada</span>{% endif %}
+                            <div class="text-muted">{{ carta.dias_abierta }} día{{ carta.dias_abierta|pluralize }}</div>
+                        </td>
+                        <td>
+                            <div class="d-flex flex-wrap gap-1">
+                                {% if perms.oficinaPartesAPP.change_cartaoficinapartes %}
+                                    <a href="{% url 'oficina_partes:carta_editar' carta.pk %}" class="btn btn-warning btn-sm">Seguimiento</a>
+                                {% endif %}
+                                {% if perms.oficinaPartesAPP.delete_cartaoficinapartes %}
+                                    <form method="POST" action="{% url 'oficina_partes:carta_cambiar_estado' carta.pk %}"
+                                          onsubmit="return confirm('{% if carta.activo %}¿Anular esta carta? Se conservará el registro.{% else %}¿Reactivar esta carta?{% endif %}');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm {% if carta.activo %}btn-outline-danger{% else %}btn-outline-success{% endif %}">
+                                            {% if carta.activo %}Anular{% else %}Reactivar{% endif %}
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="6" class="text-center text-muted py-5">No hay cartas que coincidan con los filtros.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if pagina.paginator.num_pages > 1 %}
+        <div class="card-footer bg-white d-flex justify-content-between align-items-center">
+            <span class="small text-muted">Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
+            <ul class="pagination pagination-sm mb-0">
+                {% if pagina.has_previous %}<li class="page-item"><a class="page-link" href="?{{ parametros }}&pagina={{ pagina.previous_page_number }}">Anterior</a></li>{% endif %}
+                {% if pagina.has_next %}<li class="page-item"><a class="page-link" href="?{{ parametros }}&pagina={{ pagina.next_page_number }}">Siguiente</a></li>{% endif %}
+            </ul>
+        </div>
+    {% endif %}
+</div>
+
+{% endblock %}

@@ -1,0 +1,188 @@
+{% extends 'base.html' %}
+
+{% block title %}Puntaje del equipo - SGR{% endblock %}
+
+{% block header %}
+Puntaje del Equipo
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+    <div>
+        <h2 class="h4 mb-1">Puntaje del equipo{% if delegacion %}: {{ delegacion.nombre }}{% endif %}</h2>
+        <p class="text-muted mb-0">
+            Avance de cada funcionario frente al objetivo esperado a la fecha
+            ({{ fecha_actual|date:"d-m-Y" }}). Los puntajes vienen de «Mi matriz».
+        </p>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-2 align-items-end">
+            <div class="col-md-6">
+                <label class="form-label small fw-semibold" for="periodo">Período</label>
+                <select id="periodo" name="periodo" class="form-select">
+                    {% for opcion in periodos %}
+                        <option value="{{ opcion.pk }}" {% if periodo.pk == opcion.pk %}selected{% endif %}>
+                            {{ opcion.nombre }} ({{ opcion.fecha_inicio|date:"d/m/Y" }} - {{ opcion.fecha_fin|date:"d/m/Y" }})
+                        </option>
+                    {% empty %}
+                        <option value="">No hay períodos registrados</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            {% if delegaciones is not None %}
+                <div class="col-md-4">
+                    <label class="form-label small fw-semibold" for="delegacion">Delegación</label>
+                    <select id="delegacion" name="delegacion" class="form-select">
+                        {% for d in delegaciones %}
+                            <option value="{{ d.pk }}" {% if delegacion.pk == d.pk %}selected{% endif %}>{{ d.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            {% endif %}
+
+            <div class="col-md-2 d-grid">
+                <button type="submit" class="btn btn-primary">Consultar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if not periodo %}
+    <div class="alert alert-info">Aún no hay un período iniciado. Cree uno en «Gestión de Períodos».</div>
+{% elif not delegacion %}
+    <div class="alert alert-info">No hay delegaciones vigentes para mostrar.</div>
+{% else %}
+
+    {% if not ausencias_integradas %}
+        <div class="alert alert-warning small" role="alert">
+            Las ausencias (vacaciones y licencias) todavía no están integradas:
+            el objetivo y los puntajes se calculan sin descontarlas y son provisionales.
+        </div>
+    {% endif %}
+
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <p class="text-muted text-uppercase small mb-1">Puntaje promedio</p>
+                    <p class="display-6 fw-bold mb-1">{{ resumen.puntaje_promedio }}%</p>
+                    {% include 'puntaje_equipo/_semaforo.html' with clave=resumen.semaforo etiqueta=resumen.etiqueta_semaforo %}
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <p class="text-muted text-uppercase small mb-1">Objetivo al día de hoy</p>
+                    <p class="display-6 fw-bold mb-1">{{ resumen.objetivo }}%</p>
+                    <p class="small text-muted mb-0">{{ resumen.dias_pasados }} de {{ resumen.dias_periodo }} días hábiles</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <p class="text-muted text-uppercase small mb-1">Ingresos del período</p>
+                    <p class="display-6 fw-bold mb-1">{{ resumen.total_ingresos }}</p>
+                    <p class="small text-muted mb-0">{{ resumen.ingresos_diarios }} ingresos diarios de la delegación</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <p class="text-muted text-uppercase small mb-2">Semáforo del equipo</p>
+                    <ul class="list-unstyled small mb-0">
+                        {% for item in resumen.conteo_semaforo %}
+                            <li class="d-flex justify-content-between">
+                                <span>{% include 'puntaje_equipo/_semaforo.html' with clave=item.clave etiqueta=item.nombre %}</span>
+                                <strong>{{ item.total }}</strong>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-primary text-white d-flex justify-content-between">
+            <h5 class="mb-0">Funcionarios</h5>
+            <span>{{ resumen.filas|length }} funcionario{{ resumen.filas|length|pluralize }}</span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-striped table-hover align-middle mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Funcionario</th>
+                        <th>Cargo</th>
+                        <th class="text-end">Puntaje</th>
+                        <th>Semáforo</th>
+                        <th>Último ingreso</th>
+                        <th class="text-end">Ingresos</th>
+                        <th class="text-end">Promedio diario</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for fila in resumen.filas %}
+                        <tr>
+                            <td>
+                                <span class="fw-semibold">{{ fila.funcionario.usuario.get_full_name|default:fila.funcionario.usuario.username }}</span>
+                            </td>
+                            <td class="small">
+                                {{ fila.cargo.nombre|default:"Sin cargo" }}
+                                {% if fila.ponderacion_incompleta %}
+                                    <div class="text-warning">Las ponderaciones suman {{ fila.ponderacion_total }}%</div>
+                                {% endif %}
+                            </td>
+                            <td class="text-end text-nowrap">
+                                {% if fila.tiene_metas %}
+                                    <strong>{{ fila.puntaje }}%</strong>
+                                    <div class="small text-muted">{{ fila.cantidad_metas }} meta{{ fila.cantidad_metas|pluralize }}</div>
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td>{% include 'puntaje_equipo/_semaforo.html' with clave=fila.semaforo etiqueta=fila.etiqueta_semaforo %}</td>
+                            <td class="small text-nowrap">
+                                {% if fila.ultimo_ingreso %}
+                                    {{ fila.ultimo_ingreso.fecha_ingreso|date:"d-m-Y H:i" }}
+                                    <div class="{% if fila.dias_sin_ingresar > 7 %}text-danger{% else %}text-muted{% endif %}">
+                                        hace {{ fila.dias_sin_ingresar }} día{{ fila.dias_sin_ingresar|pluralize }}
+                                    </div>
+                                {% else %}
+                                    <span class="text-muted">Sin ingresos</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                {{ fila.total_ingresos }}
+                                <div class="small text-muted">{{ fila.ingresos_con_puntaje }} suman</div>
+                            </td>
+                            <td class="text-end">{{ fila.promedio_diario }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-5">
+                                La delegación no tiene funcionarios activos asignados.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card-footer bg-white small text-muted">
+            Semáforo: verde si el puntaje alcanza el objetivo al día; naranjo si llega al 60 % de él; rojo bajo eso.
+            Los funcionarios sin cargo o sin metas en el período no entran al promedio.
+        </div>
+    </div>
+
+{% endif %}
+
+{% endblock %}

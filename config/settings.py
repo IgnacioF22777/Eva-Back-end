@@ -20,7 +20,14 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 # Se controla por variable de entorno y por defecto queda desactivado.
 DEBUG = os.getenv("DEBUG", "False").strip().lower() in ("1", "true", "yes", "on")
 
-ALLOWED_HOSTS = ['44.217.180.71', 'localhost', '127.0.0.1']
+# Dominios o IP desde los que se atiende el sitio, separados por coma. Si la
+# variable no existe se usan la IP elástica actual y el equipo local, así
+# que un servidor ya desplegado sigue funcionando sin cambios.
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.getenv("ALLOWED_HOSTS", "44.217.180.71,localhost,127.0.0.1").split(",")
+    if host.strip()
+]
 
 
 # Application definition
@@ -39,7 +46,11 @@ INSTALLED_APPS = [
     'reportesCiudadanosAPP',
     'sgr_maestrosAPP',
     'seguridadAPP',
+    'organizacionesAPP',
+    'oficinaPartesAPP',
+    'atencionSocialAPP',  # EVA 3: tipos de atención social (RC-05).
     'actividadesAPP',  # EVA 3: registro diario de actividades (R1-R4).
+    'puntajeEquipoAPP',  # EVA 3: pantalla de puntaje del equipo (R10).
 
     # API RESTful (Programación Back End): Django REST Framework,
     # autenticación JWT y documentación OpenAPI (Swagger / ReDoc).
@@ -282,5 +293,10 @@ SPECTACULAR_SETTINGS = {
         {"name": "Catálogo de actividades", "description": "Actividades de Ejecución o Preparatoria (R5)."},
         {"name": "Períodos", "description": "Períodos de medición."},
         {"name": "Metas", "description": "Metas por período y cargo."},
+        {"name": "Avances (transacción T2)", "description": "Registrar, consultar, corregir y anular avances de compromisos."},
+        {"name": "Zonas de riesgo", "description": "Mantenedor de zonas de riesgo por delegación."},
+        {"name": "Contactos de emergencia", "description": "Mantenedor de contactos; teléfono y correo solo para el Administrador."},
+        {"name": "Reportes ciudadanos", "description": "Reportes de vecinos; sus datos personales solo para el Administrador."},
+        {"name": "Derivaciones (transacción)", "description": "Transacción: derivar, modificar, anular y resolver reportes."},
     ],
 }

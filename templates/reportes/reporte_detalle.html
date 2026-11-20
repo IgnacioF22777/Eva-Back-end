@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+
+{% block title %}Reporte N.° {{ reporte.pk }} - SGR{% endblock %}
+
+{% block header %}
+Reporte ciudadano N.° {{ reporte.pk }}
+{% endblock %}
+
+{% block content %}
+
+{% include 'seguridad/_mensajes.html' %}
+
+<div class="row g-4">
+    <div class="col-lg-5">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Datos del reporte</h5>
+                {% if reporte.estado == 'resuelto' %}
+                    <span class="badge bg-success">{{ reporte.get_estado_display }}</span>
+                {% elif reporte.estado == 'derivado' %}
+                    <span class="badge bg-warning text-dark">{{ reporte.get_estado_display }}</span>
+                {% else %}
+                    <span class="badge bg-danger">{{ reporte.get_estado_display }}</span>
+                {% endif %}
+            </div>
+
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5">Delegación</dt>
+                    <dd class="col-sm-7">{{ reporte.delegacion.nombre }}</dd>
+
+                    <dt class="col-sm-5">Tipo</dt>
+                    <dd class="col-sm-7">{{ reporte.get_tipo_display }}</dd>
+
+                    <dt class="col-sm-5">Prioridad</dt>
+                    <dd class="col-sm-7">{{ reporte.get_prioridad_display }}</dd>
+
+                    <dt class="col-sm-5">Ubicación</dt>
+                    <dd class="col-sm-7">{{ reporte.ubicacion }}</dd>
+
+                    <dt class="col-sm-5">Descripción</dt>
+                    <dd class="col-sm-7">{{ reporte.descripcion|linebreaksbr }}</dd>
+
+                    <dt class="col-sm-5">Vecino</dt>
+                    <dd class="col-sm-7">
+                        {{ reporte.nombre_vecino|default:"—" }}
+                        {% if reporte.telefono_vecino %}<div class="small text-muted">{{ reporte.telefono_vecino }}</div>{% endif %}
+                        {% if reporte.email_vecino %}<div class="small text-muted">{{ reporte.email_vecino }}</div>{% endif %}
+                    </dd>
+
+                    <dt class="col-sm-5">Fecha del reporte</dt>
+                    <dd class="col-sm-7">{{ reporte.fecha_reporte|date:"d-m-Y H:i" }}</dd>
+
+                    <dt class="col-sm-5">Derivado a</dt>
+                    <dd class="col-sm-7">
+                        {% if reporte.zona %}
+                            {{ reporte.zona.nombre }}
+                            <div class="small text-muted">{{ reporte.contacto.nombre }} ({{ reporte.contacto.cargo }})</div>
+                        {% else %}
+                            —
+                        {% endif %}
+                    </dd>
+
+                    {% if reporte.fecha_resolucion %}
+                        <dt class="col-sm-5">Resuelto el</dt>
+                        <dd class="col-sm-7">{{ reporte.fecha_resolucion|date:"d-m-Y H:i" }}</dd>
+                    {% endif %}
+                </dl>
+            </div>
+
+            <div class="card-footer bg-white d-flex flex-wrap gap-2">
+                {% if reporte.activo and reporte.estado != 'resuelto' %}
+                    {% if perms.reportesCiudadanosAPP.add_derivacionreporte %}
+                        <a href="{% url 'reportes:reporte_derivar' reporte.pk %}" class="btn btn-primary btn-sm">
+                            {% if vigente %}Rederivar{% else %}Derivar{% endif %}
+                        </a>
+                    {% endif %}
+
+                    {% if reporte.estado == 'derivado' and perms.reportesCiudadanosAPP.change_derivacionreporte %}
+                        <form method="POST" action="{% url 'reportes:reporte_resolver' reporte.pk %}"
+                              onsubmit="return confirm('¿Marcar el reporte como resuelto? Ya no podrá modificarse.');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-success btn-sm">Marcar resuelto</button>
+                        </form>
+                    {% endif %}
+
+                    {% if perms.reportesCiudadanosAPP.change_reporteciudadano %}
+                        <a href="{% url 'reportes:reporte_editar' reporte.pk %}" class="btn btn-warning btn-sm">Editar datos</a>
+                    {% endif %}
+                {% endif %}
+
+                <a href="{% url 'reportes:reporte_lista' %}" class="btn btn-outline-secondary btn-sm">Volver</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-7">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Historial de derivaciones</h5>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-striped align-middle mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Zona / contacto</th>
+                            <th>Registró</th>
+                            <th>Estado</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for derivacion in derivaciones %}
+                            <tr>
+                                <td class="small">{{ derivacion.fecha|date:"d-m-Y H:i" }}</td>
+                                <td>
+                                    {{ derivacion.zona.nombre }}
+                                    <div class="small text-muted">{{ derivacion.contacto.nombre }}</div>
+                                    {% if derivacion.observacion %}
+                                        <div class="small fst-italic">{{ derivacion.observacion }}</div>
+                                    {% endif %}
+                                </td>
+                                <td class="small">{{ derivacion.usuario.get_full_name|default:derivacion.usuario.username }}</td>
+                                <td>
+                                    {% if derivacion.activo %}
+                                        <span class="badge bg-success">Vigente</span>
+                                    {% elif derivacion.anulada %}
+                                        <span class="badge bg-danger">Anulada</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Histórica</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if derivacion.activo and reporte.activo and reporte.estado != 'resuelto' %}
+                                        <div class="d-flex flex-wrap gap-1">
+                                            {% if perms.reportesCiudadanosAPP.change_derivacionreporte %}
+                                                <a href="{% url 'reportes:derivacion_editar' derivacion.pk %}" class="btn btn-outline-warning btn-sm">Modificar</a>
+                                            {% endif %}
+                                            {% if perms.reportesCiudadanosAPP.delete_derivacionreporte %}
+                                                <form method="POST" action="{% url 'reportes:derivacion_anular' derivacion.pk %}"
+                                                      onsubmit="return confirm('¿Anular la derivación? El reporte volverá a quedar pendiente.');">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-outline-danger btn-sm">Anular</button>
+                                                </form>
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-4">
+                                    El reporte aún no ha sido derivado.
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

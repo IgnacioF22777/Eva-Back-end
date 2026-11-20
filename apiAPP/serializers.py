@@ -87,6 +87,40 @@ class ValidacionWebMixin:
 
 
 # ============================================================
+# PROTECCIÓN DE DATOS SENSIBLES POR PERFIL
+# ============================================================
+# Perfil Administrador -> ve todos los campos.
+# Perfil Usuario (Supervisor y Administrativo) -> no recibe los campos
+# definidos como sensibles (teléfonos, correos, coordenadas exactas y
+# datos personales de vecinos o funcionarios). Los campos no se envían
+# vacíos: se quitan de la respuesta JSON.
+
+SOLO_ADMINISTRADOR = " Dato sensible: solo lo recibe el perfil Administrador."
+
+
+class CamposSensiblesMixin:
+    """Quita de la respuesta los `campos_sensibles` si no es Administrador."""
+
+    campos_sensibles = ()
+
+    def ve_datos_sensibles(self):
+        from seguridadAPP.perfiles import ADMINISTRADOR, perfil_de
+
+        request = self.context.get("request")
+        usuario = getattr(request, "user", None)
+        return perfil_de(usuario) == ADMINISTRADOR
+
+    def to_representation(self, instancia):
+        datos = super().to_representation(instancia)
+
+        if not self.ve_datos_sensibles():
+            for campo in self.campos_sensibles:
+                datos.pop(campo, None)
+
+        return datos
+
+
+# ============================================================
 # DELEGACIONES Y SERVICIOS
 # ============================================================
 
