@@ -184,7 +184,18 @@ Historial del compromiso
                             {{ avance.fecha_registro|date:"d-m-Y H:i" }}
                         </td>
                         <td class="text-center fw-semibold">
-                            {{ avance.porcentaje_avance }}%
+                            {% if avance.anulado %}
+                                <s class="text-muted">{{ avance.porcentaje_avance }}%</s>
+                                <div>
+                                    <span class="badge bg-danger"
+                                          title="{{ avance.motivo_anulacion }}">Anulado</span>
+                                </div>
+                                <div class="small text-muted fw-normal">
+                                    {{ avance.motivo_anulacion|truncatechars:60 }}
+                                </div>
+                            {% else %}
+                                {{ avance.porcentaje_avance }}%
+                            {% endif %}
                         </td>
                         <td class="small text-break">{{ avance.evidencia|linebreaksbr }}</td>
                         <td class="small">

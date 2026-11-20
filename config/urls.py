@@ -40,6 +40,11 @@ urlpatterns = [
     # Programación Back End - API RESTful (JWT, Swagger y ReDoc)
     path("api/", include("apiAPP.urls")),
 
+    # Programación Back End - Emergencias territoriales y reportes
+    # ciudadanos (mantenedores y transacción de derivación)
+    path("emergencias/", include("emergenciasTerritorialesAPP.urls")),
+    path("reportes/", include("reportesCiudadanosAPP.urls")),
+
     # Proyecto Integrado EVA 3 - Actividades diarias (R1-R5)
     path("actividades/", include("actividadesAPP.urls")),
 

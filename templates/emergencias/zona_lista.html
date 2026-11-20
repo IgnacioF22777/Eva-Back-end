@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+
+{% block title %}Zonas de riesgo - SGR{% endblock %}
+
+{% block header %}
+Emergencias Territoriales
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+    <div>
+        <h2 class="h4 mb-1">Mantención de Zonas de Riesgo</h2>
+        <p class="text-muted mb-0">
+            Crear, buscar, editar, dar de baja y reactivar zonas de riesgo.
+        </p>
+    </div>
+
+    {% if perms.emergenciasTerritorialesAPP.add_zonariesgo %}
+        <a href="{% url 'emergencias:zona_crear' %}" class="btn btn-primary">
+            + Nueva zona
+        </a>
+    {% endif %}
+</div>
+
+{% include 'seguridad/_mensajes.html' %}
+
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <p class="text-muted text-uppercase small mb-1">Activas</p>
+                <p class="display-6 fw-bold mb-0">{{ total_activas }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-lg-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <p class="text-muted text-uppercase small mb-1">Inactivas</p>
+                <p class="display-6 fw-bold mb-0">{{ total_inactivas }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <form method="GET" class="row g-2 align-items-end">
+                    <div class="col-md-5">
+                        <label class="form-label small fw-semibold" for="q">Buscar</label>
+                        <input type="search" id="q" name="q" value="{{ busqueda }}"
+                               class="form-control"
+                               placeholder="Nombre, riesgo o delegación">
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label small fw-semibold" for="nivel">Peligro</label>
+                        <select id="nivel" name="nivel" class="form-select">
+                            <option value="">Todos</option>
+                            {% for valor, etiqueta in niveles %}
+                                <option value="{{ valor }}" {% if nivel == valor %}selected{% endif %}>
+                                    {{ etiqueta }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-2">
+                        <label class="form-label small fw-semibold" for="estado">Estado</label>
+                        <select id="estado" name="estado" class="form-select">
+                            <option value="activos" {% if estado == 'activos' %}selected{% endif %}>Activas</option>
+                            <option value="inactivos" {% if estado == 'inactivos' %}selected{% endif %}>Inactivas</option>
+                            <option value="todos" {% if estado == 'todos' %}selected{% endif %}>Todas</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-2 d-grid">
+                        <button type="submit" class="btn btn-primary">Buscar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">Listado de zonas de riesgo</h5>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-striped table-hover align-middle mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th>Zona</th>
+                    <th>Delegación</th>
+                    <th>Peligro</th>
+                    <th class="text-center">Contactos</th>
+                    <th class="text-center">Reportes</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for zona in zonas %}
+                    <tr>
+                        <td>
+                            <span class="fw-semibold">{{ zona.nombre }}</span>
+                            <div class="small text-muted">{{ zona.descripcion_riesgo|truncatechars:80 }}</div>
+                        </td>
+
+                        <td>{{ zona.delegacion.nombre }}</td>
+
+                        <td>
+                            {% if zona.nivel_peligro == 'critico' %}
+                                <span class="badge bg-danger">{{ zona.get_nivel_peligro_display }}</span>
+                            {% elif zona.nivel_peligro == 'alto' %}
+                                <span class="badge bg-warning text-dark">{{ zona.get_nivel_peligro_display }}</span>
+                            {% elif zona.nivel_peligro == 'medio' %}
+                                <span class="badge bg-info text-dark">{{ zona.get_nivel_peligro_display }}</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ zona.get_nivel_peligro_display }}</span>
+                            {% endif %}
+                        </td>
+
+                        <td class="text-center">
+                            <span class="badge bg-primary rounded-pill">{{ zona.total_contactos }}</span>
+                        </td>
+
+                        <td class="text-center">
+                            <span class="badge bg-secondary rounded-pill">{{ zona.total_reportes }}</span>
+                        </td>
+
+                        <td>
+                            {% if zona.activo %}
+                                <span class="badge bg-success">Activa</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Inactiva</span>
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            <div class="d-flex flex-wrap gap-2">
+                                {% if perms.emergenciasTerritorialesAPP.change_zonariesgo %}
+                                    <a href="{% url 'emergencias:zona_editar' zona.pk %}"
+                                       class="btn btn-warning btn-sm">Editar</a>
+                                {% endif %}
+
+                                {% if perms.emergenciasTerritorialesAPP.delete_zonariesgo %}
+                                    <form method="POST"
+                                          action="{% url 'emergencias:zona_cambiar_estado' zona.pk %}"
+                                          onsubmit="return confirm('{% if zona.activo %}¿Dar de baja esta zona? Se conservará el registro.{% else %}¿Reactivar esta zona?{% endif %}');">
+                                        {% csrf_token %}
+                                        {% if zona.activo %}
+                                            <button type="submit" class="btn btn-outline-danger btn-sm">Dar de baja</button>
+                                        {% else %}
+                                            <button type="submit" class="btn btn-outline-success btn-sm">Reactivar</button>
+                                        {% endif %}
+                                    </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-5">
+                            <h5>No se encontraron zonas de riesgo</h5>
+                            <p class="mb-0">Ajuste la búsqueda o registre una nueva zona.</p>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

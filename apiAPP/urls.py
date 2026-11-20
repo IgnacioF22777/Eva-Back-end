@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import include, path
 from drf_spectacular.views import (
     SpectacularAPIView,
     SpectacularRedocView,
@@ -100,6 +100,14 @@ urlpatterns = [
         views.meta_reactivar,
         name="api_meta_reactivar",
     ),
+
+    # Transacción T2: registro de avance de compromisos
+    path("", include("tubo_gestionAPP.api_urls")),
+
+    # Emergencias territoriales y reportes ciudadanos: las rutas viven en
+    # sus propias apps (mantenedores y transacción de derivación).
+    path("", include("emergenciasTerritorialesAPP.api_urls")),
+    path("", include("reportesCiudadanosAPP.api_urls")),
 
     # Documentación OpenAPI
     path("schema/", SpectacularAPIView.as_view(), name="schema"),
