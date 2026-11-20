@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
+from django.core.exceptions import PermissionDenied
 from django.db import IntegrityError
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
@@ -7,8 +8,40 @@ from django.views.decorators.http import require_POST
 
 from config import exportar
 
+from tubo_gestionAPP.ambito import delegacion_id_de, es_global
+
 from .forms import DelegacionForm, ServicioForm
 from .models import Delegacion, Servicio
+
+
+# ============================================================
+# ÁMBITO: QUIÉN PUEDE MODIFICAR DELEGACIONES Y SERVICIOS
+# ============================================================
+# Las delegaciones son la base territorial de todo el sistema: solo el
+# Administrador las crea, edita o da de baja. El Supervisor administra
+# los servicios únicamente de su propia delegación. Se verifica en el
+# servidor aunque el permiso exista, para que no dependa del menú.
+
+SOLO_ADMINISTRADOR = (
+    "Solo el Administrador puede crear, editar o dar de baja delegaciones."
+)
+
+FUERA_DE_SU_DELEGACION = (
+    "Solo puede administrar los servicios de su propia delegación."
+)
+
+
+def exigir_administrador(usuario):
+    if not es_global(usuario):
+        raise PermissionDenied(SOLO_ADMINISTRADOR)
+
+
+def exigir_ambito_servicio(usuario, delegacion):
+    if es_global(usuario):
+        return
+
+    if delegacion_id_de(usuario) != delegacion.pk:
+        raise PermissionDenied(FUERA_DE_SU_DELEGACION)
 
 
 # ============================================================
@@ -70,6 +103,8 @@ def delegacion_lista(request):
 @login_required
 @permission_required("delegacionesAPP.add_delegacion", raise_exception=True)
 def delegacion_crear(request):
+    exigir_administrador(request.user)
+
     if request.method == "POST":
         form = DelegacionForm(request.POST)
 
@@ -122,6 +157,7 @@ def delegacion_crear(request):
 @login_required
 @permission_required("delegacionesAPP.change_delegacion", raise_exception=True)
 def delegacion_editar(request, pk):
+    exigir_administrador(request.user)
     delegacion = get_object_or_404(Delegacion, pk=pk)
 
     if request.method == "POST":
@@ -154,6 +190,7 @@ def delegacion_editar(request, pk):
 @permission_required("delegacionesAPP.delete_delegacion", raise_exception=True)
 @require_POST
 def delegacion_cambiar_estado(request, pk):
+    exigir_administrador(request.user)
     delegacion = get_object_or_404(Delegacion, pk=pk)
 
     if delegacion.activo:
@@ -238,6 +275,7 @@ def delegacion_detalle(request, pk):
 @permission_required("delegacionesAPP.add_servicio", raise_exception=True)
 def servicio_crear(request, delegacion_pk):
     delegacion = get_object_or_404(Delegacion, pk=delegacion_pk)
+    exigir_ambito_servicio(request.user, delegacion)
 
     if not delegacion.activo:
         messages.error(
@@ -313,6 +351,7 @@ def servicio_editar(request, pk):
         pk=pk,
     )
     delegacion = servicio.delegacion
+    exigir_ambito_servicio(request.user, delegacion)
 
     if request.method == "POST":
         form = ServicioForm(
@@ -360,6 +399,7 @@ def servicio_cambiar_estado(request, pk):
         Servicio.objects.select_related("delegacion"),
         pk=pk,
     )
+    exigir_ambito_servicio(request.user, servicio.delegacion)
 
     if servicio.activo:
         # Un servicio con compromisos activos no puede darse de baja:

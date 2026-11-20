@@ -495,7 +495,7 @@ Con todas las ramas de la Evaluación 3 integradas (rama
 `integracion/eva3`, 20-11-2026) se ejecutaron **586 pruebas con resultado
 OK** de esta forma y también sobre MariaDB en la EC2. Con la verificación,
 el tubo, el dashboard, la contraseña temporal y los datos demo la batería
-sube a **629 pruebas OK** (archivos nuevos: `actividadesAPP/test_verificacion_tubo.py`,
+sube a **637 pruebas OK** junto con los cambios de seguridad de `main` (archivos nuevos: `actividadesAPP/test_verificacion_tubo.py`,
 `seguridadAPP/test_password_temporal.py`, `puntajeEquipoAPP/test_dashboard.py`
 y `puntajeEquipoAPP/test_datos_demo.py`). El detalle por archivo de la tabla
 siguiente corresponde a `main` antes de la integración.
