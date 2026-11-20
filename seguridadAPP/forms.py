@@ -372,13 +372,18 @@ class UsuarioForm(forms.ModelForm):
             usuario.save()
             usuario.groups.set(self.cleaned_data["groups"])
 
+            datos_perfil = {
+                "rut": self.cleaned_data["rut"],
+                "delegacion": self.cleaned_data.get("delegacion"),
+                "cargo": self.cleaned_data.get("cargo"),
+            }
+            if self.es_nuevo:
+                # La contraseña que define el administrador es temporal.
+                datos_perfil["debe_cambiar_password"] = True
+
             PerfilUsuario.objects.update_or_create(
                 usuario=usuario,
-                defaults={
-                    "rut": self.cleaned_data["rut"],
-                    "delegacion": self.cleaned_data.get("delegacion"),
-                    "cargo": self.cleaned_data.get("cargo"),
-                }
+                defaults=datos_perfil,
             )
 
         return usuario

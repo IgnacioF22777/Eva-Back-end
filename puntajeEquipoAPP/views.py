@@ -82,6 +82,6 @@ def puntaje_equipo(request):
             "delegaciones": Delegacion.objects.filter(activo=True) if es_global(request.user) else None,
             "resumen": resumen,
             "fecha_actual": hoy,
-            "ausencias_integradas": False,
+            "ausencias_integradas": True,
         },
     )

@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard de la delegación - SGR{% endblock %}
+
+{% block header %}Dashboard de la delegación{% endblock %}
+
+{% block content %}
+
+<style>
+    .graf-barra-fondo { background: #f1f3f5; border-radius: .375rem; height: 1.6rem; position: relative; overflow: hidden; }
+    .graf-barra { height: 100%; border-radius: .375rem; }
+    .graf-objetivo { position: absolute; top: -4px; bottom: -4px; border-left: 2px dashed #212529; }
+    .graf-dona { width: 150px; height: 150px; border-radius: 50%; position: relative; flex-shrink: 0; }
+    .graf-dona::after { content: ""; position: absolute; inset: 28px; background: var(--bs-body-bg, #fff); border-radius: 50%; }
+    .graf-dona span { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 1; font-weight: 700; font-size: 1.4rem; }
+    .graf-punto { display: inline-block; width: .8rem; height: .8rem; border-radius: 2px; margin-right: .35rem; vertical-align: middle; }
+    .graf-columnas { display: flex; align-items: flex-end; gap: .5rem; height: 180px; border-bottom: 1px solid #ced4da; }
+    .graf-columna { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%; position: relative; }
+    .graf-columna .total { background: #f3b6c0; width: 100%; border-radius: .25rem .25rem 0 0; position: relative; }
+    .graf-columna .aprobados { background: #C41230; width: 100%; position: absolute; bottom: 0; border-radius: .25rem .25rem 0 0; }
+    .graf-tramos { display: flex; height: 1.4rem; border-radius: .375rem; overflow: hidden; background: #f1f3f5; }
+</style>
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+        <h2 class="h4 mb-1">Dashboard {{ delegacion.nombre|default:"" }}</h2>
+        <p class="text-muted mb-0">
+            Avance, cumplimiento, verificación, carga de trabajo y tendencias del equipo.
+            {% if periodo %}Período {{ periodo.codigo }} ({{ periodo.fecha_inicio|date:"d/m/Y" }} – {{ periodo.fecha_fin|date:"d/m/Y" }}).{% endif %}
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        <a class="btn btn-outline-primary" href="{% url 'puntaje_equipo:equipo' %}{% if periodo %}?periodo={{ periodo.pk }}{% endif %}">Tabla del equipo</a>
+        <a class="btn btn-outline-primary" href="{% url 'actividades:verificacion' %}">Verificar registros</a>
+    </div>
+</div>
+
+{% if not periodo %}
+    <div class="alert alert-info">Aún no hay un período iniciado. Cree uno en «Gestión de Períodos».</div>
+{% elif not delegacion %}
+    <div class="alert alert-info">No hay delegaciones vigentes para mostrar.</div>
+{% else %}
+
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-2 align-items-end">
+            {% if delegaciones %}
+            <div class="col-md-3">
+                <label class="form-label small" for="d-delegacion">Delegación</label>
+                <select id="d-delegacion" name="delegacion" class="form-select">
+                    {% for d in delegaciones %}
+                    <option value="{{ d.pk }}" {% if delegacion.pk == d.pk %}selected{% endif %}>{{ d.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            <div class="col-md-2">
+                <label class="form-label small" for="d-periodo">Período</label>
+                <select id="d-periodo" name="periodo" class="form-select">
+                    {% for p in periodos %}
+                    <option value="{{ p.pk }}" {% if periodo.pk == p.pk %}selected{% endif %}>{{ p.codigo }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small" for="d-funcionario">Funcionario</label>
+                <select id="d-funcionario" name="funcionario" class="form-select">
+                    <option value="">Todo el equipo</option>
+                    {% for f in funcionarios %}
+                    <option value="{{ f.pk }}" {% if funcionario_id == f.pk %}selected{% endif %}>{{ f.usuario.get_full_name|default:f.usuario.username }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small" for="d-desde">Desde</label>
+                <input id="d-desde" type="date" name="desde" class="form-control" value="{{ desde|date:'Y-m-d' }}">
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small" for="d-hasta">Hasta</label>
+                <input id="d-hasta" type="date" name="hasta" class="form-control" value="{{ hasta|date:'Y-m-d' }}">
+            </div>
+            <div class="col-md-2"><button class="btn btn-primary w-100">Aplicar filtros</button></div>
+        </form>
+    </div>
+</div>
+
+<!-- INDICADORES -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3"><div class="card border-0 shadow-sm h-100"><div class="card-body">
+        <p class="text-muted text-uppercase small mb-1">Puntaje promedio</p>
+        <p class="display-6 fw-bold mb-1">{{ kpi.puntaje_promedio }}%</p>
+        {% include 'puntaje_equipo/_semaforo.html' with clave=resumen.semaforo etiqueta=resumen.etiqueta_semaforo %}
+        <span class="small text-muted">Objetivo al día: {{ kpi.objetivo }}%</span>
+    </div></div></div>
+    <div class="col-6 col-lg-3"><div class="card border-0 shadow-sm h-100"><div class="card-body">
+        <p class="text-muted text-uppercase small mb-1">Registros del rango</p>
+        <p class="display-6 fw-bold mb-1">{{ kpi.registros }}</p>
+        <span class="small text-muted">{{ desde|date:"d/m" }} al {{ hasta|date:"d/m/Y" }}</span>
+    </div></div></div>
+    <div class="col-6 col-lg-3"><div class="card border-0 shadow-sm h-100"><div class="card-body">
+        <p class="text-muted text-uppercase small mb-1">Aprobados</p>
+        <p class="display-6 fw-bold mb-1 text-success">{{ kpi.pct_aprobados }}%</p>
+        <span class="small text-muted">{{ kpi.aprobados }} registros suman a la meta</span>
+    </div></div></div>
+    <div class="col-6 col-lg-3"><div class="card border-0 shadow-sm h-100"><div class="card-body">
+        <p class="text-muted text-uppercase small mb-1">Pendientes de verificar</p>
+        <p class="display-6 fw-bold mb-1 {% if kpi.pendientes %}text-danger{% endif %}">{{ kpi.pendientes }}</p>
+        <a class="small" href="{% url 'actividades:verificacion' %}">Ir a verificación</a>
+    </div></div></div>
+</div>
+
+<div class="row g-4">
+
+    <!-- CUMPLIMIENTO POR FUNCIONARIO -->
+    <div class="col-lg-7">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white">
+                <h3 class="h6 mb-0">Cumplimiento por funcionario (semáforo)</h3>
+                <span class="small text-muted">La línea punteada marca el objetivo al día ({{ resumen.objetivo }}%). Tope 120 %.</span>
+            </div>
+            <div class="card-body">
+                {% for barra in barras_cumplimiento %}
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between small">
+                        <span><strong>{{ barra.nombre }}</strong> <span class="text-muted">· {{ barra.cargo }}</span></span>
+                        <span>{{ barra.puntaje }}% {% include 'puntaje_equipo/_semaforo.html' with clave=barra.semaforo etiqueta=barra.etiqueta %}</span>
+                    </div>
+                    <div class="graf-barra-fondo" role="img" aria-label="{{ barra.nombre }}: {{ barra.puntaje }} por ciento, {{ barra.etiqueta }}">
+                        <div class="graf-barra" style="width: {{ barra.ancho|floatformat:'1u' }}%; background: {{ barra.color }};"></div>
+                        <div class="graf-objetivo" style="left: {{ posicion_objetivo|floatformat:'1u' }}%;"></div>
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-muted mb-0">No hay funcionarios activos en la delegación.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- ESTADO DE VERIFICACIÓN -->
+    <div class="col-lg-5">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white">
+                <h3 class="h6 mb-0">Estado de verificación de los registros</h3>
+            </div>
+            <div class="card-body d-flex flex-wrap align-items-center gap-4">
+                <div class="graf-dona" style="background: conic-gradient({{ verificacion.gradiente }});"
+                     role="img" aria-label="{{ verificacion.total }} registros por estado de verificación">
+                    <span>{{ verificacion.total }}</span>
+                </div>
+                <ul class="list-unstyled small mb-0">
+                    {% for item in verificacion.leyenda %}
+                    <li class="mb-1"><span class="graf-punto" style="background: {{ item.color }};"></span>{{ item.nombre }}: <strong>{{ item.total }}</strong> ({{ item.pct }}%)</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- TENDENCIA SEMANAL -->
+    <div class="col-lg-7">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white">
+                <h3 class="h6 mb-0">Tendencia semanal de registros</h3>
+                <span class="small text-muted">
+                    <span class="graf-punto" style="background:#f3b6c0;"></span>Total
+                    <span class="graf-punto ms-2" style="background:#C41230;"></span>Aprobados
+                </span>
+            </div>
+            <div class="card-body">
+                <div class="graf-columnas" role="img" aria-label="Registros por semana">
+                    {% for c in tendencia %}
+                    <div class="graf-columna" title="Semana del {{ c.lunes|date:'d/m' }}: {{ c.total }} registros, {{ c.aprobados }} aprobados">
+                        <span class="small fw-semibold">{{ c.total }}</span>
+                        <div class="total" style="height: {{ c.alto|floatformat:'1u' }}%;">
+                            <div class="aprobados" style="height: {% if c.total %}{% widthratio c.aprobados c.total 100 %}{% else %}0{% endif %}%;"></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="d-flex gap-2 mt-1">
+                    {% for c in tendencia %}<div class="flex-fill text-center small text-muted">{{ c.lunes|date:"d/m" }}</div>{% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TUBO -->
+    <div class="col-lg-5">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white">
+                <h3 class="h6 mb-0">Tubo de seguimiento</h3>
+                <span class="small text-muted">Soluciones: <strong>{{ tubo.soluciones }}%</strong> (meta 80 %) · Emergencias: {{ tubo.emergencias }}</span>
+            </div>
+            <div class="card-body d-flex flex-wrap align-items-center gap-4">
+                <div class="graf-dona" style="background: conic-gradient({{ tubo.gradiente }});"
+                     role="img" aria-label="{{ tubo.total }} ingresos al tubo por estado">
+                    <span>{{ tubo.total }}</span>
+                </div>
+                <ul class="list-unstyled small mb-0">
+                    {% for item in tubo.leyenda %}
+                    <li class="mb-1"><span class="graf-punto" style="background: {{ item.color }};"></span>{{ item.nombre }}: <strong>{{ item.total }}</strong> ({{ item.pct }}%)</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- CARGA DE TRABAJO -->
+    <div class="col-lg-7">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white">
+                <h3 class="h6 mb-0">Carga de trabajo por funcionario</h3>
+                <span class="small text-muted">Registros del rango, por estado de verificación.</span>
+            </div>
+            <div class="card-body">
+                {% for barra in barras_carga %}
+                <div class="mb-2">
+                    <div class="d-flex justify-content-between small"><strong>{{ barra.nombre }}</strong><span>{{ barra.total }} registros</span></div>
+                    <div class="graf-tramos" role="img" aria-label="{{ barra.nombre }}: {{ barra.total }} registros">
+                        {% for tramo in barra.tramos %}
+                        <div style="width: {{ tramo.ancho|floatformat:'1u' }}%; background: {{ tramo.color }};" title="{{ tramo.nombre }}: {{ tramo.total }}"></div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+                <div class="small text-muted mt-2">
+                    <span class="graf-punto" style="background:#198754;"></span>Aprobada
+                    <span class="graf-punto ms-2" style="background:#6c757d;"></span>Pendiente
+                    <span class="graf-punto ms-2" style="background:#ffc107;"></span>Más antecedentes
+                    <span class="graf-punto ms-2" style="background:#C41230;"></span>Rechazada
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- COMPROMISOS -->
+    <div class="col-lg-5">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white">
+                <h3 class="h6 mb-0">Estado de los compromisos de la delegación</h3>
+            </div>
+            <div class="card-body d-flex flex-wrap align-items-center gap-4">
+                <div class="graf-dona" style="background: conic-gradient({{ compromisos.gradiente }});"
+                     role="img" aria-label="{{ compromisos.total }} compromisos por semáforo">
+                    <span>{{ compromisos.total }}</span>
+                </div>
+                <ul class="list-unstyled small mb-0">
+                    {% for item in compromisos.leyenda %}
+                    <li class="mb-1"><span class="graf-punto" style="background: {{ item.color }};"></span>{{ item.nombre }}: <strong>{{ item.total }}</strong> ({{ item.pct }}%)</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,9 @@
+{% if registro.estado_verificacion == "APROBADA" %}
+    <span class="badge bg-success">Aprobada</span>
+{% elif registro.estado_verificacion == "RECHAZADA" %}
+    <span class="badge bg-danger">Rechazada</span>
+{% elif registro.estado_verificacion == "ANTECEDENTES" %}
+    <span class="badge bg-warning text-dark">Más antecedentes</span>
+{% else %}
+    <span class="badge bg-secondary">Pendiente</span>
+{% endif %}

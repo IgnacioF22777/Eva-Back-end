@@ -125,6 +125,13 @@ class PerfilUsuario(models.Model):
         verbose_name="Cargo"
     )
 
+    # Contraseña temporal: la cuenta creada (o restablecida) por el
+    # administrador debe cambiar su contraseña en el primer ingreso.
+    debe_cambiar_password = models.BooleanField(
+        default=False,
+        verbose_name="Debe cambiar la contraseña en el próximo ingreso",
+    )
+
     class Meta:
         verbose_name = "Perfil de usuario"
         verbose_name_plural = "Perfiles de usuario"

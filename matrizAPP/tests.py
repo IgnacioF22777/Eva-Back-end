@@ -428,7 +428,13 @@ class PruebasPantallas(Base):
                 if esperado == 200:
                     self.assertIn("attachment", respuesta["Content-Disposition"])
                     self.assertIn("captura.png", respuesta["Content-Disposition"])
-                    respuesta.close()
+                    # Se consume el archivo en vez de llamar a respuesta.close():
+                    # close() emite request_finished y Django cierra la conexión
+                    # a la base en medio de la transacción de la prueba (en
+                    # MariaDB provoca el error 2006; SQLite en memoria lo ignora).
+                    # Al recorrer streaming_content el cliente de pruebas cierra
+                    # el archivo sin tocar la conexión.
+                    self.assertTrue(b"".join(respuesta.streaming_content))
 
     def test_CP_AJU_008_delegado_registra_felicitacion(self):
         """CP-AJU-008: el delegado registra una felicitación con respaldo; se guarda el nombre original."""

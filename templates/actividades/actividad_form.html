@@ -36,10 +36,26 @@
                             la actividad no suma puntaje.</li>
                         <li>Las gestiones del delegado no generan puntaje.</li>
                         <li>Las actividades preparatorias no suman puntos.</li>
+                        <li>Solo suman a la meta los registros
+                            <strong>aprobados</strong> por el delegado;
+                            un registro aprobado ya no se puede modificar.</li>
                     </ul>
                 </div>
 
-                <form method="POST" novalidate>
+                {% if registro and registro.estado_verificacion != "PENDIENTE" %}
+                <div class="alert alert-warning">
+                    <strong>{{ registro.get_estado_verificacion_display }}</strong>
+                    {% if registro.verificado_por %}
+                        por {{ registro.verificado_por.get_full_name|default:registro.verificado_por.username }}
+                    {% endif %}:
+                    {{ registro.observacion_verificacion }}
+                    <div class="small mt-1">
+                        Al guardar los cambios el registro vuelve a quedar pendiente de revisión.
+                    </div>
+                </div>
+                {% endif %}
+
+                <form method="POST" enctype="multipart/form-data" novalidate>
                     {% csrf_token %}
 
                     {% if form.non_field_errors %}
@@ -51,6 +67,20 @@
                     {% endif %}
 
                     {% for campo in form %}
+                    {% if campo.widget_type == "checkbox" %}
+                    <div class="form-check mb-3">
+                        {{ campo }}
+                        <label for="{{ campo.id_for_label }}" class="form-check-label fw-semibold">
+                            {{ campo.label }}
+                        </label>
+                        {% if campo.help_text %}
+                        <div class="form-text">{{ campo.help_text }}</div>
+                        {% endif %}
+                        {% for error in campo.errors %}
+                        <div class="text-danger small mt-1">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
                     <div class="mb-3">
 
                         <label for="{{ campo.id_for_label }}"
@@ -79,6 +109,7 @@
                         {% endfor %}
 
                     </div>
+                    {% endif %}
                     {% endfor %}
 
                     <div class="alert alert-warning small">
@@ -86,7 +117,8 @@
                         Las actividades sin datos completos
                         pueden guardarse, pero no generan puntaje.
                         El funcionario y la fecha de ingreso
-                        se asignan automáticamente desde el servidor.
+                        se asignan automáticamente desde el servidor,
+                        igual que el código del registro (ACT-AAAA-000000).
                     </div>
 
                     <hr>

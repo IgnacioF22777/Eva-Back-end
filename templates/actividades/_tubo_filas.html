@@ -1,0 +1,59 @@
+{% for registro in registros %}
+<tr>
+    <td class="small fw-semibold text-nowrap">
+        {{ registro.codigo }}
+        <div class="text-muted fw-normal">{{ registro.fecha_actividad|date:"d/m/Y" }}</div>
+        {% if registro.es_emergencia %}<span class="badge bg-danger">Emergencia</span>{% endif %}
+    </td>
+    <td class="small">
+        <strong>{{ registro.nombre_usuario|default:"Sin nombre" }}</strong>
+        <div class="text-muted">
+            {{ registro.rut_usuario|default:"Sin RUT" }} · {{ registro.telefono_usuario|default:"Sin teléfono" }}
+        </div>
+    </td>
+    <td class="small">
+        {{ registro.actividad.nombre }}
+        {% if registro.detalle %}<div class="text-muted">{{ registro.detalle|truncatechars:110 }}</div>{% endif %}
+    </td>
+    <td class="small">
+        {{ registro.funcionario.usuario.get_full_name }}
+        <div class="text-muted">{{ registro.funcionario.delegacion.nombre|default:"" }}</div>
+    </td>
+    <td class="small">
+        {% if registro.estado_tubo == "SOLUCIONADO" %}
+            <span class="badge bg-success">Solucionado</span>
+            <div class="text-muted">{{ registro.fecha_solucion|date:"d/m/Y" }}</div>
+        {% elif registro.estado_tubo == "DERIVADO" %}
+            <span class="badge bg-info text-dark">Derivado</span>
+        {% elif registro.estado_tubo == "NO_APLICA" %}
+            <span class="badge bg-secondary">No aplica</span>
+        {% else %}
+            <span class="badge bg-warning text-dark">En proceso</span>
+        {% endif %}
+    </td>
+    <td class="small">{% include "actividades/_badge_verificacion.html" %}</td>
+    <td>
+        {% if registro.funcionario_id == mi_perfil_id and not registro.esta_aprobado and perms.actividadesAPP.change_registroactividad %}
+        <form method="POST" action="{% url 'actividades:tubo_estado' registro.pk %}" class="d-flex gap-1">
+            {% csrf_token %}
+            <input type="hidden" name="siguiente" value="{{ request.get_full_path }}">
+            <label class="visually-hidden" for="tubo-{{ registro.pk }}">Estado del tubo</label>
+            <select id="tubo-{{ registro.pk }}" name="estado_tubo" class="form-select form-select-sm">
+                {% for clave, nombre in estados %}
+                <option value="{{ clave }}" {% if registro.estado_tubo == clave %}selected{% endif %}>{{ nombre }}</option>
+                {% endfor %}
+            </select>
+            <button class="btn btn-sm btn-outline-primary">Guardar</button>
+        </form>
+        {% elif registro.esta_aprobado %}
+            <span class="small text-muted">Aprobado: sin cambios</span>
+        {% else %}
+            <span class="small text-muted">Solo lectura</span>
+        {% endif %}
+    </td>
+</tr>
+{% empty %}
+<tr>
+    <td colspan="7" class="text-center text-muted py-4">No hay ingresos al tubo con esos criterios.</td>
+</tr>
+{% endfor %}

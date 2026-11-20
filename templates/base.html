@@ -86,13 +86,23 @@
                             </a>
                         </li>
 
-                        <!-- EVA 3: REGISTRO DIARIO DE ACTIVIDADES -->
+                        <!-- EVA 3: ACTIVIDADES, TUBO, VERIFICACIÓN Y DASHBOARD -->
                         {% if perms.actividadesAPP.view_registroactividad %}
-                            <li class="nav-item">
-                                <a class="nav-link"
-                                   href="{% url 'actividades:lista' %}">
-                                    Mis Actividades
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="menuActividades"
+                                   role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Actividades
                                 </a>
+                                <ul class="dropdown-menu" aria-labelledby="menuActividades">
+                                    <li><a class="dropdown-item" href="{% url 'actividades:lista' %}">Mis actividades</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'actividades:matriz' %}">Mi matriz</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'actividades:tubo' %}">Tubo de seguimiento</a></li>
+                                    {% if perms.actividadesAPP.verificar_registroactividad %}
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="{% url 'actividades:verificacion' %}">Verificación de actividades</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'puntaje_equipo:dashboard' %}">Dashboard de la delegación</a></li>
+                                    {% endif %}
+                                </ul>
                             </li>
                         {% endif %}
 

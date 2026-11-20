@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import get_user_model
+from django.contrib.auth import get_user_model, update_session_auth_hash
+from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth.models import Group
 from django.contrib.auth.views import (
@@ -43,7 +44,7 @@ from .forms import (
     RestablecerPasswordForm,
     RolForm,
 )
-from .models import Cargo, normalizar_rut
+from .models import Cargo, PerfilUsuario, normalizar_rut
 
 
 User = get_user_model()
@@ -347,9 +348,14 @@ def usuario_password(request, pk):
 
         if form.is_valid():
             form.save()
+            # La contraseña que entrega el administrador es temporal.
+            PerfilUsuario.objects.filter(usuario=usuario).update(
+                debe_cambiar_password=True
+            )
             messages.success(
                 request,
-                "Contraseña restablecida correctamente."
+                "Contraseña temporal asignada: el usuario deberá "
+                "cambiarla en su próximo ingreso."
             )
             return redirect("seguridad:usuario_lista")
     else:
@@ -880,4 +886,50 @@ def panel_administrativo(request):
         request,
         "seguridad/panel_administrativo.html",
         contexto
+    )
+
+
+# ============================================================
+# CAMBIO DE CONTRASEÑA (OBLIGATORIO EN EL PRIMER INGRESO)
+# ============================================================
+
+@login_required
+def cambiar_password(request):
+    """
+    Cambio de contraseña del propio usuario. Si su contraseña es temporal,
+    el middleware CambioPasswordObligatorioMiddleware lo trae aquí y no le
+    deja usar el sistema hasta que la cambie.
+    """
+    perfil = PerfilUsuario.objects.filter(usuario=request.user).first()
+    obligatorio = bool(perfil and perfil.debe_cambiar_password)
+
+    if request.method == "POST":
+        form = PasswordChangeForm(request.user, request.POST)
+        for campo in form.fields.values():
+            campo.widget.attrs.setdefault("class", "form-control")
+
+        if form.is_valid():
+            usuario = form.save()
+            update_session_auth_hash(request, usuario)
+            if perfil:
+                PerfilUsuario.objects.filter(pk=perfil.pk).update(
+                    debe_cambiar_password=False
+                )
+            messages.success(request, "Contraseña actualizada correctamente.")
+            return redirect("inicio")
+    else:
+        form = PasswordChangeForm(request.user)
+        for campo in form.fields.values():
+            campo.widget.attrs.setdefault("class", "form-control")
+
+    form.fields["old_password"].label = (
+        "Contraseña temporal" if obligatorio else "Contraseña actual"
+    )
+    form.fields["new_password1"].label = "Nueva contraseña"
+    form.fields["new_password2"].label = "Confirmar nueva contraseña"
+
+    return render(
+        request,
+        "seguridad/cambiar_password.html",
+        {"form": form, "obligatorio": obligatorio},
     )

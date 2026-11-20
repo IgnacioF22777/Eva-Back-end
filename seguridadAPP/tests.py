@@ -134,7 +134,8 @@ class PruebasSeguridad(TestCase):
     def test_logout(self):
         self.client.force_login(self.funcionario)
         respuesta = self.client.post(reverse("seguridad:logout"))
-        self.assertRedirects(respuesta, reverse("seguridad:login"))
+        # Al cerrar sesión se vuelve a la portada pública de la Municipalidad.
+        self.assertRedirects(respuesta, reverse("inicio"))
         self.assertNotIn("_auth_user_id", self.client.session)
 
     # --- CONTROL DE ACCESO (RBAC) ---
@@ -516,6 +517,23 @@ class PruebasPerfilesYPaneles(TestCase):
         respuesta = self.client.get(reverse("seguridad:panel_administrador"))
         self.assertEqual(respuesta.status_code, 200)
 
+    def test_portada_institucional_es_publica(self):
+        """La portada se ve sin sesión, solo con datos públicos y botón de ingreso."""
+        from delegacionesAPP.models import Delegacion
+
+        Delegacion.objects.create(
+            nombre="Delegación Centro", direccion="Av. Principal 123", encargado="Encargado Centro",
+            email="centro@laserena.cl", telefono="512345678", celular="912345678",
+        )
+        respuesta = self.client.get(reverse("inicio"))
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, "Municipalidad de La Serena")
+        self.assertContains(respuesta, "Delegación Centro")
+        self.assertContains(respuesta, reverse("seguridad:login"))
+        # Datos de contacto y enlaces internos no se muestran a visitantes.
+        self.assertNotContains(respuesta, "centro@laserena.cl")
+        self.assertNotContains(respuesta, 'href="%s"' % reverse("lista"))
+
     def test_vistas_operativas_requieren_sesion(self):
         from delegacionesAPP.models import Delegacion
 
@@ -529,7 +547,6 @@ class PruebasPerfilesYPaneles(TestCase):
         )
 
         urls_privadas = [
-            reverse("inicio"),
             reverse("lista"),
             reverse("tablero_metas"),
             reverse("seguridad:usuario_lista"),
