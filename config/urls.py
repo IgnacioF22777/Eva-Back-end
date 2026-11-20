@@ -21,6 +21,10 @@ urlpatterns = [
     # Proyecto Integrado - CRUD de tablas maestras
     path("maestros/", include("sgr_maestrosAPP.urls")),
 
+    # Proyecto Integrado (Eva 3) - Matriz SGR: ausencias, felicitaciones
+    # y reclamos (Camilo)
+    path("matriz/", include("matrizAPP.urls")),
+
     # Proyecto Integrado - Seguridad: login, usuarios y roles
     path("seguridad/", include("seguridadAPP.urls")),
 

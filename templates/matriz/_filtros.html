@@ -1,0 +1,36 @@
+<div class="card shadow-sm border-0 mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label small fw-semibold" for="q">Buscar</label>
+                <input type="search" id="q" name="q" value="{{ busqueda }}"
+                       class="form-control" placeholder="Nombre o RUT del funcionario">
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label small fw-semibold" for="tipo">Tipo</label>
+                <select id="tipo" name="tipo" class="form-select">
+                    <option value="" {% if not tipo %}selected{% endif %}>Todos</option>
+                    {% for valor, etiqueta in tipos %}
+                        <option value="{{ valor }}" {% if tipo == valor %}selected{% endif %}>
+                            {{ etiqueta }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label small fw-semibold" for="estado">Estado</label>
+                <select id="estado" name="estado" class="form-select">
+                    <option value="vigentes" {% if estado == 'vigentes' %}selected{% endif %}>Vigentes</option>
+                    <option value="anulados" {% if estado == 'anulados' %}selected{% endif %}>Anulados</option>
+                    <option value="todos" {% if estado == 'todos' %}selected{% endif %}>Todos</option>
+                </select>
+            </div>
+
+            <div class="col-md-2 d-grid">
+                <button type="submit" class="btn btn-primary">Buscar</button>
+            </div>
+        </form>
+    </div>
+</div>

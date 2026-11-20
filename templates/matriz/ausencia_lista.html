@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+
+{% block title %}Ausencias - SGR{% endblock %}
+
+{% block header %}
+Ausencias del equipo
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="h4 mb-1">Ausencias</h2>
+        <p class="text-muted mb-0">
+            Vacaciones, licencias, días libres y administrativos. Las registra
+            el delegado y bajan la meta del funcionario en proporción.
+        </p>
+    </div>
+
+    {% if perms.matrizAPP.add_ausencia %}
+        <a href="{% url 'matriz:ausencia_crear' %}" class="btn btn-primary">
+            + Registrar ausencia
+        </a>
+    {% endif %}
+</div>
+
+{% include 'seguridad/_mensajes.html' %}
+
+{% include 'matriz/_filtros.html' %}
+
+<div class="card shadow-sm border-0">
+
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">Listado de ausencias</h5>
+    </div>
+
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover align-middle">
+
+                <thead class="table-dark">
+                    <tr>
+                        <th>Funcionario</th>
+                        <th>Delegación</th>
+                        <th>Tipo</th>
+                        <th>Desde</th>
+                        <th>Hasta</th>
+                        <th>Días hábiles</th>
+                        <th>Registrada por</th>
+                        <th>Estado</th>
+                        {% if perms.matrizAPP.change_ausencia %}<th>Acciones</th>{% endif %}
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for ausencia in ausencias %}
+                    <tr>
+                        <td><strong>{{ ausencia.funcionario.get_full_name|default:ausencia.funcionario.username }}</strong></td>
+                        <td class="small">{{ ausencia.delegacion.nombre }}</td>
+                        <td>{{ ausencia.get_tipo_display }}</td>
+                        <td>{{ ausencia.fecha_inicio|date:"d-m-Y" }}</td>
+                        <td>{{ ausencia.fecha_fin|date:"d-m-Y" }}</td>
+                        <td>{{ ausencia.dias }}</td>
+                        <td class="small">{{ ausencia.registrado_por.get_full_name|default:ausencia.registrado_por.username }}</td>
+                        <td>
+                            {% if ausencia.activo %}
+                                <span class="badge bg-success">Vigente</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Anulada</span>
+                            {% endif %}
+                        </td>
+                        {% if perms.matrizAPP.change_ausencia %}
+                        <td>
+                            <div class="d-flex flex-wrap gap-2">
+                                <a href="{% url 'matriz:ausencia_editar' ausencia.pk %}"
+                                   class="btn btn-warning btn-sm">Editar</a>
+
+                                <form method="POST"
+                                      action="{% url 'matriz:ausencia_cambiar_estado' ausencia.pk %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-outline-secondary btn-sm">
+                                        {% if ausencia.activo %}Anular{% else %}Reactivar{% endif %}
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="text-center text-muted py-5">
+                            <h5>No hay ausencias para mostrar</h5>
+                            <p class="mb-0">Registre una ausencia o cambie el filtro.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

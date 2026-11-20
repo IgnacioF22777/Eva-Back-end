@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'delegacionesAPP',
     'tubo_gestionAPP',
+    'matrizAPP',
     'emergenciasTerritorialesAPP',
     'reportesCiudadanosAPP',
     'sgr_maestrosAPP',
@@ -178,6 +179,14 @@ MEDIA_ROOT = Path(os.getenv("MEDIA_ROOT", BASE_DIR / "media"))
 ADJUNTOS_MAX_ARCHIVOS = int(os.getenv("ADJUNTOS_MAX_ARCHIVOS", "5"))
 ADJUNTOS_MAX_MB_POR_ARCHIVO = int(os.getenv("ADJUNTOS_MAX_MB_POR_ARCHIVO", "10"))
 ADJUNTOS_MAX_MB_TOTAL = int(os.getenv("ADJUNTOS_MAX_MB_TOTAL", "25"))
+
+# Matriz SGR (Evaluación 3): ajustes al cumplimiento de cada funcionario.
+# Felicitación +10% y reclamo -20% (hoja RECLAMOS de la matriz); tope
+# total de 120% confirmado por el profesor. Se pueden cambiar sin tocar
+# el código si la municipalidad ajusta la regla.
+SGR_BONO_FELICITACION = os.getenv("SGR_BONO_FELICITACION", "0.10")
+SGR_DESCUENTO_RECLAMO = os.getenv("SGR_DESCUENTO_RECLAMO", "0.20")
+SGR_TOPE_CUMPLIMIENTO = os.getenv("SGR_TOPE_CUMPLIMIENTO", "1.20")
 
 # Los archivos quedan legibles solo por el usuario del servicio.
 FILE_UPLOAD_PERMISSIONS = 0o640
