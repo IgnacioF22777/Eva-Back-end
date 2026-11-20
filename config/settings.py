@@ -85,6 +85,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'seguridadAPP.context_processors.perfil_actual',
+                'config.context_processors.version_estaticos',
             ],
         },
     },

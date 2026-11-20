@@ -18,3 +18,17 @@ class PruebasPermisosArchivos(SimpleTestCase):
         self.assertEqual(settings.FILE_UPLOAD_PERMISSIONS, 0o640)
         self.assertEqual(default_storage.file_permissions_mode, 0o640)
         self.assertEqual(default_storage.directory_permissions_mode, 0o750)
+
+
+class PruebasVersionEstaticos(SimpleTestCase):
+
+    def test_CP_CFG_003_css_con_version(self):
+        """CP-CFG-003: el enlace a custom.css lleva ?v= para no usar un CSS antiguo en caché."""
+        from django.template.loader import render_to_string
+        from django.test import RequestFactory
+        from django.contrib.auth.models import AnonymousUser
+
+        request = RequestFactory().get("/")
+        request.user = AnonymousUser()
+        html = render_to_string("base.html", request=request)
+        self.assertRegex(html, r"css/custom\.css\?v=\d+")
