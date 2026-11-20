@@ -85,6 +85,15 @@
                                 Tubo de Gestión
                             </a>
                         </li>
+
+                        {% if perms.organizacionesAPP.view_organizacioncomunitaria %}
+                            <li class="nav-item">
+                                <a class="nav-link"
+                                   href="{% url 'organizaciones:organizacion_lista' %}">
+                                    Organizaciones
+                                </a>
+                            </li>
+                        {% endif %}
                     {% endif %}
 
                     <!-- MÓDULOS SGR: SEGÚN PERMISOS DEL PERFIL -->
