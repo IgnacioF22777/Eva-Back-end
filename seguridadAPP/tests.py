@@ -859,11 +859,14 @@ class PruebasFase3Coherencia(TestCase):
         self.assertContains(respuesta, reverse("delegacion_lista"))
 
     # --- PERMISOS POR PERFIL ---
-    def test_supervisor_gestiona_delegaciones_y_servicios(self):
-        self.assertTrue(
+    def test_supervisor_gestiona_servicios_pero_no_delegaciones(self):
+        self.assertFalse(
             self.supervisor.has_perm("delegacionesAPP.add_delegacion")
         )
-        self.assertTrue(
+        self.assertFalse(
+            self.supervisor.has_perm("delegacionesAPP.change_delegacion")
+        )
+        self.assertFalse(
             self.supervisor.has_perm("delegacionesAPP.delete_delegacion")
         )
         self.assertTrue(

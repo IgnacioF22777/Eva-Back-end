@@ -70,10 +70,6 @@ ROLES = {
         "atencionSocialAPP.change_atencionsocial",
         "atencionSocialAPP.delete_atencionsocial",
 
-        "delegacionesAPP.add_delegacion",
-        "delegacionesAPP.change_delegacion",
-        "delegacionesAPP.delete_delegacion",
-
         "delegacionesAPP.add_servicio",
         "delegacionesAPP.change_servicio",
         "delegacionesAPP.delete_servicio",
@@ -165,6 +161,20 @@ ROLES = {
 # COMPATIBILIDAD CON PERFILES ANTERIORES
 # ============================================================
 
+# Permisos que un rol tuvo en versiones anteriores y ya no debe tener.
+# sincronizar_roles() no quita permisos en general (para no borrar los
+# que el Administrador asignó a mano), pero estos se retiran siempre
+# porque eran un error de seguridad: un Supervisor podía crear, editar
+# o dar de baja delegaciones que no son la suya.
+PERMISOS_RETIRADOS = {
+    "Supervisor": [
+        "delegacionesAPP.add_delegacion",
+        "delegacionesAPP.change_delegacion",
+        "delegacionesAPP.delete_delegacion",
+    ],
+}
+
+
 PERFILES = tuple(ROLES.keys())
 
 MAPEO_PERFILES = {
@@ -236,6 +246,12 @@ def sincronizar_roles():
                     faltantes.append(nombre_permiso)
                 else:
                     grupo.permissions.add(permiso)
+
+        for nombre_permiso in PERMISOS_RETIRADOS.get(nombre_rol, []):
+            permiso = obtener_permiso(nombre_permiso)
+
+            if permiso is not None:
+                grupo.permissions.remove(permiso)
 
         resultado.append(
             (nombre_rol, creado, faltantes)
