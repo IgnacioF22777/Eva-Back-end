@@ -403,10 +403,12 @@ def servicio_cambiar_estado(request, pk):
 # ============================================================
 # PORTADA PÚBLICA
 # ============================================================
+# Presentación institucional: la ve cualquier visitante, sin iniciar
+# sesión. Solo muestra información pública de las delegaciones (nombre,
+# encargado y dirección); el detalle y la operación siguen protegidos.
 
-@login_required
 def inicio(request):
-    data = Delegacion.objects.filter(activo=True)
+    data = Delegacion.objects.filter(activo=True).order_by("nombre")
 
     return render(
         request,

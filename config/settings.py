@@ -139,7 +139,7 @@ AUTHENTICATION_BACKENDS = [
 
 LOGIN_URL = 'seguridad:login'
 LOGIN_REDIRECT_URL = 'seguridad:panel'
-LOGOUT_REDIRECT_URL = 'seguridad:login'
+LOGOUT_REDIRECT_URL = 'inicio'
 
 # Sesiones protegidas: la cookie no es accesible desde JavaScript y
 # expira tras 8 horas (o al cerrar el navegador si no se marca "recordar").

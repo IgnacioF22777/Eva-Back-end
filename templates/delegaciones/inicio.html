@@ -16,7 +16,12 @@
                 garantizando una atención cercana, oportuna y equitativa a los vecinos de la comuna
                 a través de nuestras delegaciones.
             </p>
-            <a href="{% url 'lista' %}" class="btn btn-light btn-lg px-4">Ver Delegaciones</a>
+            {% if user.is_authenticated %}
+                <a href="{% url 'seguridad:panel' %}" class="btn btn-light btn-lg px-4">Ir a mi panel</a>
+                <a href="{% url 'lista' %}" class="btn btn-outline-light btn-lg px-4 ms-md-2 mt-2 mt-md-0">Ver Delegaciones</a>
+            {% else %}
+                <a href="{% url 'seguridad:login' %}" class="btn btn-light btn-lg px-4">Iniciar sesión (funcionarios)</a>
+            {% endif %}
         </div>
     </div>
 </section>
@@ -44,8 +49,34 @@
         </div>
         {% endfor %}
     </div>
+    {% if user.is_authenticated %}
     <div class="text-center mt-3">
         <a href="{% url 'lista' %}" class="btn btn-outline-primary">Ver detalle de las delegaciones</a>
+    </div>
+    {% endif %}
+</section>
+
+<section class="mt-5 mb-4">
+    <h2 class="h4 text-primary mb-3">Sistema de Gestión de Resultados (SGR)</h2>
+    <div class="row g-3">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100"><div class="card-body">
+                <h3 class="h6 fw-bold">Registro diario</h3>
+                <p class="small text-muted mb-0">Cada funcionario registra las gestiones realizadas con los vecinos, verificadas por el delegado de su territorio.</p>
+            </div></div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100"><div class="card-body">
+                <h3 class="h6 fw-bold">Seguimiento de solicitudes</h3>
+                <p class="small text-muted mb-0">Las solicitudes que requieren solución se siguen en el tubo de la delegación hasta cerrarse.</p>
+            </div></div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100"><div class="card-body">
+                <h3 class="h6 fw-bold">Metas y semáforo</h3>
+                <p class="small text-muted mb-0">El avance de cada equipo se mide contra las metas trimestrales por cargo con un semáforo de cumplimiento.</p>
+            </div></div>
+        </div>
     </div>
 </section>
 {% endblock %}
