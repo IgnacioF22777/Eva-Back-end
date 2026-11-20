@@ -67,6 +67,8 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    # Contraseña temporal: obliga a cambiarla antes de usar el sistema.
+    'seguridadAPP.middleware.CambioPasswordObligatorioMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 

@@ -42,7 +42,7 @@ def agregar_error_guardado(formulario, error):
 
 def filtrar_registros(request):
     """Filtro de situación del listado (también lo usa la exportación)."""
-    registros = registros_propios(request.user).select_related("actividad")
+    registros = registros_propios(request.user).select_related("actividad", "verificado_por")
 
     situacion = request.GET.get("situacion", "activos")
     if situacion == "inactivos":
@@ -88,7 +88,7 @@ def actividad_crear(request):
     """Registra una gestión; R1–R5 se recalculan en el modelo."""
     funcionario = obtener_funcionario(request.user)
     if request.method == "POST":
-        formulario = RegistroActividadForm(request.POST, funcionario=funcionario)
+        formulario = RegistroActividadForm(request.POST, request.FILES, funcionario=funcionario)
         if formulario.is_valid():
             try:
                 registro = formulario.save()
@@ -127,9 +127,14 @@ def actividad_editar(request, pk):
     registro = get_object_or_404(registros_propios(request.user), pk=pk, activo=True)
     funcionario = obtener_funcionario(request.user)
 
+    if registro.esta_aprobado:
+        messages.error(request, "Un registro aprobado no se puede modificar.")
+        return redirect("actividades:lista")
+
     if request.method == "POST":
         formulario = RegistroActividadForm(
             request.POST,
+            request.FILES,
             instance=registro,
             funcionario=funcionario,
         )
@@ -193,8 +198,8 @@ def actividad_cambiar_estado(request, pk):
 # Igual que el listado, cada funcionario exporta solo sus propios registros.
 
 ENCABEZADOS_ACTIVIDADES = [
-    "Fecha", "Actividad", "Tipo", "Solicitante", "Vecino / Usuario",
-    "Teléfono", "Puntaje", "Motivo sin puntaje", "Fecha de ingreso", "Estado",
+    "Código", "Fecha", "Actividad", "Tipo", "Solicitante", "Vecino / Usuario",
+    "Teléfono", "Puntaje", "Verificación / motivo", "Fecha de ingreso", "Estado",
 ]
 
 ETIQUETAS_SITUACION = {
@@ -208,6 +213,7 @@ def datos_actividades(request):
     registros, situacion = filtrar_registros(request)
     filas = [
         [
+            registro.codigo or "",
             registro.fecha_actividad,
             registro.actividad.nombre,
             (
@@ -219,7 +225,7 @@ def datos_actividades(request):
             registro.nombre_usuario or "Sin nombre",
             registro.telefono_usuario or "Sin teléfono",
             "Válida" if registro.puntua else "Sin puntaje",
-            registro.motivo_sin_puntaje,
+            f"{registro.get_estado_verificacion_display()}. {registro.motivo_sin_puntaje}".strip(" ."),
             registro.fecha_ingreso,
             exportar.activo_inactivo(registro.activo),
         ]
@@ -251,7 +257,7 @@ def exportar_actividades_pdf(request):
         filas,
         "mis_actividades",
         usuario=request.user,
-        anchos=[0.9, 2, 1, 1.2, 1.5, 1, 0.9, 1.9, 1.2, 0.8],
+        anchos=[1.1, 0.8, 1.8, 0.9, 1.1, 1.4, 0.9, 0.8, 1.8, 1.1, 0.7],
         horizontal=True,
         filtros=filtros,
     )

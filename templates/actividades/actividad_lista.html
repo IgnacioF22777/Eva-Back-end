@@ -22,6 +22,9 @@ Registro Diario de Actividades
         {% url 'actividades:exportar_excel' as url_excel %}
         {% include '_botones_exportar.html' %}
 
+        <a href="{% url 'actividades:tubo' %}" class="btn btn-outline-primary">
+            Tubo de la delegación
+        </a>
         {% if perms.actividadesAPP.add_registroactividad %}
         <a href="{% url 'actividades:crear' %}"
            class="btn btn-primary">
@@ -133,12 +136,14 @@ Registro Diario de Actividades
 
                 <thead class="table-dark">
                     <tr>
+                        <th>Código</th>
                         <th>Fecha</th>
                         <th>Actividad</th>
                         <th>Vecino / Usuario</th>
                         <th>Teléfono</th>
                         <th>Tipo</th>
                         <th>Puntaje</th>
+                        <th>Verificación</th>
                         <th>Estado</th>
                         <th>Acciones</th>
                     </tr>
@@ -147,6 +152,12 @@ Registro Diario de Actividades
                 <tbody>
                     {% for registro in registros %}
                     <tr>
+                        <td class="text-nowrap small fw-semibold">
+                            {{ registro.codigo|default:"—" }}
+                            {% if registro.ingresa_tubo %}
+                                <div><span class="badge bg-dark">Tubo: {{ registro.get_estado_tubo_display }}</span></div>
+                            {% endif %}
+                        </td>
                         <td>
                             {{ registro.fecha_actividad|date:"d/m/Y" }}
                         </td>
@@ -196,6 +207,16 @@ Registro Diario de Actividades
                         </td>
 
                         <td>
+                            {% include "actividades/_badge_verificacion.html" %}
+                            {% if registro.observacion_verificacion %}
+                                <div class="small text-muted">{{ registro.observacion_verificacion }}</div>
+                            {% endif %}
+                            {% if registro.evidencia %}
+                                <div><a class="small" href="{% url 'actividades:evidencia' registro.pk %}">Ver evidencia</a></div>
+                            {% endif %}
+                        </td>
+
+                        <td>
                             {% if registro.activo %}
                                 <span class="badge bg-success">
                                     Activo
@@ -210,7 +231,9 @@ Registro Diario de Actividades
                         <td>
                             <div class="d-flex flex-wrap gap-1">
 
-                                {% if registro.activo %}
+                                {% if registro.esta_aprobado %}
+                                    <span class="small text-muted">Aprobado: sin cambios</span>
+                                {% elif registro.activo %}
                                     {% if perms.actividadesAPP.change_registroactividad %}
                                     <a href="{% url 'actividades:editar' registro.pk %}"
                                        class="btn btn-sm btn-outline-primary">
@@ -219,7 +242,7 @@ Registro Diario de Actividades
                                     {% endif %}
                                 {% endif %}
 
-                                {% if perms.actividadesAPP.delete_registroactividad %}
+                                {% if perms.actividadesAPP.delete_registroactividad and not registro.esta_aprobado %}
                                 <form method="POST"
                                       action="{% url 'actividades:cambiar_estado' registro.pk %}">
                                     {% csrf_token %}
@@ -244,7 +267,7 @@ Registro Diario de Actividades
 
                     {% empty %}
                     <tr>
-                        <td colspan="8" class="text-center text-muted py-4">
+                        <td colspan="10" class="text-center text-muted py-4">
                             No se encontraron actividades registradas.
                         </td>
                     </tr>

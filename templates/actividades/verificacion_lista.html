@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+
+{% block title %}Verificación de actividades - SGR{% endblock %}
+
+{% block header %}Verificación de actividades{% endblock %}
+
+{% block content %}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+        <h2 class="h4 mb-1">Verificación de actividades</h2>
+        <p class="text-muted mb-0">
+            El delegado aprueba, rechaza o pide más antecedentes.
+            Solo los registros <strong>aprobados</strong> suman a la meta y ya no se pueden modificar.
+        </p>
+    </div>
+    <a href="{% url 'actividades:tubo' %}" class="btn btn-outline-primary">Tubo de la delegación</a>
+</div>
+
+{% include "seguridad/_mensajes.html" %}
+
+<div class="row g-2 mb-3">
+    {% for item in conteo %}
+    <div class="col-6 col-md-3">
+        <a class="text-decoration-none"
+           href="?estado={{ item.clave }}{% if delegacion %}&delegacion={{ delegacion.pk }}{% endif %}">
+            <div class="card border-0 shadow-sm h-100 {% if estado == item.clave %}border-start border-4 border-primary{% endif %}">
+                <div class="card-body py-2 text-center">
+                    <div class="small text-muted">{{ item.nombre }}</div>
+                    <div class="h4 mb-0">{{ item.total }}</div>
+                </div>
+            </div>
+        </a>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="card shadow-sm border-0 mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-2 align-items-end">
+            {% if delegaciones %}
+            <div class="col-md-3">
+                <label class="form-label small" for="f-delegacion">Delegación</label>
+                <select id="f-delegacion" name="delegacion" class="form-select">
+                    <option value="">Todas</option>
+                    {% for d in delegaciones %}
+                    <option value="{{ d.pk }}" {% if delegacion.pk == d.pk %}selected{% endif %}>{{ d.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            <div class="col-md-2">
+                <label class="form-label small" for="f-estado">Estado</label>
+                <select id="f-estado" name="estado" class="form-select">
+                    <option value="TODOS">Todos</option>
+                    {% for clave, nombre in estados %}
+                    <option value="{{ clave }}" {% if estado == clave %}selected{% endif %}>{{ nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small" for="f-funcionario">Funcionario</label>
+                <select id="f-funcionario" name="funcionario" class="form-select">
+                    <option value="">Todos</option>
+                    {% for f in funcionarios %}
+                    <option value="{{ f.pk }}" {% if filtros.funcionario == f.pk %}selected{% endif %}>
+                        {{ f.usuario.get_full_name|default:f.usuario.username }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small" for="f-desde">Desde</label>
+                <input id="f-desde" type="date" name="desde" class="form-control" value="{{ filtros.desde|date:'Y-m-d' }}">
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small" for="f-hasta">Hasta</label>
+                <input id="f-hasta" type="date" name="hasta" class="form-control" value="{{ filtros.hasta|date:'Y-m-d' }}">
+            </div>
+            <div class="col-md-8">
+                <label class="form-label small" for="f-q">Código, RUT o nombre del vecino</label>
+                <input id="f-q" type="search" name="q" class="form-control" value="{{ filtros.q }}" placeholder="ACT-2026-…, 12.345.678-5 o nombre">
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-primary w-100">Filtrar</button>
+            </div>
+            <div class="col-md-2">
+                <a href="{% url 'actividades:verificacion' %}" class="btn btn-outline-secondary w-100">Limpiar</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <caption class="px-3">Registros de la delegación por verificar (máximo 300 por página).</caption>
+                <thead class="table-dark">
+                    <tr>
+                        <th>Código</th>
+                        <th>Funcionario</th>
+                        <th>Actividad</th>
+                        <th>Vecino</th>
+                        <th>Puntaje</th>
+                        <th>Estado</th>
+                        <th style="min-width: 280px;">Verificar</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for registro in registros %}
+                    <tr>
+                        <td class="small fw-semibold text-nowrap">
+                            {{ registro.codigo }}
+                            <div class="text-muted fw-normal">{{ registro.fecha_actividad|date:"d/m/Y" }}</div>
+                        </td>
+                        <td class="small">{{ registro.funcionario.usuario.get_full_name }}</td>
+                        <td class="small">
+                            <strong>{{ registro.actividad.nombre }}</strong>
+                            {% if registro.detalle %}<div class="text-muted">{{ registro.detalle|truncatechars:120 }}</div>{% endif %}
+                            {% if registro.evidencia %}
+                                <a href="{% url 'actividades:evidencia' registro.pk %}">Ver evidencia</a>
+                            {% else %}
+                                <span class="text-muted">Sin evidencia adjunta</span>
+                            {% endif %}
+                        </td>
+                        <td class="small">
+                            {{ registro.nombre_usuario|default:"Sin nombre" }}
+                            <div class="text-muted">{{ registro.telefono_usuario|default:"Sin teléfono" }}</div>
+                        </td>
+                        <td class="small">
+                            {% if registro.puntua %}
+                                <span class="badge bg-success">Válida</span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark">Sin puntaje</span>
+                                <div class="text-muted">{{ registro.motivo_sin_puntaje }}</div>
+                            {% endif %}
+                        </td>
+                        <td class="small">
+                            {% include "actividades/_badge_verificacion.html" %}
+                            {% if registro.observacion_verificacion %}
+                                <div class="text-muted">{{ registro.observacion_verificacion }}</div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if registro.esta_aprobado %}
+                                <span class="small text-muted">
+                                    Aprobado el {{ registro.fecha_verificacion|date:"d/m/Y H:i" }}
+                                    por {{ registro.verificado_por.get_full_name|default:registro.verificado_por.username }}.
+                                    No admite cambios.
+                                </span>
+                            {% else %}
+                            <form method="POST" action="{% url 'actividades:verificar' registro.pk %}" class="d-flex flex-column gap-1">
+                                {% csrf_token %}
+                                <input type="hidden" name="siguiente" value="{{ request.get_full_path }}">
+                                <label class="visually-hidden" for="obs-{{ registro.pk }}">Observación</label>
+                                <input id="obs-{{ registro.pk }}" name="observacion" maxlength="500"
+                                       class="form-control form-control-sm"
+                                       placeholder="Observación (obligatoria si rechaza o pide antecedentes)">
+                                <div class="btn-group btn-group-sm" role="group" aria-label="Verificar">
+                                    <button name="estado" value="APROBADA" class="btn btn-success">Aprobar</button>
+                                    <button name="estado" value="ANTECEDENTES" class="btn btn-warning">Pedir antecedentes</button>
+                                    <button name="estado" value="RECHAZADA" class="btn btn-outline-danger">Rechazar</button>
+                                </div>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">No hay registros con los filtros seleccionados.</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

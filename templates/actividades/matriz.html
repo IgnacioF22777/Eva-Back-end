@@ -89,15 +89,18 @@
                     <div class="card-body">
 
                         <p class="text-muted mb-2">
-                            Puntaje total
+                            Puntaje final
                         </p>
 
                         <h3 class="mb-0">
-                            {{ matriz.puntaje_total|floatformat:2 }}
+                            {{ matriz.puntaje_final|floatformat:2 }}
                         </h3>
 
                         <small class="text-muted">
-                            Puntos ponderados
+                            Base {{ matriz.puntaje_total|floatformat:2 }}
+                            · {{ matriz.felicitaciones }} felicitación(es) (+10 %)
+                            · {{ matriz.reclamos }} reclamo(s) (−20 %)
+                            · {{ matriz.dias_ausencia }} día(s) de ausencia
                         </small>
 
                     </div>
@@ -180,6 +183,14 @@
 
                                     <td>
                                         {{ item.actividad.nombre }}
+                                        {% if item.automatica %}
+                                            <span class="badge bg-info text-dark">Automática</span>
+                                            {% if item.ingresos_tubo is not None %}
+                                                <div class="small text-muted">
+                                                    {{ item.avance }} de {{ item.ingresos_tubo }} ingresos al tubo solucionados
+                                                </div>
+                                            {% endif %}
+                                        {% endif %}
                                     </td>
 
                                     <td class="text-center">
@@ -237,10 +248,18 @@
                         <tfoot class="table-light">
                             <tr>
                                 <th colspan="6" class="text-end">
-                                    Puntaje total
+                                    Puntaje base (solo registros aprobados)
                                 </th>
                                 <th class="text-center">
                                     {{ matriz.puntaje_total|floatformat:2 }}
+                                </th>
+                            </tr>
+                            <tr>
+                                <th colspan="6" class="text-end">
+                                    Puntaje final (con felicitaciones y reclamos, tope 120)
+                                </th>
+                                <th class="text-center">
+                                    {{ matriz.puntaje_final|floatformat:2 }}
                                 </th>
                             </tr>
                         </tfoot>

@@ -270,9 +270,11 @@ class PruebasArchivosExportados(BaseExportacion):
 
     def test_cp_exp_009_actividades_solo_registros_propios(self):
         hoja = leer_excel(self.client.get(reverse("actividades:exportar_excel")))
-        self.assertEqual(columna(hoja, 4), ["Vecina del centro"])
-        self.assertNotIn("Vecino rural", columna(hoja, 4))
-        self.assertEqual(filas_de_datos(hoja)[0][6], "Válida")
+        # Columna 0: código generado (ACT-AAAA-000000), agregado en Eva 3.
+        self.assertTrue(columna(hoja, 0)[0].startswith("ACT-"))
+        self.assertEqual(columna(hoja, 5), ["Vecina del centro"])
+        self.assertNotIn("Vecino rural", columna(hoja, 5))
+        self.assertEqual(filas_de_datos(hoja)[0][7], "Válida")
 
     def test_cp_exp_010_delegaciones_con_totales(self):
         hoja = leer_excel(self.client.get(reverse("exportar_delegaciones_excel")))

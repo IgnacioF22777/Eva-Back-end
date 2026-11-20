@@ -11,7 +11,7 @@ from django.utils import timezone
 from sgr_maestrosAPP.models import Periodo
 
 from .models import ZONA_CHILE
-from .puntajes import obtener_mi_matriz
+from .puntajes import dias_ausencia_en_periodo, obtener_mi_matriz
 from .resumen_ingresos import obtener_resumen_ingresos
 from .views import obtener_funcionario
 
@@ -66,8 +66,8 @@ def matriz(request):
     resumen = None
 
     if periodo is not None:
-        # Pendiente de integrar las ausencias reales.
-        dias_ausencia = 0
+        # R9: ausencias informadas por el delegado (matrizAPP).
+        dias_ausencia = dias_ausencia_en_periodo(funcionario, periodo)
 
         datos_matriz = obtener_mi_matriz(
             funcionario=funcionario,
@@ -89,7 +89,7 @@ def matriz(request):
         "matriz": datos_matriz,
         "resumen": resumen,
         "fecha_actual": hoy,
-        "ausencias_integradas": False,
+        "ausencias_integradas": True,
     }
 
     return render(

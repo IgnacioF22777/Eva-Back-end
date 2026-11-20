@@ -222,9 +222,14 @@ class PruebasMiMatriz(TestCase):
 
         datos.update(cambios)
 
-        return RegistroActividad.objects.create(
+        registro = RegistroActividad.objects.create(
             **datos
         )
+        # Solo los registros aprobados por el delegado suman a la meta.
+        RegistroActividad.objects.filter(pk=registro.pk).update(
+            estado_verificacion=RegistroActividad.APROBADA
+        )
+        return registro
 
     def test_CP_PUN_006_matriz_individual(self):
         """CP-PUN-006: Mi matriz calcula las metas y el total ponderado."""

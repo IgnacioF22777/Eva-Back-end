@@ -125,7 +125,7 @@ class PruebasVistaMatriz(TestCase):
         if funcionario is None:
             funcionario = self.funcionario
 
-        return RegistroActividad.objects.create(
+        registro = RegistroActividad.objects.create(
             funcionario=funcionario,
             actividad=self.actividad,
             fecha_actividad=date(2026, 11, 10),
@@ -134,6 +134,11 @@ class PruebasVistaMatriz(TestCase):
             telefono_usuario="912345678",
             detalle="Actividad realizada",
         )
+        # Solo los registros aprobados por el delegado suman a la meta.
+        RegistroActividad.objects.filter(pk=registro.pk).update(
+            estado_verificacion=RegistroActividad.APROBADA
+        )
+        return registro
 
     def test_CP_MAT_001_requiere_sesion(self):
         """CP-MAT-001: un visitante sin sesión es redirigido."""
