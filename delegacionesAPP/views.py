@@ -448,12 +448,21 @@ def servicio_cambiar_estado(request, pk):
 # encargado y dirección); el detalle y la operación siguen protegidos.
 
 def inicio(request):
+    from organizacionesAPP.models import OrganizacionComunitaria
+
     data = Delegacion.objects.filter(activo=True).order_by("nombre")
 
     return render(
         request,
         "delegaciones/inicio.html",
-        {"delegaciones": data},
+        {
+            "delegaciones": data,
+            # Cifras públicas para la portada.
+            "total_delegaciones": data.count(),
+            # Formato chileno con punto de miles (2.709).
+            "total_organizaciones": f"{OrganizacionComunitaria.objects.filter(activo=True).count():,}".replace(",", "."),
+            "total_servicios": Servicio.objects.filter(activo=True, delegacion__activo=True).count(),
+        },
     )
 
 
