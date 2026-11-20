@@ -397,16 +397,15 @@ Windows).
    5.2.19). Si el entorno tiene otra versión instalada, `manage.py check`,
    `runserver`, `migrate` y las pruebas lo advierten (`sgr.W002`), sin
    detener la aplicación.
-4. Crear el archivo `.env` en la carpeta del proyecto (junto a `manage.py`):
+4. Crear el archivo `.env` a partir del ejemplo versionado
+   [`.env.example`](.env.example), que documenta todas las variables
+   (Django, base de datos, correo, adjuntos y reglas de la matriz) sin
+   credenciales reales:
+   ```bash
+   cp .env.example .env            # Linux/Mac
+   copy .env.example .env          # Windows
    ```
-   SECRET_KEY=tu_clave_secreta
-   DB_NAME=evaluacion_db
-   DB_USER=usuario
-   DB_PASSWORD=clave
-   DB_HOST=127.0.0.1
-   DB_PORT=3306
-   DEBUG=True
-   ```
+   Luego reemplazar como mínimo `SECRET_KEY`, `DB_USER` y `DB_PASSWORD`.
    En un equipo local se usa `DEBUG=True`: con `DEBUG=False`, `runserver` no
    entrega los archivos estáticos y la página se ve sin estilos de Bootstrap.
    En el servidor de producción va `DEBUG=False` (Nginx entrega los
@@ -454,6 +453,18 @@ Windows).
 ```bash
 python manage.py test
 ```
+
+Sin MariaDB ni archivo `.env` (por ejemplo, en el equipo de un evaluador),
+la batería completa se ejecuta con SQLite en memoria:
+
+```bash
+python manage.py test --settings=config.settings_pruebas
+```
+
+Con todas las ramas de la Evaluación 3 integradas (rama
+`integracion/eva3`, 20-11-2026) se ejecutaron **586 pruebas con resultado
+OK** de esta forma (Python 3.12, Django 5.2.19). El detalle por archivo de
+la tabla siguiente corresponde a `main` antes de la integración.
 
 La suite cubre autenticación, recuperación de contraseña, permisos por perfil,
 CRUD de los mantenedores, búsqueda, duplicados, baja lógica, reactivación,
