@@ -42,4 +42,7 @@ urlpatterns = [
 
     # Proyecto Integrado EVA 3 - Actividades diarias (R1-R5)
     path("actividades/", include("actividadesAPP.urls")),
+
+    # Proyecto Integrado EVA 3 - Puntaje del equipo de la delegación (R10)
+    path("puntaje-equipo/", include("puntajeEquipoAPP.urls")),
 ]
