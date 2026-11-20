@@ -149,6 +149,47 @@
 
                     {% endif %}
 
+                    <!-- MATRIZ SGR (EVA 3): AUSENCIAS, FELICITACIONES Y RECLAMOS -->
+                    {% if perms.matrizAPP.view_ausencia or perms.matrizAPP.view_ajustedesempeno %}
+
+                        <li class="nav-item dropdown">
+
+                            <a class="nav-link dropdown-toggle"
+                               href="#"
+                               id="menuMatriz"
+                               role="button"
+                               data-bs-toggle="dropdown"
+                               aria-expanded="false">
+                                Matriz SGR
+                            </a>
+
+                            <ul class="dropdown-menu dropdown-menu-end"
+                                aria-labelledby="menuMatriz">
+
+                                {% if perms.matrizAPP.view_ausencia %}
+                                    <li>
+                                        <a class="dropdown-item"
+                                           href="{% url 'matriz:ausencia_lista' %}">
+                                            Ausencias
+                                        </a>
+                                    </li>
+                                {% endif %}
+
+                                {% if perms.matrizAPP.view_ajustedesempeno %}
+                                    <li>
+                                        <a class="dropdown-item"
+                                           href="{% url 'matriz:ajuste_lista' %}">
+                                            Felicitaciones y reclamos
+                                        </a>
+                                    </li>
+                                {% endif %}
+
+                            </ul>
+
+                        </li>
+
+                    {% endif %}
+
                     <!-- SEGURIDAD: SEGÚN PERMISOS DEL ROL -->
                     {% if perms.auth.view_user or perms.auth.view_group or perms.seguridadAPP.view_cargo %}
 

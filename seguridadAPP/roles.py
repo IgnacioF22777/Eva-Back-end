@@ -16,6 +16,7 @@ APPS_CON_PERMISOS = [
     "seguridadAPP",
     "delegacionesAPP",
     "tubo_gestionAPP",
+    "matrizAPP",
     "sgr_maestrosAPP",
     "emergenciasTerritorialesAPP",
     "reportesCiudadanosAPP",
@@ -77,10 +78,24 @@ ROLES = {
         "actividadesAPP.add_registroactividad",
         "actividadesAPP.change_registroactividad",
         "actividadesAPP.delete_registroactividad",
+
+        # Matriz SGR (Eva 3): el delegado registra ausencias (R9) y
+        # felicitaciones o reclamos (R8) de los funcionarios de su
+        # delegación. El ámbito se controla en matrizAPP/ambito.py.
+        "matrizAPP.view_ausencia",
+        "matrizAPP.add_ausencia",
+        "matrizAPP.change_ausencia",
+        "matrizAPP.view_ajustedesempeno",
+        "matrizAPP.add_ajustedesempeno",
+        "matrizAPP.change_ajustedesempeno",
     ],
 
     # Administrativo: consulta, ingreso y edición.
     "Administrativo": VER_OPERACION + [
+        # Matriz SGR (Eva 3): el funcionario solo CONSULTA sus propias
+        # ausencias, felicitaciones y reclamos; no puede registrarlos.
+        "matrizAPP.view_ausencia",
+        "matrizAPP.view_ajustedesempeno",
         "tubo_gestionAPP.add_compromiso",
         "tubo_gestionAPP.add_registroavance",
 
