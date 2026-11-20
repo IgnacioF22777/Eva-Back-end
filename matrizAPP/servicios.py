@@ -3,7 +3,7 @@ from django.utils import timezone
 from sgr_maestrosAPP.feriados import feriados_entre
 from tubo_gestionAPP.validadores import calcular_dias_computables
 
-from .models import AjusteDesempeno, Ausencia
+from .models import AjusteDesempeno, Ausencia, ConfiguracionMatriz
 from .reglas import aplicar_ajustes, interseccion, requiere_informe_rrhh
 
 
@@ -54,9 +54,20 @@ def cumplimiento_final(funcionario, total_base, desde, hasta):
     """
     Total base (lo calcula José con los ítems y el tope de 120% por
     ítem) más felicitaciones y menos reclamos, con el tope de 120%.
+    Los porcentajes y la opción de limitar las felicitaciones salen de
+    la configuración que edita el Administrador.
     """
     felicitaciones, reclamos = contar_ajustes(funcionario, desde, hasta)
-    return aplicar_ajustes(total_base, felicitaciones, reclamos)
+    config = ConfiguracionMatriz.obtener()
+
+    return aplicar_ajustes(
+        total_base,
+        felicitaciones,
+        reclamos,
+        bono=config.bono,
+        descuento=config.descuento,
+        limitar_felicitaciones=config.limitar_felicitaciones_al_tope,
+    )
 
 
 def alerta_rrhh(funcionario, hoy=None):

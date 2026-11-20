@@ -1,0 +1,172 @@
+{% extends 'base.html' %}
+
+{% block title %}Regalos para niños - SGR{% endblock %}
+
+{% block header %}
+Regalos para niños
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="h4 mb-1">Niños inscritos</h2>
+        <p class="text-muted mb-0">
+            Campañas de Navidad, Día del Niño y Aniversario. Cada RUT se
+            inscribe una sola vez por campaña en toda la comuna.
+            {% if not ve_todas %}Ve solo los niños de su delegación.{% endif %}
+        </p>
+    </div>
+
+    <div class="d-flex gap-2">
+        <a href="{% url 'beneficios:nino_exportar_excel' %}?{{ request.GET.urlencode }}"
+           class="btn btn-outline-success">Excel</a>
+        {% if perms.beneficiosAPP.add_ninoinscrito %}
+            <a href="{% url 'beneficios:nino_crear' %}" class="btn btn-primary">
+                + Inscribir niño
+            </a>
+        {% endif %}
+    </div>
+</div>
+
+{% include 'seguridad/_mensajes.html' %}
+
+<div class="card shadow-sm border-0 mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label small fw-semibold" for="campana">Campaña</label>
+                <select id="campana" name="campana" class="form-select">
+                    {% for campana in campanas %}
+                        <option value="{{ campana.pk }}" {% if campana_id == campana.pk|stringformat:'s' %}selected{% endif %}>
+                            {{ campana }}{% if not campana.activo %} (cerrada){% endif %}
+                        </option>
+                    {% empty %}
+                        <option value="">Sin campañas</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label small fw-semibold" for="q">Buscar</label>
+                <input type="search" id="q" name="q" value="{{ busqueda }}"
+                       class="form-control" placeholder="Nombre, apellido o RUT">
+            </div>
+
+            <div class="col-md-2">
+                <label class="form-label small fw-semibold" for="sexo">Sexo</label>
+                <select id="sexo" name="sexo" class="form-select">
+                    <option value="">Todos</option>
+                    {% for valor, etiqueta in sexos %}
+                        <option value="{{ valor }}" {% if sexo == valor %}selected{% endif %}>{{ etiqueta }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-2">
+                <label class="form-label small fw-semibold" for="estado">Estado</label>
+                <select id="estado" name="estado" class="form-select">
+                    <option value="vigentes" {% if estado == 'vigentes' %}selected{% endif %}>Vigentes</option>
+                    <option value="anulados" {% if estado == 'anulados' %}selected{% endif %}>Anulados</option>
+                    <option value="todos" {% if estado == 'todos' %}selected{% endif %}>Todos</option>
+                </select>
+            </div>
+
+            <div class="col-md-2 d-grid">
+                <button type="submit" class="btn btn-primary">Buscar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm text-center"><div class="card-body">
+            <div class="text-muted small">Inscritos vigentes</div>
+            <div class="h3 mb-0">{{ resumen.total }}</div>
+        </div></div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm text-center"><div class="card-body">
+            <div class="text-muted small">Niñas</div>
+            <div class="h3 mb-0">{{ resumen.ninas }}</div>
+        </div></div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm text-center"><div class="card-body">
+            <div class="text-muted small">Niños</div>
+            <div class="h3 mb-0">{{ resumen.ninos }}</div>
+        </div></div>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">Listado de inscritos</h5>
+    </div>
+
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>RUT</th>
+                        <th>Nombre</th>
+                        <th>Sexo</th>
+                        <th>Nacimiento</th>
+                        <th>Edad</th>
+                        {% if ve_todas %}<th>Delegación</th>{% endif %}
+                        <th>Inscrito por</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for nino in ninos %}
+                    <tr>
+                        <td class="text-nowrap">{{ nino.rut_formateado }}</td>
+                        <td><strong>{{ nino.nombre }} {{ nino.apellido }}</strong></td>
+                        <td>{{ nino.get_sexo_display }}</td>
+                        <td>{{ nino.fecha_nacimiento|date:"d-m-Y" }}</td>
+                        <td>{{ nino.edad }}</td>
+                        {% if ve_todas %}<td class="small">{{ nino.delegacion.nombre }}</td>{% endif %}
+                        <td class="small">{{ nino.registrado_por.get_full_name|default:nino.registrado_por.username }}</td>
+                        <td>
+                            {% if nino.activo %}
+                                <span class="badge bg-success">Vigente</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Anulada</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="d-flex flex-wrap gap-2">
+                                {% if perms.beneficiosAPP.change_ninoinscrito %}
+                                    <a href="{% url 'beneficios:nino_editar' nino.pk %}"
+                                       class="btn btn-warning btn-sm">Corregir</a>
+                                {% endif %}
+                                {% if perms.beneficiosAPP.delete_ninoinscrito %}
+                                    <form method="POST" action="{% url 'beneficios:nino_cambiar_estado' nino.pk %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-outline-secondary btn-sm">
+                                            {% if nino.activo %}Anular{% else %}Reactivar{% endif %}
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="text-center text-muted py-5">
+                            <h5>No hay niños inscritos para mostrar</h5>
+                            <p class="mb-0">Inscriba un niño o cambie el filtro.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,7 +1,7 @@
 from django import forms
 
 from .ambito import funcionarios_gestionables
-from .models import AjusteDesempeno, Ausencia
+from .models import AjusteDesempeno, Ausencia, ConfiguracionMatriz
 
 
 class FuncionarioChoiceField(forms.ModelChoiceField):
@@ -101,3 +101,24 @@ class AjusteDesempenoForm(FormularioMatriz):
                 f"Actual: {self.instance.nombre_original}. "
                 "Suba otro archivo solo si quiere reemplazarlo."
             )
+
+
+class ConfiguracionMatrizForm(forms.ModelForm):
+    class Meta:
+        model = ConfiguracionMatriz
+        fields = [
+            "descuento_reclamo_pct",
+            "bono_felicitacion_pct",
+            "limitar_felicitaciones_al_tope",
+        ]
+        widgets = {
+            "descuento_reclamo_pct": forms.NumberInput(
+                attrs={"class": "form-control", "min": 20, "max": 30}
+            ),
+            "bono_felicitacion_pct": forms.NumberInput(
+                attrs={"class": "form-control", "min": 0, "max": 50}
+            ),
+            "limitar_felicitaciones_al_tope": forms.CheckboxInput(
+                attrs={"class": "form-check-input"}
+            ),
+        }

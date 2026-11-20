@@ -24,6 +24,7 @@ urlpatterns = [
     # Proyecto Integrado (Eva 3) - Matriz SGR: ausencias, felicitaciones
     # y reclamos (Camilo)
     path("matriz/", include("matrizAPP.urls")),
+    path("regalos/", include("beneficiosAPP.urls")),
 
     # Proyecto Integrado - Seguridad: login, usuarios y roles
     path("seguridad/", include("seguridadAPP.urls")),

@@ -68,7 +68,8 @@ def trimestre_anterior(anio, trimestre):
 # ------------------------------------------------------------
 
 def aplicar_ajustes(total_base, felicitaciones, reclamos,
-                    bono=None, descuento=None, tope=None):
+                    bono=None, descuento=None, tope=None,
+                    limitar_felicitaciones=True):
     """
     Cumplimiento final de un funcionario (CP-AJU-001 a 003):
 
@@ -76,6 +77,11 @@ def aplicar_ajustes(total_base, felicitaciones, reclamos,
 
     y luego se limita: nunca menos de 0 ni más del tope (120%).
     Todos los valores son fracciones: 0.95 = 95%.
+
+    Si `limitar_felicitaciones` es False (opción que pidió el profesor,
+    CP-CFG-003), el tope se aplica al total con los reclamos y las
+    felicitaciones se suman encima: un funcionario en 120% con una
+    felicitación queda en 130%.
     """
     bono = BONO_FELICITACION if bono is None else Decimal(str(bono))
     descuento = DESCUENTO_RECLAMO if descuento is None else Decimal(str(descuento))
@@ -83,6 +89,11 @@ def aplicar_ajustes(total_base, felicitaciones, reclamos,
 
     if felicitaciones < 0 or reclamos < 0:
         raise ValueError("Las cantidades no pueden ser negativas.")
+
+    if not limitar_felicitaciones:
+        base = Decimal(str(total_base)) - descuento * reclamos
+        base = min(max(base, Decimal("0")), tope)
+        return base + bono * felicitaciones
 
     total = (
         Decimal(str(total_base))

@@ -3,7 +3,7 @@ import uuid
 
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
-from django.core.validators import MaxLengthValidator
+from django.core.validators import MaxLengthValidator, MaxValueValidator, MinValueValidator
 from django.db import models
 from django.utils import timezone
 
@@ -11,7 +11,7 @@ from sgr_maestrosAPP.feriados import feriados_entre
 from tubo_gestionAPP.adjuntos import extension_de, validar_archivo_adjunto
 from tubo_gestionAPP.validadores import calcular_dias_computables
 
-from .reglas import se_traslapan
+from .reglas import BONO_FELICITACION, DESCUENTO_RECLAMO, se_traslapan
 
 
 MAX_TEXTO = 1000
@@ -350,3 +350,84 @@ class AjusteDesempeno(models.Model):
             self.delegacion = delegacion_del_funcionario(self.funcionario)
 
         super().save(*args, **kwargs)
+
+
+# ============================================================
+# CONFIGURACIÓN DE FELICITACIONES Y RECLAMOS (R8)
+# ============================================================
+# El profesor pidió que el descuento por reclamo se pueda elegir entre
+# 20% y 30%, y que exista la opción de limitar (o no) las felicitaciones
+# al tope de 120%. Es una sola fila (pk=1) que edita el Administrador;
+# los valores de settings.py solo son el punto de partida.
+
+DESCUENTO_MINIMO = 20
+DESCUENTO_MAXIMO = 30
+
+
+def porcentaje_entero(fraccion):
+    return int((fraccion * 100).to_integral_value())
+
+
+class ConfiguracionMatriz(models.Model):
+    descuento_reclamo_pct = models.PositiveSmallIntegerField(
+        "Descuento por reclamo (%)",
+        default=porcentaje_entero(DESCUENTO_RECLAMO),
+        validators=[
+            MinValueValidator(DESCUENTO_MINIMO),
+            MaxValueValidator(DESCUENTO_MAXIMO),
+        ],
+        help_text="Entre 20% y 30%, según la hoja RECLAMOS de la matriz.",
+    )
+    bono_felicitacion_pct = models.PositiveSmallIntegerField(
+        "Bono por felicitación (%)",
+        default=porcentaje_entero(BONO_FELICITACION),
+        validators=[MinValueValidator(0), MaxValueValidator(50)],
+        help_text="Porcentaje que suma cada felicitación (por defecto 10%).",
+    )
+    limitar_felicitaciones_al_tope = models.BooleanField(
+        "Limitar las felicitaciones al tope de 120%",
+        default=True,
+        help_text=(
+            "Si se desmarca, las felicitaciones se suman por encima del "
+            "tope (ej.: 120% + una felicitación = 130%)."
+        ),
+    )
+    actualizado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        editable=False,
+        related_name="+",
+    )
+    fecha_actualizacion = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Configuración de la matriz"
+        verbose_name_plural = "Configuración de la matriz"
+
+    def __str__(self):
+        return (
+            f"Reclamo -{self.descuento_reclamo_pct}%, "
+            f"felicitación +{self.bono_felicitacion_pct}%"
+        )
+
+    def save(self, *args, **kwargs):
+        # Siempre una sola configuración.
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def obtener(cls):
+        config, _ = cls.objects.get_or_create(pk=1)
+        return config
+
+    @property
+    def descuento(self):
+        from decimal import Decimal
+        return Decimal(self.descuento_reclamo_pct) / 100
+
+    @property
+    def bono(self):
+        from decimal import Decimal
+        return Decimal(self.bono_felicitacion_pct) / 100

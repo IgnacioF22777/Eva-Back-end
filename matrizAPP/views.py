@@ -1,14 +1,16 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.db.models import Q
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from .ambito import registros_visibles, verificar_puede_registrar, verificar_puede_ver
-from .forms import AjusteDesempenoForm, AusenciaForm
-from .models import AjusteDesempeno, Ausencia
+from tubo_gestionAPP.ambito import es_global
+
+from .forms import AjusteDesempenoForm, AusenciaForm, ConfiguracionMatrizForm
+from .models import AjusteDesempeno, Ausencia, ConfiguracionMatriz
 
 
 def filtrar(queryset, request, tipos):
@@ -59,6 +61,23 @@ def guardar_formulario(request, form):
 
     registro.save()
     return registro
+
+
+def ayuda_ajustes():
+    """Texto de ayuda con los porcentajes vigentes de la configuración."""
+    config = ConfiguracionMatriz.obtener()
+    tope = (
+        "el total nunca supera 120%"
+        if config.limitar_felicitaciones_al_tope
+        else "las felicitaciones pueden superar el tope de 120%"
+    )
+    return (
+        "Solo valen si llegaron por escrito al delegado o a la delegación "
+        "(correo, WhatsApp al delegado, libro de observaciones o carta). "
+        f"El respaldo es obligatorio. Cada felicitación suma "
+        f"{config.bono_felicitacion_pct}% y cada reclamo resta "
+        f"{config.descuento_reclamo_pct}%; {tope}."
+    )
 
 
 # ============================================================
@@ -179,13 +198,7 @@ def ajuste_crear(request):
     return render(request, "matriz/formulario.html", {
         "form": form,
         "titulo": "Registrar felicitación o reclamo",
-        "ayuda": (
-            "Solo valen si llegaron por escrito al delegado o a la "
-            "delegación (correo, WhatsApp al delegado, libro de "
-            "observaciones o carta). El respaldo es obligatorio. Cada "
-            "felicitación suma 10% y cada reclamo resta 20%; el total "
-            "nunca supera 120%."
-        ),
+        "ayuda": ayuda_ajustes(),
         "volver": "matriz:ajuste_lista",
         "con_archivos": True,
     })
@@ -248,3 +261,35 @@ def ajuste_respaldo(request, pk):
         raise Http404("El archivo ya no se encuentra en el servidor.")
 
     return FileResponse(archivo, as_attachment=True, filename=ajuste.nombre_original)
+
+
+# ============================================================
+# CONFIGURACIÓN DE FELICITACIONES Y RECLAMOS (solo Administrador)
+# ============================================================
+
+@login_required
+def configuracion(request):
+    if not es_global(request.user):
+        raise PermissionDenied(
+            "Solo el Administrador puede cambiar la configuración de la matriz."
+        )
+
+    config = ConfiguracionMatriz.obtener()
+    form = ConfiguracionMatrizForm(request.POST or None, instance=config)
+
+    if request.method == "POST" and form.is_valid():
+        config = form.save(commit=False)
+        config.actualizado_por = request.user
+        config.save()
+        messages.success(
+            request,
+            "Configuración guardada: cada reclamo resta "
+            f"{config.descuento_reclamo_pct}% y cada felicitación suma "
+            f"{config.bono_felicitacion_pct}%.",
+        )
+        return redirect("matriz:configuracion")
+
+    return render(request, "matriz/configuracion.html", {
+        "form": form,
+        "config": config,
+    })
