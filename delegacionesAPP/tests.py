@@ -104,8 +104,8 @@ class PruebasDelegaciones(TestCase):
         self.assertEqual(respuesta.status_code, 403)
 
     # --- CREAR ---
-    def test_supervisor_crea_delegacion(self):
-        self.client.force_login(self.supervisor)
+    def test_admin_crea_delegacion(self):
+        self.client.force_login(self.admin)
 
         respuesta = self.client.post(
             reverse("delegacion_crear"), self.datos()
@@ -159,7 +159,7 @@ class PruebasDelegaciones(TestCase):
             email="rural@laserena.cl",
             direccion="Camino Rural km 5",
         )
-        self.client.force_login(self.supervisor)
+        self.client.force_login(self.admin)
 
         respuesta = self.client.get(reverse("delegacion_lista"), {"q": "Rural"})
         self.assertContains(respuesta, "Delegación Rural")
@@ -176,7 +176,7 @@ class PruebasDelegaciones(TestCase):
             email="historica@laserena.cl",
             activo=False,
         )
-        self.client.force_login(self.supervisor)
+        self.client.force_login(self.admin)
 
         respuesta = self.client.get(
             reverse("delegacion_lista"), {"estado": "inactivos"}
@@ -193,7 +193,7 @@ class PruebasDelegaciones(TestCase):
     # --- EDITAR ---
     def test_editar_delegacion(self):
         delegacion = self.crear_delegacion()
-        self.client.force_login(self.supervisor)
+        self.client.force_login(self.admin)
 
         respuesta = self.client.post(
             reverse("delegacion_editar", args=[delegacion.pk]),
@@ -208,7 +208,7 @@ class PruebasDelegaciones(TestCase):
     # --- BAJA Y REACTIVACIÓN ---
     def test_baja_logica_conserva_el_registro(self):
         delegacion = self.crear_delegacion()
-        self.client.force_login(self.supervisor)
+        self.client.force_login(self.admin)
 
         respuesta = self.client.post(
             reverse("delegacion_cambiar_estado", args=[delegacion.pk])
@@ -223,7 +223,7 @@ class PruebasDelegaciones(TestCase):
     def test_no_da_de_baja_con_servicios_activos(self):
         delegacion = self.crear_delegacion()
         Servicio.objects.create(delegacion=delegacion, nombre="Aseo")
-        self.client.force_login(self.supervisor)
+        self.client.force_login(self.admin)
 
         respuesta = self.client.post(
             reverse("delegacion_cambiar_estado", args=[delegacion.pk]),
@@ -246,7 +246,7 @@ class PruebasDelegaciones(TestCase):
             cumplimiento=50,
             delegacion=delegacion,
         )
-        self.client.force_login(self.supervisor)
+        self.client.force_login(self.admin)
 
         self.client.post(
             reverse("delegacion_cambiar_estado", args=[delegacion.pk])
@@ -257,7 +257,7 @@ class PruebasDelegaciones(TestCase):
 
     def test_reactiva_delegacion_dada_de_baja(self):
         delegacion = self.crear_delegacion(activo=False)
-        self.client.force_login(self.supervisor)
+        self.client.force_login(self.admin)
 
         self.client.post(
             reverse("delegacion_cambiar_estado", args=[delegacion.pk])
@@ -271,7 +271,7 @@ class PruebasDelegaciones(TestCase):
         inactiva = self.crear_delegacion(
             direccion="Otra dirección", activo=False
         )
-        self.client.force_login(self.supervisor)
+        self.client.force_login(self.admin)
 
         self.client.post(
             reverse("delegacion_cambiar_estado", args=[inactiva.pk])
@@ -282,7 +282,7 @@ class PruebasDelegaciones(TestCase):
 
     def test_baja_exige_post(self):
         delegacion = self.crear_delegacion()
-        self.client.force_login(self.supervisor)
+        self.client.force_login(self.admin)
 
         respuesta = self.client.get(
             reverse("delegacion_cambiar_estado", args=[delegacion.pk])
@@ -295,7 +295,7 @@ class PruebasDelegaciones(TestCase):
         delegacion = self.crear_delegacion()
         Servicio.objects.create(delegacion=delegacion, nombre="Aseo")
         Servicio.objects.create(delegacion=delegacion, nombre="Iluminación")
-        self.client.force_login(self.supervisor)
+        self.client.force_login(self.admin)
 
         respuesta = self.client.get(
             reverse("delegacion_detalle", args=[delegacion.pk])
@@ -309,6 +309,70 @@ class PruebasDelegaciones(TestCase):
         )
         self.assertContains(respuesta, "Aseo")
         self.assertNotContains(respuesta, "Iluminación")
+
+    # --- SOLO EL ADMINISTRADOR MODIFICA DELEGACIONES (CP-SEG-010) ---
+    def test_supervisor_no_crea_delegaciones(self):
+        self.client.force_login(self.supervisor)
+
+        respuesta = self.client.post(
+            reverse("delegacion_crear"), self.datos()
+        )
+
+        self.assertEqual(respuesta.status_code, 403)
+        self.assertFalse(
+            Delegacion.objects.filter(nombre="Delegación Centro").exists()
+        )
+
+    def test_supervisor_no_edita_ni_da_de_baja_delegaciones(self):
+        delegacion = self.crear_delegacion()
+        self.client.force_login(self.supervisor)
+
+        respuesta = self.client.post(
+            reverse("delegacion_editar", args=[delegacion.pk]),
+            self.datos(encargado="Otra persona"),
+        )
+        self.assertEqual(respuesta.status_code, 403)
+
+        respuesta = self.client.post(
+            reverse("delegacion_cambiar_estado", args=[delegacion.pk])
+        )
+        self.assertEqual(respuesta.status_code, 403)
+
+        delegacion.refresh_from_db()
+        self.assertEqual(delegacion.encargado, "Ana Rojas")
+        self.assertTrue(delegacion.activo)
+
+    def test_supervisor_con_permiso_antiguo_igual_es_bloqueado(self):
+        """Aunque el grupo conserve el permiso de una versión anterior,
+        la vista exige ser Administrador."""
+        from django.contrib.auth.models import Permission
+
+        grupo = Group.objects.get(name=SUPERVISOR)
+        grupo.permissions.add(
+            Permission.objects.get(codename="add_delegacion")
+        )
+        supervisor = User.objects.get(pk=self.supervisor.pk)
+        self.client.force_login(supervisor)
+
+        respuesta = self.client.post(
+            reverse("delegacion_crear"), self.datos()
+        )
+
+        self.assertEqual(respuesta.status_code, 403)
+
+    def test_sincronizar_roles_retira_permiso_antiguo(self):
+        from django.contrib.auth.models import Permission
+
+        grupo = Group.objects.get(name=SUPERVISOR)
+        grupo.permissions.add(
+            Permission.objects.get(codename="change_delegacion")
+        )
+
+        sincronizar_roles()
+
+        self.assertFalse(
+            grupo.permissions.filter(codename="change_delegacion").exists()
+        )
 
 
 class PruebasServicios(TestCase):
@@ -332,6 +396,20 @@ class PruebasServicios(TestCase):
             telefono="51 2 000 000",
             celular="+56 9 0000 0000",
         )
+        cls.admin = crear_usuario(
+            "11.111.111-1", "admin@laserena.cl", ADMINISTRADOR
+        )
+        cls.otra_delegacion = Delegacion.objects.create(
+            nombre="Delegación Rural",
+            direccion="Camino Rural km 5",
+            encargado="Pedro Soto",
+            email="rural@laserena.cl",
+            telefono="51 2 000 002",
+            celular="",
+        )
+        # El Supervisor administra los servicios de su propia delegación.
+        cls.supervisor.perfil.delegacion = cls.delegacion
+        cls.supervisor.perfil.save()
 
     def url_crear(self, delegacion=None):
         return reverse(
@@ -410,7 +488,7 @@ class PruebasServicios(TestCase):
             celular="",
             activo=False,
         )
-        self.client.force_login(self.supervisor)
+        self.client.force_login(self.admin)
 
         respuesta = self.client.post(
             self.url_crear(delegacion), {"nombre": "Aseo"}
@@ -542,3 +620,49 @@ class PruebasServicios(TestCase):
         )
 
         self.assertEqual(respuesta.status_code, 405)
+
+    # --- ÁMBITO: SERVICIOS SOLO DE SU DELEGACIÓN (CP-SEG-011) ---
+    def test_supervisor_no_crea_servicios_en_otra_delegacion(self):
+        self.client.force_login(self.supervisor)
+
+        respuesta = self.client.post(
+            self.url_crear(self.otra_delegacion), {"nombre": "Aseo"}
+        )
+
+        self.assertEqual(respuesta.status_code, 403)
+        self.assertFalse(
+            Servicio.objects.filter(delegacion=self.otra_delegacion).exists()
+        )
+
+    def test_supervisor_no_edita_ni_da_de_baja_servicios_ajenos(self):
+        servicio = Servicio.objects.create(
+            delegacion=self.otra_delegacion, nombre="Aseo"
+        )
+        self.client.force_login(self.supervisor)
+
+        respuesta = self.client.post(
+            reverse("servicio_editar", args=[servicio.pk]),
+            {"nombre": "Cambiado"},
+        )
+        self.assertEqual(respuesta.status_code, 403)
+
+        respuesta = self.client.post(
+            reverse("servicio_cambiar_estado", args=[servicio.pk])
+        )
+        self.assertEqual(respuesta.status_code, 403)
+
+        servicio.refresh_from_db()
+        self.assertEqual(servicio.nombre, "Aseo")
+        self.assertTrue(servicio.activo)
+
+    def test_admin_crea_servicios_en_cualquier_delegacion(self):
+        self.client.force_login(self.admin)
+
+        respuesta = self.client.post(
+            self.url_crear(self.otra_delegacion), {"nombre": "Aseo"}
+        )
+
+        self.assertRedirects(
+            respuesta,
+            reverse("delegacion_detalle", args=[self.otra_delegacion.pk]),
+        )
