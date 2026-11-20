@@ -20,7 +20,14 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 # Se controla por variable de entorno y por defecto queda desactivado.
 DEBUG = os.getenv("DEBUG", "False").strip().lower() in ("1", "true", "yes", "on")
 
-ALLOWED_HOSTS = ['44.217.180.71', 'localhost', '127.0.0.1']
+# Dominios o IP desde los que se atiende el sitio, separados por coma. Si la
+# variable no existe se usan la IP elástica actual y el equipo local, así
+# que un servidor ya desplegado sigue funcionando sin cambios.
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.getenv("ALLOWED_HOSTS", "44.217.180.71,localhost,127.0.0.1").split(",")
+    if host.strip()
+]
 
 
 # Application definition
