@@ -152,6 +152,37 @@ SESSION_COOKIE_AGE = 60 * 60 * 8
 SESSION_COOKIE_HTTPONLY = True
 CSRF_COOKIE_HTTPONLY = True
 
+
+# HTTPS (RNF-06 Confidencialidad, OWASP A02).
+# Nginx termina el TLS (certificado de Let's Encrypt) y le avisa a Django con
+# la cabecera X-Forwarded-Proto (ver /etc/nginx/proxy_params). Con
+# USE_HTTPS=True las cookies de sesión y CSRF solo viajan cifradas. Por
+# defecto queda en False para que el entorno local con runserver (HTTP) y las
+# pruebas sigan funcionando igual.
+def _env_bool(nombre, por_defecto="False"):
+    return os.getenv(nombre, por_defecto).strip().lower() in ("1", "true", "yes", "on")
+
+
+USE_HTTPS = _env_bool("USE_HTTPS")
+
+# Orígenes de confianza para formularios con CSRF (obligatorio con HTTPS en
+# Django 4+). Ejemplo: https://44-217-180-71.sslip.io
+CSRF_TRUSTED_ORIGINS = [
+    origen.strip()
+    for origen in os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",")
+    if origen.strip()
+]
+
+if USE_HTTPS:
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    # Nginx ya redirige HTTP→HTTPS; esta opción es un respaldo en Django.
+    SECURE_SSL_REDIRECT = _env_bool("SECURE_SSL_REDIRECT")
+    # HSTS: el navegador recuerda usar solo HTTPS. Empezar con un valor bajo
+    # (3600 = 1 hora) y subirlo cuando todo funcione.
+    SECURE_HSTS_SECONDS = int(os.getenv("SECURE_HSTS_SECONDS", "0"))
+
 # Caché compartida en la base de datos.
 # Guarda los contadores de intentos fallidos de inicio de sesión y de
 # solicitudes de recuperación de contraseña. Con la caché en memoria
