@@ -131,6 +131,32 @@ Pantalla: **Actividades → Alertas de registros sospechosos** (`/alertas/`),
 para el Administrador (todas las delegaciones) y el delegado (la suya).
 Pruebas CP-ALE-001 a 020.
 
+### Evaluación 3: territorios, vecinos, juntas, hitos, metas por funcionario y tipos de atención
+
+Completa el alcance mínimo de la pauta (Actividades 1 y 2):
+
+| Requisito de la pauta | Implementación | Ruta |
+|---|---|---|
+| CRUD de territorios | Unidades vecinales o sectores de cada delegación; no se dan de baja con vecinos o hitos vigentes | `/comunidad/territorios/` |
+| CRUD de vecinos | Registro único por RUT (Módulo 11) y teléfono de 9 dígitos; búsqueda por RUT, nombre, teléfono o dirección | `/comunidad/vecinos/` |
+| Campos autocompletados | Al escribir el RUT en una actividad o atención social se completan el nombre y el teléfono del vecino registrado (sin sobrescribir lo escrito) | `/comunidad/vecinos/buscar/` |
+| Membresía y dirigencia en juntas de vecinos | Socios y directiva de cada organización; presidente, vicepresidente, secretario y tesorero son únicos; se cierran con fecha de término y quedan en el historial | Organizaciones → **Socios y directiva** |
+| CRUD de hitos con responsable | Responsable de la delegación, estados (pendiente, en curso, cumplido, cancelado), atrasados y filtros por responsable y fechas | `/comunidad/hitos/` |
+| Metas por funcionario y trimestre | `AsignacionMeta`: cantidad exigida y ponderación individual, separadas del catálogo de metas por cargo; el total del funcionario no supera 100 % | `/maestros/asignaciones/` |
+| Cálculo con la meta individual | «Mi matriz», el puntaje del equipo y el dashboard usan la asignación cuando existe; sin asignación el cálculo es el de siempre (tope 120 %, solo registros aprobados) | `/actividades/matriz/` |
+| CRUD de tipos y subtipos de atención | Tablas administrables; la migración carga los 4 tipos y 7 subtipos que estaban fijos en el código, así que las atenciones existentes no cambian | `/atencion-social/tipos/` |
+| Tubo de cartas: cada uno modifica lo propio | El Administrativo edita solo las cartas que registró y mientras sigan en proceso; el delegado y el Administrador hacen el seguimiento de todas | `/oficina-partes/` |
+
+- **Permisos**: el Supervisor administra territorios, vecinos, membresías,
+  hitos y metas por funcionario de su delegación; el Administrativo
+  consulta y registra vecinos; los tipos de atención los administra el
+  Administrador. Después de desplegar basta `python manage.py migrate`
+  (los permisos se sincronizan solos).
+- **Pruebas**: CP-TER, CP-VEC, CP-MEM, CP-HIT (`comunidadAPP/tests.py`),
+  CP-AMT (`sgr_maestrosAPP/test_asignacion_metas.py`), CP-TAT
+  (`atencionSocialAPP/test_tipos.py`) y CP-CTP
+  (`oficinaPartesAPP/test_propiedad_cartas.py`): 84 pruebas nuevas.
+
 ### Fase 4: asignación y avance de compromisos
 
 El flujo de ejecución de un compromiso se divide en dos transacciones atómicas
