@@ -305,6 +305,59 @@ sudo nginx -t && sudo systemctl reload nginx
 | `http://<IP>/api/swagger/` | 200, documentación de la API |
 | `http://<IP>/alertas/` sin sesión | 302 hacia el login |
 
+### B9. HTTPS con Let's Encrypt
+
+Let's Encrypt entrega certificados para un nombre de dominio, no para una IP
+sola. Si el proyecto no tiene dominio propio se usa **sslip.io**, un servicio
+DNS gratuito que traduce `44-217-180-71.sslip.io` a `44.217.180.71` sin
+registrar nada.
+
+1. En la consola de AWS, en el **Security Group** de la instancia, abrir el
+   puerto **443 (HTTPS)** a `0.0.0.0/0` (el 80 debe seguir abierto: Let's
+   Encrypt lo usa para validar y Nginx para redirigir).
+2. Agregar el nombre en `server_name` de `/etc/nginx/conf.d/eva.conf`:
+
+   ```nginx
+   server_name 44.217.180.71 44-217-180-71.sslip.io;
+   ```
+
+3. Instalar Certbot y pedir el certificado (Certbot edita `eva.conf`, agrega
+   el bloque `listen 443 ssl` y la redirección desde HTTP):
+
+   ```bash
+   sudo dnf install -y certbot python3-certbot-nginx
+   sudo nginx -t && sudo systemctl reload nginx
+   sudo certbot --nginx -d 44-217-180-71.sslip.io --redirect \
+        -m <correo del equipo> --agree-tos --no-eff-email
+   ```
+
+4. En el `.env` del servidor:
+
+   ```ini
+   ALLOWED_HOSTS=44-217-180-71.sslip.io,44.217.180.71,localhost,127.0.0.1
+   USE_HTTPS=True
+   CSRF_TRUSTED_ORIGINS=https://44-217-180-71.sslip.io
+   SECURE_HSTS_SECONDS=3600
+   ```
+
+5. `sudo systemctl restart gunicorn`.
+6. Renovación automática (el certificado dura 90 días):
+
+   ```bash
+   sudo systemctl enable --now certbot-renew.timer
+   sudo certbot renew --dry-run
+   ```
+
+| Comprobación | Resultado esperado |
+|---|---|
+| `https://44-217-180-71.sslip.io/seguridad/login/` | 200 con candado |
+| `http://44-217-180-71.sslip.io/` | 301 hacia `https://` |
+| Iniciar sesión y enviar un formulario | Funciona (sin error 403 de CSRF) |
+| Cookies `sessionid` y `csrftoken` en el navegador | Marcadas como *Secure* |
+
+Si algo falla, volver a `USE_HTTPS=False` y reiniciar Gunicorn: el sitio
+sigue funcionando por HTTP.
+
 ---
 
 ## Parte C. Actualizar el servidor (despliegue de una versión nueva)
