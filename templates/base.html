@@ -194,6 +194,16 @@
                                     </a>
                                 </li>
 
+                                <!-- EVA 3: METAS POR FUNCIONARIO Y TRIMESTRE -->
+                                {% if perms.sgr_maestrosAPP.view_asignacionmeta %}
+                                    <li>
+                                        <a class="dropdown-item"
+                                           href="{% url 'sgr_maestros:asignacion_lista' %}">
+                                            Metas por Funcionario
+                                        </a>
+                                    </li>
+                                {% endif %}
+
                                 <!-- PUNTAJE DEL EQUIPO: SOLO ADMINISTRADOR Y SUPERVISOR -->
                                 {% if perfil_etiqueta == 'Administrador' or perfil_etiqueta == 'Supervisor' %}
                                     <li>

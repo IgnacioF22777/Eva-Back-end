@@ -118,6 +118,13 @@ ROLES = {
         "sgr_maestrosAPP.add_meta",
         "sgr_maestrosAPP.change_meta",
 
+        # EVA 3: el delegado asigna metas a los funcionarios de su
+        # delegación (cantidad exigida y ponderación individual).
+        "sgr_maestrosAPP.view_asignacionmeta",
+        "sgr_maestrosAPP.add_asignacionmeta",
+        "sgr_maestrosAPP.change_asignacionmeta",
+        "sgr_maestrosAPP.delete_asignacionmeta",
+
         # EVA 3: actividades.
         "actividadesAPP.add_registroactividad",
         "actividadesAPP.change_registroactividad",

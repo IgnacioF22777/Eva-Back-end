@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+
+{% block title %}Metas por funcionario - SGR{% endblock %}
+
+{% block header %}
+Metas por Funcionario y Trimestre
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+    <div>
+        <h2 class="h4 mb-1">Asignación de metas por funcionario</h2>
+        <p class="text-muted mb-0">
+            Cantidad exigida y ponderación individual de cada funcionario en el trimestre.
+            Sin asignación, el funcionario usa la meta de su cargo.
+        </p>
+    </div>
+    {% if perms.sgr_maestrosAPP.add_asignacionmeta %}
+        <a href="{% url 'sgr_maestros:asignacion_crear' %}" class="btn btn-primary">+ Asignar meta</a>
+    {% endif %}
+</div>
+
+{% include 'seguridad/_mensajes.html' %}
+
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-2 align-items-end">
+            <div class="col-lg-4">
+                <label class="form-label small fw-semibold" for="q">Buscar</label>
+                <input type="search" id="q" name="q" value="{{ busqueda }}" class="form-control"
+                       placeholder="Funcionario, RUT o código de meta">
+            </div>
+            <div class="col-lg-3">
+                <label class="form-label small fw-semibold" for="periodo">Trimestre</label>
+                <select id="periodo" name="periodo" class="form-select">
+                    <option value="">Todos</option>
+                    {% for p in periodos %}
+                        <option value="{{ p.pk }}" {% if periodo_id == p.pk|stringformat:"s" %}selected{% endif %}>
+                            {{ p.codigo }} - {{ p.nombre }}{% if p.cerrado %} (cerrado){% endif %}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-lg-2">
+                <label class="form-label small fw-semibold" for="estado">Estado</label>
+                <select id="estado" name="estado" class="form-select">
+                    <option value="activos" {% if estado == 'activos' %}selected{% endif %}>Vigentes</option>
+                    <option value="inactivos" {% if estado == 'inactivos' %}selected{% endif %}>De baja</option>
+                    <option value="todos" {% if estado == 'todos' %}selected{% endif %}>Todas</option>
+                </select>
+            </div>
+            <div class="col-lg-1 d-grid">
+                <button type="submit" class="btn btn-primary">Buscar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if resumen %}
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-white fw-semibold">Ponderación total por funcionario en el trimestre</div>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead>
+                    <tr><th>Funcionario</th><th class="text-center">Metas</th><th class="text-center">Individuales</th><th class="text-end">Ponderación total</th></tr>
+                </thead>
+                <tbody>
+                    {% for fila in resumen %}
+                        <tr>
+                            <td>{{ fila.funcionario }}</td>
+                            <td class="text-center">{{ fila.metas }}</td>
+                            <td class="text-center">{{ fila.individuales }}</td>
+                            <td class="text-end">
+                                <span class="badge {% if fila.completo %}bg-success{% else %}bg-warning text-dark{% endif %}">{{ fila.total }}%</span>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endif %}
+
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-primary text-white d-flex justify-content-between">
+        <h5 class="mb-0">Asignaciones</h5>
+        <span>{{ pagina.paginator.count }} resultado{{ pagina.paginator.count|pluralize }}</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-striped table-hover align-middle mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th>Trimestre</th>
+                    <th>Funcionario</th>
+                    <th>Meta</th>
+                    <th class="text-end">Cantidad exigida</th>
+                    <th class="text-end">Ponderación</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in pagina %}
+                    <tr>
+                        <td class="small text-nowrap">{{ a.meta.periodo.codigo }}</td>
+                        <td>
+                            <span class="fw-semibold">{{ a.funcionario.usuario.get_full_name|default:a.funcionario.usuario.username }}</span>
+                            <div class="small text-muted">
+                                {{ a.funcionario.cargo.nombre|default:"Sin cargo" }} · {{ a.funcionario.delegacion.nombre|default:"Sin delegación" }}
+                            </div>
+                        </td>
+                        <td class="small">
+                            {{ a.meta.codigo }} - {{ a.meta.nombre }}
+                            <div class="text-muted">Referencia del cargo: {{ a.meta.valor_objetivo }} / {{ a.meta.ponderacion }}%</div>
+                        </td>
+                        <td class="text-end">{{ a.cantidad_exigida }}</td>
+                        <td class="text-end">{{ a.ponderacion }}%</td>
+                        <td>
+                            {% if a.activo %}<span class="badge bg-success">Vigente</span>
+                            {% else %}<span class="badge bg-secondary">De baja</span>{% endif %}
+                            {% if a.meta.periodo.cerrado %}<span class="badge bg-dark">Período cerrado</span>{% endif %}
+                        </td>
+                        <td>
+                            {% if not a.meta.periodo.cerrado %}
+                                <div class="d-flex flex-wrap gap-1">
+                                    {% if perms.sgr_maestrosAPP.change_asignacionmeta and a.activo %}
+                                        <a href="{% url 'sgr_maestros:asignacion_editar' a.pk %}" class="btn btn-warning btn-sm">Editar</a>
+                                    {% endif %}
+                                    {% if perms.sgr_maestrosAPP.delete_asignacionmeta %}
+                                        <form method="POST" action="{% url 'sgr_maestros:asignacion_cambiar_estado' a.pk %}"
+                                              onsubmit="return confirm('{% if a.activo %}¿Dar de baja esta asignación? El funcionario volverá a la meta de su cargo.{% else %}¿Reactivar esta asignación?{% endif %}');">
+                                            {% csrf_token %}
+                                            {% if a.activo %}
+                                                <button type="submit" class="btn btn-outline-danger btn-sm">Dar de baja</button>
+                                            {% else %}
+                                                <button type="submit" class="btn btn-outline-success btn-sm">Reactivar</button>
+                                            {% endif %}
+                                        </form>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="7" class="text-center text-muted py-5">No hay asignaciones que coincidan con los filtros.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include 'comunidad/_paginacion.html' %}
+</div>
+
+{% endblock %}
