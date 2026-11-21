@@ -217,14 +217,8 @@ class MembresiaJunta(models.Model):
         verbose_name = "Membresía en organización"
         verbose_name_plural = "Membresías en organizaciones"
         ordering = ["organizacion__nombre", "tipo", "cargo", "vecino__nombre"]
-        constraints = [
-            # Un vecino tiene una sola membresía vigente por organización.
-            models.UniqueConstraint(
-                fields=["vecino", "organizacion"],
-                condition=models.Q(activo=True),
-                name="unique_membresia_vigente",
-            ),
-        ]
+        # Un vecino tiene una sola membresía vigente por organización: se
+        # valida en clean() (MariaDB no admite índices únicos condicionales).
         indexes = [
             models.Index(fields=["organizacion", "activo"], name="mem_organizacion_activo_idx"),
         ]

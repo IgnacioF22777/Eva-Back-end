@@ -635,13 +635,8 @@ class AsignacionMeta(models.Model):
         verbose_name = "Asignación de meta"
         verbose_name_plural = "Asignaciones de metas"
         ordering = ["meta__periodo__codigo", "funcionario__usuario__first_name", "meta__codigo"]
-        constraints = [
-            models.UniqueConstraint(
-                fields=["meta", "funcionario"],
-                condition=models.Q(activo=True),
-                name="unique_asignacion_meta_vigente",
-            ),
-        ]
+        # Una sola asignación vigente por meta y funcionario: se valida en
+        # clean() (MariaDB no admite índices únicos condicionales).
         indexes = [
             models.Index(fields=["funcionario", "activo"], name="asig_funcionario_activo_idx"),
         ]
