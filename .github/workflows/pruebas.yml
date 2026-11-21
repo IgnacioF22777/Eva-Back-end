@@ -1,0 +1,57 @@
+# Integración continua del SGR.
+# Ejecuta la batería de pruebas en cada push a main y en cada Pull Request,
+# con SQLite en memoria (config.settings_pruebas): no necesita MariaDB,
+# ni archivo .env, ni toca el servidor AWS.
+
+name: Pruebas
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Si se sube un commit nuevo al mismo PR, se cancela la ejecución anterior.
+concurrency:
+  group: pruebas-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pruebas:
+    name: Django (Python 3.13)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v5
+
+      - name: Instalar Python 3.13
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      # mysqlclient (requirements.txt) se compila y necesita estas librerías,
+      # aunque las pruebas usen SQLite.
+      - name: Instalar librerías del sistema
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends pkg-config libmysqlclient-dev
+
+      - name: Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Revisar la configuración de Django
+        run: python manage.py check --settings=config.settings_pruebas
+
+      - name: Revisar que no falten migraciones
+        run: python manage.py makemigrations --check --dry-run --settings=config.settings_pruebas
+
+      - name: Ejecutar las pruebas
+        run: python manage.py test --settings=config.settings_pruebas --verbosity 1
