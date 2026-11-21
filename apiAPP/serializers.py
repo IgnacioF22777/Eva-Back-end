@@ -124,8 +124,13 @@ class CamposSensiblesMixin:
 # DELEGACIONES Y SERVICIOS
 # ============================================================
 
-class DelegacionSerializer(ValidacionWebMixin, serializers.ModelSerializer):
+class DelegacionSerializer(
+    CamposSensiblesMixin, ValidacionWebMixin, serializers.ModelSerializer
+):
     formulario = DelegacionForm
+
+    # Correo y teléfonos de contacto: solo el Administrador los recibe.
+    campos_sensibles = ("email", "telefono", "celular")
 
     class Meta:
         model = Delegacion
@@ -144,7 +149,9 @@ class DelegacionSerializer(ValidacionWebMixin, serializers.ModelSerializer):
             "nombre": {"help_text": "Nombre de la delegación territorial."},
             "direccion": {"help_text": "Dirección de la delegación."},
             "encargado": {"help_text": "Nombre del responsable."},
-            "email": {"help_text": "Correo de contacto."},
+            "email": {"help_text": "Correo de contacto." + SOLO_ADMINISTRADOR},
+            "telefono": {"help_text": "Teléfono fijo." + SOLO_ADMINISTRADOR},
+            "celular": {"help_text": "Teléfono celular." + SOLO_ADMINISTRADOR},
             "activo": {"help_text": "False si la delegación fue dada de baja."},
         }
 

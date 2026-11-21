@@ -194,6 +194,36 @@ class AsignacionCompromiso(models.Model):
         verbose_name="Asignación vigente",
     )
 
+    # Anulación de una asignación hecha por error: no se borra, queda en el
+    # historial con el motivo, y el compromiso vuelve a la asignación
+    # anterior (o queda sin asignar).
+    anulada = models.BooleanField(
+        default=False,
+        verbose_name="Anulada",
+    )
+
+    motivo_anulacion = models.TextField(
+        blank=True,
+        max_length=MAX_OBSERVACION,
+        validators=[MaxLengthValidator(MAX_OBSERVACION)],
+        verbose_name="Motivo de la anulación",
+    )
+
+    anulado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name="asignaciones_compromiso_anuladas",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        verbose_name="Anulada por",
+    )
+
+    fecha_anulacion = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Fecha de anulación",
+    )
+
     class Meta:
         verbose_name = "Asignación de compromiso"
         verbose_name_plural = "Asignaciones de compromisos"

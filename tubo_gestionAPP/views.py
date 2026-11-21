@@ -1,14 +1,12 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
 from django.core.exceptions import ValidationError
-from django.db import transaction
 from django.db.models import Count, Q
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from config import exportar
-from delegacionesAPP.models import Servicio
 
 from .ambito import (
     SIN_DELEGACION,
@@ -16,15 +14,20 @@ from .ambito import (
     delegacion_id_de,
     es_global,
     verificar_acceso_compromiso,
-    verificar_delegacion_destino,
 )
 from .forms import (
     AsignacionCompromisoForm,
     CompromisoForm,
     RegistroAvanceForm,
 )
-from .models import AdjuntoAvance, AsignacionCompromiso, Compromiso
-from .transacciones import eliminar_archivos, registrar_avance  # noqa: F401
+# AsignacionCompromiso y Compromiso se importan aquí también porque las
+# pruebas de atomicidad los parchean a través de este módulo.
+from .models import AdjuntoAvance, AsignacionCompromiso, Compromiso  # noqa: F401
+from .transacciones import (  # noqa: F401
+    asignar_compromiso,
+    eliminar_archivos,
+    registrar_avance,
+)
 
 
 def resumen_semaforo(compromisos):
@@ -227,71 +230,16 @@ def compromiso_asignar(request, pk):
         form = AsignacionCompromisoForm(request.POST, usuario=request.user)
 
         if form.is_valid():
+            # La lógica de T1 está en transacciones.py y la comparte la
+            # API (bloqueo, ámbito, revalidación del servicio e historial).
             try:
-                with transaction.atomic():
-                    # Bloqueo pesimista: dos supervisores asignando el
-                    # mismo compromiso a la vez se serializan aquí.
-                    compromiso = Compromiso.objects.select_for_update().get(
-                        pk=pk
-                    )
-
-                    # Con la fila bloqueada se repite el control de
-                    # ámbito: otro usuario pudo reasignarlo entre la carga
-                    # de la página y este POST.
-                    verificar_acceso_compromiso(request.user, compromiso)
-                    verificar_delegacion_destino(
-                        request.user, form.cleaned_data["delegacion"].pk
-                    )
-
-                    if not compromiso.activo:
-                        raise ValidationError(
-                            "No se puede asignar un compromiso dado de "
-                            "baja. Reactívelo primero."
-                        )
-
-                    # Revalidación contra la base, ya con la fila
-                    # bloqueada: el servicio pudo darse de baja entre la
-                    # carga del formulario y este POST.
-                    servicio = Servicio.objects.select_related(
-                        "delegacion"
-                    ).filter(pk=form.cleaned_data["servicio"].pk).first()
-
-                    if servicio is None:
-                        raise ValidationError(
-                            "El servicio seleccionado ya no existe."
-                        )
-
-                    if not servicio.activo or not servicio.delegacion.activo:
-                        raise ValidationError(
-                            "El servicio seleccionado está dado de baja."
-                        )
-
-                    if (
-                        servicio.delegacion_id
-                        != form.cleaned_data["delegacion"].pk
-                    ):
-                        raise ValidationError(
-                            "El servicio seleccionado no pertenece a la "
-                            "delegación."
-                        )
-
-                    # La asignación anterior se conserva como historial.
-                    AsignacionCompromiso.objects.filter(
-                        compromiso=compromiso,
-                        activo=True,
-                    ).update(activo=False)
-
-                    asignacion = form.save(commit=False)
-                    asignacion.compromiso = compromiso
-                    asignacion.usuario_asignador = request.user
-                    asignacion.save()
-
-                    compromiso.delegacion = asignacion.delegacion
-                    compromiso.servicio = asignacion.servicio
-                    compromiso.save(
-                        update_fields=["delegacion", "servicio", "estado"]
-                    )
-
+                asignacion, compromiso = asignar_compromiso(
+                    request.user,
+                    pk,
+                    form.cleaned_data["delegacion"].pk,
+                    form.cleaned_data["servicio"].pk,
+                    form.cleaned_data.get("observacion", ""),
+                )
             except ValidationError as error:
                 for mensaje in error.messages:
                     form.add_error(None, mensaje)

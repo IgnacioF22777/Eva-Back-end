@@ -107,6 +107,8 @@ def actualizar(request, serializer_class, instancia):
         instancia,
         data=request.data,
         partial=request.method == "PATCH",
+        # El contexto permite ocultar los datos sensibles según el perfil.
+        context={"request": request},
     )
 
     if serializer.is_valid():
@@ -278,10 +280,10 @@ def delegacion_lista(request):
             delegaciones,
             ["nombre", "encargado", "email", "direccion"],
         )
-        serializer = DelegacionSerializer(delegaciones, many=True)
+        serializer = DelegacionSerializer(delegaciones, many=True, context={"request": request})
         return Response(serializer.data)
 
-    serializer = DelegacionSerializer(data=request.data)
+    serializer = DelegacionSerializer(data=request.data, context={"request": request})
 
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -333,7 +335,7 @@ def delegacion_detalle(request, pk):
 
     if request.method == "GET":
         exigir_permiso(request, Delegacion)
-        return Response(DelegacionSerializer(delegacion).data)
+        return Response(DelegacionSerializer(delegacion, context={"request": request}).data)
 
     if request.method in ("PUT", "PATCH"):
         exigir_permiso(request, Delegacion)
@@ -351,7 +353,7 @@ def delegacion_detalle(request, pk):
         delegacion.activo = False
         delegacion.save(update_fields=["activo"])
 
-    return Response(DelegacionSerializer(delegacion).data)
+    return Response(DelegacionSerializer(delegacion, context={"request": request}).data)
 
 
 @extend_schema(
@@ -380,7 +382,7 @@ def delegacion_reactivar(request, pk):
         delegacion.activo = True
         delegacion.save(update_fields=["activo"])
 
-    return Response(DelegacionSerializer(delegacion).data)
+    return Response(DelegacionSerializer(delegacion, context={"request": request}).data)
 
 
 # ============================================================
