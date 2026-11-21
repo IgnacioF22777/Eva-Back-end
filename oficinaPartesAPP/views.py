@@ -8,6 +8,7 @@ from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
+from seguridadAPP.perfiles import ADMINISTRADOR, SUPERVISOR, perfil_de
 from tubo_gestionAPP.ambito import SIN_DELEGACION, delegacion_id_de, es_global
 
 from .forms import CartaForm
@@ -34,6 +35,26 @@ def obtener_carta(usuario, pk):
             "operar las cartas de su delegación."
         )
     return carta
+
+
+def puede_modificar(usuario, carta, perfil=None):
+    """
+    Pauta Eva 3: todos los funcionarios de la delegación consultan el tubo
+    de cartas, pero cada funcionario solo modifica las cartas que él
+    registró y mientras sigan «En proceso» (no aprobadas ni cerradas). El
+    delegado (Supervisor) y el Administrador hacen el seguimiento de todas
+    las cartas de su ámbito.
+    """
+    perfil = perfil or perfil_de(usuario)
+    if perfil in (ADMINISTRADOR, SUPERVISOR):
+        return True
+    return carta.registrada_por_id == usuario.pk and carta.estado == CartaOficinaPartes.EN_PROCESO
+
+
+NO_MODIFICABLE = (
+    "Solo puede modificar las cartas que usted registró y mientras sigan "
+    "«En proceso». El seguimiento posterior lo hace el delegado."
+)
 
 
 # ============================================================
@@ -90,6 +111,9 @@ def carta_lista(request):
     ]
 
     pagina = Paginator(cartas, POR_PAGINA).get_page(request.GET.get("pagina"))
+    perfil = perfil_de(request.user)
+    for carta in pagina:
+        carta.editable = puede_modificar(request.user, carta, perfil)
     parametros = request.GET.copy()
     parametros.pop("pagina", None)
 
@@ -146,6 +170,8 @@ def carta_crear(request):
 @permission_required("oficinaPartesAPP.change_cartaoficinapartes", raise_exception=True)
 def carta_editar(request, pk):
     carta = obtener_carta(request.user, pk)
+    if not puede_modificar(request.user, carta):
+        raise PermissionDenied(NO_MODIFICABLE)
 
     if request.method == "POST":
         form = CartaForm(request.POST, instance=carta, usuario=request.user)

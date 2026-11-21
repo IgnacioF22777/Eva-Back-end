@@ -77,6 +77,10 @@ ROLES = {
         "atencionSocialAPP.add_atencionsocial",
         "atencionSocialAPP.change_atencionsocial",
         "atencionSocialAPP.delete_atencionsocial",
+        # EVA 3: consulta el catálogo de tipos y subtipos (lo administra
+        # el Administrador).
+        "atencionSocialAPP.view_tipoatencion",
+        "atencionSocialAPP.view_subtipoatencion",
 
         # EVA 3: el delegado administra territorios, vecinos, la
         # directiva y socios de las juntas, y los hitos de su delegación.

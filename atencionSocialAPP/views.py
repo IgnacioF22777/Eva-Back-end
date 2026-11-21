@@ -9,7 +9,7 @@ from django.views.decorators.http import require_POST
 from tubo_gestionAPP.ambito import SIN_DELEGACION, delegacion_id_de, es_global
 
 from .forms import AtencionSocialForm
-from .models import TIPOS, AtencionSocial
+from .models import AtencionSocial, TipoAtencion
 
 
 POR_PAGINA = 25
@@ -54,7 +54,12 @@ def atencion_lista(request):
             Q(nombre_vecino__icontains=busqueda) | Q(derivada_a__icontains=busqueda)
             | Q(detalle__icontains=busqueda)
         )
-    if tipo in dict(TIPOS):
+    # Tipos del mantenedor (incluye los dados de baja, para consultar
+    # registros antiguos).
+    catalogo = list(TipoAtencion.objects.order_by("-activo", "nombre").values_list("codigo", "nombre", "activo"))
+    tipos = [(codigo, nombre) for codigo, nombre, _ in catalogo]
+
+    if tipo in dict(tipos):
         atenciones = atenciones.filter(tipo=tipo)
     else:
         tipo = ""
@@ -69,7 +74,12 @@ def atencion_lista(request):
     conteo = dict(
         visibles.filter(activo=True).values_list("tipo").annotate(total=Count("id"))
     )
-    resumen = [(valor, etiqueta, conteo.get(valor, 0)) for valor, etiqueta in TIPOS]
+    # Un tipo dado de baja solo aparece en el resumen si tiene atenciones.
+    resumen = [
+        (valor, etiqueta, conteo.get(valor, 0))
+        for valor, etiqueta, vigente in catalogo
+        if vigente or conteo.get(valor)
+    ]
 
     pagina = Paginator(atenciones, POR_PAGINA).get_page(request.GET.get("pagina"))
     parametros = request.GET.copy()
@@ -81,7 +91,7 @@ def atencion_lista(request):
         "busqueda": busqueda,
         "tipo": tipo,
         "vigencia": vigencia,
-        "tipos": TIPOS,
+        "tipos": tipos,
         "resumen": resumen,
         "parametros": parametros.urlencode(),
     })

@@ -133,6 +133,9 @@
                                     {% if perms.atencionSocialAPP.view_atencionsocial %}
                                     <li><a class="dropdown-item" href="{% url 'atencion_social:atencion_lista' %}">Atención social</a></li>
                                     {% endif %}
+                                    {% if perms.atencionSocialAPP.view_tipoatencion %}
+                                    <li><a class="dropdown-item" href="{% url 'atencion_social:tipo_lista' %}">Tipos de atención social</a></li>
+                                    {% endif %}
                                 </ul>
                             </li>
                         {% endif %}
