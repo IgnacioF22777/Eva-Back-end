@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'atencionSocialAPP',  # EVA 3: tipos de atención social (RC-05).
     'actividadesAPP',  # EVA 3: registro diario de actividades (R1-R4).
     'puntajeEquipoAPP',  # EVA 3: pantalla de puntaje del equipo (R10).
+    'alertasAPP',  # EVA 3: alertas de registros sospechosos (R6).
 
     # API RESTful (Programación Back End): Django REST Framework,
     # autenticación JWT y documentación OpenAPI (Swagger / ReDoc).
@@ -202,6 +203,13 @@ ADJUNTOS_MAX_MB_TOTAL = int(os.getenv("ADJUNTOS_MAX_MB_TOTAL", "25"))
 SGR_BONO_FELICITACION = os.getenv("SGR_BONO_FELICITACION", "0.10")
 SGR_DESCUENTO_RECLAMO = os.getenv("SGR_DESCUENTO_RECLAMO", "0.20")
 SGR_TOPE_CUMPLIMIENTO = os.getenv("SGR_TOPE_CUMPLIMIENTO", "1.20")
+
+# Alertas de registros sospechosos (R6): umbrales de los 4 indicadores.
+SGR_ALERTA_CONTACTO = int(os.getenv("SGR_ALERTA_CONTACTO", "3"))
+SGR_ALERTA_RAFAGA = int(os.getenv("SGR_ALERTA_RAFAGA", "5"))
+SGR_ALERTA_RAFAGA_MINUTOS = int(os.getenv("SGR_ALERTA_RAFAGA_MINUTOS", "10"))
+SGR_ALERTA_DETALLE = int(os.getenv("SGR_ALERTA_DETALLE", "3"))
+SGR_ALERTA_CUPO_DIAS = int(os.getenv("SGR_ALERTA_CUPO_DIAS", "3"))
 
 # Los archivos quedan legibles solo por el usuario del servicio.
 FILE_UPLOAD_PERMISSIONS = 0o640

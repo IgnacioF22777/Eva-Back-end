@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}Alertas de registros sospechosos - SGR{% endblock %}
+
+{% block header %}Alertas de registros sospechosos{% endblock %}
+
+{% block content %}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+        <h2 class="h4 mb-1">Alertas de registros sospechosos (R6)</h2>
+        <p class="text-muted mb-0">
+            Señales de registros hechos solo para sumar puntaje. Una alerta no cambia el puntaje ni
+            rechaza nada: indica qué revisar en la verificación.
+        </p>
+    </div>
+    <a href="{% url 'actividades:verificacion' %}" class="btn btn-outline-primary">Ir a verificación</a>
+</div>
+
+{% include "seguridad/_mensajes.html" %}
+
+<div class="row g-2 mb-3">
+    {% for item in resumen %}
+    <div class="col-6 col-lg-3">
+        <a class="text-decoration-none"
+           href="?indicador={{ item.clave }}&desde={{ filtros.desde|date:'Y-m-d' }}&hasta={{ filtros.hasta|date:'Y-m-d' }}{% if delegacion %}&delegacion={{ delegacion.pk }}{% endif %}">
+            <div class="card border-0 shadow-sm h-100 {% if filtros.indicador == item.clave %}border-start border-4 border-primary{% endif %}">
+                <div class="card-body py-2">
+                    <div class="small text-muted">{{ item.nombre }}</div>
+                    <div class="h4 mb-0 {% if item.total %}text-danger{% endif %}">{{ item.total }}</div>
+                </div>
+            </div>
+        </a>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="card shadow-sm border-0 mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-2 align-items-end">
+            {% if delegaciones %}
+            <div class="col-md-3">
+                <label class="form-label small" for="f-delegacion">Delegación</label>
+                <select id="f-delegacion" name="delegacion" class="form-select">
+                    <option value="">Todas</option>
+                    {% for d in delegaciones %}
+                    <option value="{{ d.pk }}" {% if delegacion.pk == d.pk %}selected{% endif %}>{{ d.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            <div class="col-md-3">
+                <label class="form-label small" for="f-funcionario">Funcionario</label>
+                <select id="f-funcionario" name="funcionario" class="form-select">
+                    <option value="">Todos</option>
+                    {% for f in funcionarios %}
+                    <option value="{{ f.pk }}" {% if filtros.funcionario == f.pk %}selected{% endif %}>{{ f.usuario.get_full_name|default:f.usuario.username }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small" for="f-indicador">Indicador</label>
+                <select id="f-indicador" name="indicador" class="form-select">
+                    <option value="">Todos</option>
+                    {% for clave, nombre in indicadores %}
+                    <option value="{{ clave }}" {% if filtros.indicador == clave %}selected{% endif %}>{{ nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small" for="f-desde">Ingresados desde</label>
+                <input type="date" id="f-desde" name="desde" value="{{ filtros.desde|date:'Y-m-d' }}" class="form-control">
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small" for="f-hasta">Hasta</label>
+                <input type="date" id="f-hasta" name="hasta" value="{{ filtros.hasta|date:'Y-m-d' }}" class="form-control">
+            </div>
+            <div class="col-md-12 col-lg-2 d-grid">
+                <button type="submit" class="btn btn-primary">Filtrar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-primary text-white d-flex flex-wrap justify-content-between gap-2">
+        <h5 class="mb-0">Alertas del {{ filtros.desde|date:"d-m-Y" }} al {{ filtros.hasta|date:"d-m-Y" }}</h5>
+        <span>{{ alertas|length }} alerta{{ alertas|length|pluralize }} · {{ funcionarios_con_alertas }} funcionario{{ funcionarios_con_alertas|pluralize }} · {{ registros_involucrados }} registro{{ registros_involucrados|pluralize }}</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-striped align-middle mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th>Semana</th>
+                    <th>Funcionario</th>
+                    <th>Indicador</th>
+                    <th>Detalle</th>
+                    <th>Registros</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for alerta in alertas %}
+                <tr>
+                    <td class="text-nowrap small">Lunes {{ alerta.semana|date:"d-m-Y" }}</td>
+                    <td>
+                        <span class="fw-semibold">{{ alerta.funcionario.usuario.get_full_name|default:alerta.funcionario.usuario.username }}</span>
+                        <div class="small text-muted">{{ alerta.funcionario.delegacion.nombre|default:"Sin delegación" }}</div>
+                    </td>
+                    <td><span class="badge bg-warning text-dark">{{ alerta.nombre }}</span></td>
+                    <td class="small">{{ alerta.descripcion }}</td>
+                    <td class="small">
+                        {% for r in alerta.registros|slice:":8" %}
+                        <a href="{% url 'actividades:verificacion' %}?estado=TODOS&q={{ r.codigo|urlencode }}" class="text-nowrap">{{ r.codigo|default:r.pk }}</a>{% if not forloop.last %}, {% endif %}
+                        {% endfor %}
+                        {% if alerta.cantidad > 8 %}<span class="text-muted"> y {{ alerta.cantidad|add:"-8" }} más</span>{% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center text-muted py-5">
+                        No hay alertas en el rango seleccionado.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="card-footer bg-white small text-muted">
+        Umbrales vigentes:
+        contacto repetido desde {{ umbrales.contacto }} registros por semana;
+        ráfaga desde {{ umbrales.rafaga }} ingresos en {{ umbrales.rafaga_minutos }} minutos;
+        detalle copiado desde {{ umbrales.detalle }} registros por semana;
+        cupo diario al máximo ({{ umbrales.maximo_diario }} ingresos) en {{ umbrales.cupo_dias }} o más días de una semana.
+        No se consideran registros anulados ni rechazados.
+    </div>
+</div>
+
+{% endblock %}
