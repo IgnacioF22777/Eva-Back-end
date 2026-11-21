@@ -107,16 +107,25 @@
                             </li>
                         {% endif %}
 
-                        <!-- TERRITORIO: organizaciones, cartas y atención social -->
-                        {% if perms.organizacionesAPP.view_organizacioncomunitaria or perms.oficinaPartesAPP.view_cartaoficinapartes or perms.atencionSocialAPP.view_atencionsocial %}
+                        <!-- TERRITORIO: territorios, vecinos, organizaciones, hitos, cartas y atención social -->
+                        {% if perms.organizacionesAPP.view_organizacioncomunitaria or perms.oficinaPartesAPP.view_cartaoficinapartes or perms.atencionSocialAPP.view_atencionsocial or perms.comunidadAPP.view_vecino %}
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle" href="#" id="menuTerritorio"
                                    role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                     Territorio
                                 </a>
                                 <ul class="dropdown-menu" aria-labelledby="menuTerritorio">
+                                    {% if perms.comunidadAPP.view_territorio %}
+                                    <li><a class="dropdown-item" href="{% url 'comunidad:territorio_lista' %}">Territorios</a></li>
+                                    {% endif %}
+                                    {% if perms.comunidadAPP.view_vecino %}
+                                    <li><a class="dropdown-item" href="{% url 'comunidad:vecino_lista' %}">Vecinos</a></li>
+                                    {% endif %}
                                     {% if perms.organizacionesAPP.view_organizacioncomunitaria %}
                                     <li><a class="dropdown-item" href="{% url 'organizaciones:organizacion_lista' %}">Organizaciones</a></li>
+                                    {% endif %}
+                                    {% if perms.comunidadAPP.view_hito %}
+                                    <li><a class="dropdown-item" href="{% url 'comunidad:hito_lista' %}">Hitos</a></li>
                                     {% endif %}
                                     {% if perms.oficinaPartesAPP.view_cartaoficinapartes %}
                                     <li><a class="dropdown-item" href="{% url 'oficina_partes:carta_lista' %}">Cartas</a></li>

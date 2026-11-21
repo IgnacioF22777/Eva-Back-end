@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ titulo }} - SGR{% endblock %}
+
+{% block header %}
+{{ titulo }}
+{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">{{ titulo }}</h5>
+            </div>
+
+            <div class="card-body p-4">
+
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}{{ error }} {% endfor %}
+                    </div>
+                {% endif %}
+
+                <form method="POST" novalidate>
+                    {% csrf_token %}
+
+                    {% for campo in form %}
+                        <div class="mb-3" id="grupo_{{ campo.name }}">
+                            <label class="form-label fw-semibold" for="{{ campo.id_for_label }}">
+                                {{ campo.label }}
+                                {% if campo.field.required %}<span class="text-danger">*</span>{% endif %}
+                            </label>
+                            {{ campo }}
+                            {% if campo.help_text %}<div class="form-text">{{ campo.help_text }}</div>{% endif %}
+                            {% for error in campo.errors %}
+                                <div class="text-danger small mt-1">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    {% endfor %}
+
+                    <div class="d-flex flex-wrap gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                        {% if volver_a %}
+                            <a href="{% url volver_a.0 volver_a.1 %}" class="btn btn-outline-secondary">Cancelar</a>
+                        {% else %}
+                            <a href="{% url lista %}" class="btn btn-outline-secondary">Cancelar</a>
+                        {% endif %}
+                    </div>
+                </form>
+
+            </div>
+        </div>
+
+        {% if membresias %}
+            <div class="card border-0 shadow-sm mt-4">
+                <div class="card-header bg-white fw-semibold">Organizaciones del vecino/a</div>
+                <ul class="list-group list-group-flush">
+                    {% for m in membresias %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>
+                                {{ m.organizacion.nombre }}
+                                <span class="small text-muted">
+                                    — {% if m.tipo == 'DIRIGENTE' %}{{ m.get_cargo_display }}{% else %}{{ m.get_tipo_display }}{% endif %}
+                                </span>
+                            </span>
+                            {% if m.activo %}
+                                <span class="badge bg-success">Vigente</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Hasta {{ m.fecha_termino|date:"d-m-Y" }}</span>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+
+    </div>
+</div>
+
+<script>
+    // Membresías: el cargo solo aplica a dirigentes.
+    (function () {
+        const tipo = document.getElementById("id_tipo");
+        const grupoCargo = document.getElementById("grupo_cargo");
+        if (!tipo || !grupoCargo || !document.getElementById("id_vecino")) return;
+        function actualizar() {
+            grupoCargo.style.display = tipo.value === "DIRIGENTE" ? "" : "none";
+        }
+        tipo.addEventListener("change", actualizar);
+        actualizar();
+    })();
+</script>
+
+{% endblock %}

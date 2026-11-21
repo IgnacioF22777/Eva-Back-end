@@ -1,0 +1,50 @@
+{% comment %}
+Autocompletado de datos del vecino por RUT (pauta, Actividad 1: «campos
+autocompletados cuando la información ya esté disponible»).
+
+Variables: campo_rut, campo_nombre, campo_telefono (id de cada input).
+Solo completa campos vacíos: nunca sobrescribe lo que el funcionario
+escribió. Respeta el ámbito por delegación (lo controla la vista).
+{% endcomment %}
+{% if perms.comunidadAPP.view_vecino %}
+<script>
+    (function () {
+        const rut = document.getElementById("{{ campo_rut }}");
+        const nombre = document.getElementById("{{ campo_nombre }}");
+        const telefono = document.getElementById("{{ campo_telefono }}");
+        if (!rut || !nombre || !telefono) return;
+
+        const aviso = document.createElement("div");
+        aviso.className = "form-text";
+        rut.insertAdjacentElement("afterend", aviso);
+
+        let ultimo = "";
+        function buscar() {
+            const valor = rut.value.trim();
+            if (valor.length < 3 || valor === ultimo) return;
+            ultimo = valor;
+
+            fetch("{% url 'comunidad:vecino_buscar' %}?rut=" + encodeURIComponent(valor), {
+                headers: { "X-Requested-With": "XMLHttpRequest" },
+                credentials: "same-origin",
+            })
+                .then(function (r) { return r.ok ? r.json() : { encontrado: false }; })
+                .then(function (datos) {
+                    if (!datos.encontrado) {
+                        aviso.textContent = "RUT no registrado en Vecinos: complete los datos a mano.";
+                        aviso.className = "form-text";
+                        return;
+                    }
+                    if (!nombre.value.trim()) nombre.value = datos.nombre;
+                    if (!telefono.value.trim()) telefono.value = datos.telefono;
+                    aviso.textContent = "Vecino/a registrado: " + datos.nombre + ". Datos completados automáticamente.";
+                    aviso.className = "form-text text-success";
+                })
+                .catch(function () { aviso.textContent = ""; });
+        }
+
+        rut.addEventListener("change", buscar);
+        rut.addEventListener("blur", buscar);
+    })();
+</script>
+{% endif %}

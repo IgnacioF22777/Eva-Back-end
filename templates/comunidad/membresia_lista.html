@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+
+{% block title %}Socios y directiva - SGR{% endblock %}
+
+{% block header %}
+Socios y directiva
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+    <div>
+        <h2 class="h4 mb-1">{{ organizacion.nombre }}</h2>
+        <p class="text-muted mb-0">
+            {{ organizacion.get_tipo_display }} · N° {{ organizacion.numero_registro }}
+            · {{ organizacion.delegacion.nombre|default:"Sin delegación" }}
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'organizaciones:organizacion_lista' %}" class="btn btn-outline-secondary">Volver</a>
+        {% if perms.comunidadAPP.add_membresiajunta and organizacion.activo %}
+            <a href="{% url 'comunidad:membresia_crear' organizacion.pk %}" class="btn btn-primary">+ Agregar socio o dirigente</a>
+        {% endif %}
+    </div>
+</div>
+
+{% include 'seguridad/_mensajes.html' %}
+
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-primary text-white d-flex justify-content-between">
+                <h5 class="mb-0">Directiva vigente</h5>
+                <span>{{ directiva|length }}</span>
+            </div>
+            <ul class="list-group list-group-flush">
+                {% for m in directiva %}
+                    {% include 'comunidad/_membresia_fila.html' %}
+                {% empty %}
+                    <li class="list-group-item text-muted">Sin dirigentes registrados.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-primary text-white d-flex justify-content-between">
+                <h5 class="mb-0">Socios vigentes</h5>
+                <span>{{ socios|length }}</span>
+            </div>
+            <ul class="list-group list-group-flush">
+                {% for m in socios %}
+                    {% include 'comunidad/_membresia_fila.html' %}
+                {% empty %}
+                    <li class="list-group-item text-muted">Sin socios registrados.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+
+{% if historial %}
+    <div class="card border-0 shadow-sm mt-4">
+        <div class="card-header bg-white fw-semibold">Historial (membresías cerradas)</div>
+        <ul class="list-group list-group-flush">
+            {% for m in historial %}
+                <li class="list-group-item small">
+                    {{ m.vecino.nombre }} —
+                    {% if m.tipo == 'DIRIGENTE' %}{{ m.get_cargo_display }}{% else %}{{ m.get_tipo_display }}{% endif %}
+                    ({{ m.fecha_inicio|date:"d-m-Y" }} al {{ m.fecha_termino|date:"d-m-Y"|default:"—" }})
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+{% endif %}
+
+{% endblock %}
