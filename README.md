@@ -521,13 +521,16 @@ python manage.py test --settings=config.settings_pruebas
 
 ### Último resultado registrado
 
-**637 pruebas OK** (20-11-2026), con todas las ramas de la Evaluación 3
-integradas y los cambios de seguridad de `main`. Se ejecutaron con SQLite
-(`config.settings_pruebas`) y también sobre MariaDB en la EC2.
+**775 pruebas OK** (21-11-2026, SQLite con `config.settings_pruebas`), con
+`main` más las ramas `ci/github-actions`, `feature/eva3-alertas-r6`,
+`docs/mejoras-readme` y `feature/eva3-faltantes-pauta` integradas.
 
-> Tras integrar cambios nuevos (por ejemplo, el PR #24 de regalos y
-> configuración de la matriz) conviene volver a ejecutar la batería y
-> actualizar esta cifra.
+- Antes de esas ramas: 691 pruebas OK en `feature/eva3-alertas-r6` y
+  637 OK en `main` (20-11-2026, también sobre MariaDB en la EC2).
+- Desde que se integra `ci/github-actions`, GitHub Actions ejecuta la
+  batería en cada Pull Request y en cada push a `main`.
+
+> Falta repetir la batería sobre MariaDB en la EC2 después del despliegue.
 
 La suite cubre autenticación, recuperación de contraseña, permisos por perfil,
 CRUD de los mantenedores, búsqueda, duplicados, baja lógica, reactivación,
