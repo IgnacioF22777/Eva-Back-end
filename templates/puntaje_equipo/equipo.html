@@ -138,7 +138,7 @@ Puntaje del Equipo
                             <td class="small">
                                 {{ fila.cargo.nombre|default:"Sin cargo" }}
                                 {% if fila.ponderacion_incompleta %}
-                                    <div class="text-warning">Las ponderaciones suman {{ fila.ponderacion_total }}%</div>
+                                    <div class="text-warning-emphasis">Las ponderaciones suman {{ fila.ponderacion_total }}%</div>
                                 {% endif %}
                             </td>
                             <td class="text-end text-nowrap">
