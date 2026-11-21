@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'atencionSocialAPP',  # EVA 3: tipos de atención social (RC-05).
     'actividadesAPP',  # EVA 3: registro diario de actividades (R1-R4).
     'puntajeEquipoAPP',  # EVA 3: pantalla de puntaje del equipo (R10).
+    'alertasAPP',  # EVA 3: alertas de registros sospechosos (R6).
 
     # API RESTful (Programación Back End): Django REST Framework,
     # autenticación JWT y documentación OpenAPI (Swagger / ReDoc).
@@ -87,6 +88,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'seguridadAPP.context_processors.perfil_actual',
                 'matrizAPP.context_processors.configuracion_matriz',
+                'config.context_processors.version_estaticos',
             ],
         },
     },
@@ -203,9 +205,32 @@ SGR_BONO_FELICITACION = os.getenv("SGR_BONO_FELICITACION", "0.10")
 SGR_DESCUENTO_RECLAMO = os.getenv("SGR_DESCUENTO_RECLAMO", "0.20")
 SGR_TOPE_CUMPLIMIENTO = os.getenv("SGR_TOPE_CUMPLIMIENTO", "1.20")
 
+# Alertas de registros sospechosos (R6): umbrales de los 4 indicadores.
+SGR_ALERTA_CONTACTO = int(os.getenv("SGR_ALERTA_CONTACTO", "3"))
+SGR_ALERTA_RAFAGA = int(os.getenv("SGR_ALERTA_RAFAGA", "5"))
+SGR_ALERTA_RAFAGA_MINUTOS = int(os.getenv("SGR_ALERTA_RAFAGA_MINUTOS", "10"))
+SGR_ALERTA_DETALLE = int(os.getenv("SGR_ALERTA_DETALLE", "3"))
+SGR_ALERTA_CUPO_DIAS = int(os.getenv("SGR_ALERTA_CUPO_DIAS", "3"))
+
 # Los archivos quedan legibles solo por el usuario del servicio.
 FILE_UPLOAD_PERMISSIONS = 0o640
 FILE_UPLOAD_DIRECTORY_PERMISSIONS = 0o750
+
+# Los archivos estáticos (CSS, JS, imágenes del sitio) son públicos y los
+# entrega Nginx: collectstatic debe dejarlos legibles (644/755). Sin esto
+# heredan los permisos 640 de las evidencias y Nginx responde 403.
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        "OPTIONS": {
+            "file_permissions_mode": 0o644,
+            "directory_permissions_mode": 0o755,
+        },
+    },
+}
 
 # Email
 # https://docs.djangoproject.com/en/4.2/topics/email/

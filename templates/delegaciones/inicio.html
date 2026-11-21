@@ -1,82 +1,185 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Delegaciones - Inicio{% endblock %}
+{% block title %}Municipalidad de La Serena - Delegaciones Territoriales{% endblock %}
 
-{% block content %}
-<section class="hero bg-primary text-white rounded-4 shadow p-4 p-md-5 text-center">
-    <div class="row align-items-center">
-        <div class="col-md-4 mb-4 mb-md-0">
-            <img src="{% static 'images/Logo 2 municipoalidad (letras blancas).svg' %}" alt="Logo Municipalidad de La Serena" class="img-fluid" style="max-height: 200px;">
-        </div>
-        <div class="col-md-8">
-            <h1 class="display-4 fw-bold">Municipalidad de La Serena</h1>
-            <p class="lead mb-4">
-                Nuestra misión territorial es acercar la gestión municipal a cada barrio y comunidad,
-                garantizando una atención cercana, oportuna y equitativa a los vecinos de la comuna
-                a través de nuestras delegaciones.
-            </p>
-            {% if user.is_authenticated %}
-                <a href="{% url 'seguridad:panel' %}" class="btn btn-light btn-lg px-4">Ir a mi panel</a>
-                <a href="{% url 'lista' %}" class="btn btn-outline-light btn-lg px-4 ms-md-2 mt-2 mt-md-0">Ver Delegaciones</a>
-            {% else %}
-                <a href="{% url 'seguridad:login' %}" class="btn btn-light btn-lg px-4">Iniciar sesión (funcionarios)</a>
-            {% endif %}
+{# La portada usa su propia presentación en lugar del encabezado genérico #}
+{% block encabezado %}{% endblock %}
+
+{% block ancho_completo %}
+
+<!-- PRESENTACIÓN -->
+<section class="portada-hero text-white">
+    <div class="container position-relative">
+        <div class="row align-items-center g-5">
+            <div class="col-lg-7">
+                <p class="portada-etiqueta mb-3">Ilustre Municipalidad de La Serena</p>
+                <h1 class="portada-titulo mb-3">
+                    Gestión territorial<br class="d-none d-md-inline"> cerca de cada barrio
+                </h1>
+                <p class="portada-bajada mb-4">
+                    Nuestra misión territorial es acercar la gestión municipal a cada barrio y comunidad,
+                    garantizando una atención cercana, oportuna y equitativa a los vecinos de la comuna
+                    a través de nuestras delegaciones.
+                </p>
+                <div class="d-flex flex-wrap gap-2">
+                    {% if user.is_authenticated %}
+                        <a href="{% url 'seguridad:panel' %}" class="btn btn-light btn-lg portada-boton">Ir a mi panel</a>
+                        <a href="{% url 'lista' %}" class="btn btn-outline-light btn-lg portada-boton">Ver delegaciones</a>
+                    {% else %}
+                        <a href="{% url 'seguridad:login' %}" class="btn btn-light btn-lg portada-boton">Iniciar sesión (funcionarios)</a>
+                        <a href="#delegaciones" class="btn btn-outline-light btn-lg portada-boton">Conocer las delegaciones</a>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-lg-5 d-none d-lg-block">
+                <figure class="portada-foto mb-0">
+                    <img src="{% static 'images/municipalidad_edificio.jpg' %}"
+                         alt="Fachada del edificio municipal de La Serena"
+                         class="img-fluid">
+                    <figcaption>Edificio municipal · La Serena</figcaption>
+                </figure>
+            </div>
         </div>
     </div>
 </section>
 
-<section class="mt-5">
-    <h2 class="h4 text-primary mb-4">Nuestras Delegaciones Territoriales</h2>
-    <p class="text-muted">
+<!-- CIFRAS -->
+<section class="container portada-cifras">
+    <div class="row g-3">
+        <div class="col-md-4">
+            <div class="portada-cifra">
+                <span class="portada-cifra-numero">{{ total_delegaciones }}</span>
+                <span class="portada-cifra-texto">delegaciones territoriales</span>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="portada-cifra">
+                <span class="portada-cifra-numero">{{ total_organizaciones }}</span>
+                <span class="portada-cifra-texto">organizaciones comunitarias registradas</span>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="portada-cifra">
+                <span class="portada-cifra-numero">{{ total_servicios }}</span>
+                <span class="portada-cifra-texto">servicios municipales en terreno</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}
+
+{% block content %}
+
+<!-- ACCESOS DIRECTOS -->
+<section class="mt-4 mb-5" aria-labelledby="titulo-accesos">
+    <h2 id="titulo-accesos" class="portada-seccion">Accesos directos</h2>
+    <div class="row g-3">
+        {% if user.is_authenticated %}
+        <div class="col-sm-6 col-lg-3">
+            <a class="portada-acceso" href="{% url 'seguridad:panel' %}">Mi panel <span aria-hidden="true">›</span></a>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <a class="portada-acceso" href="{% url 'actividades:lista' %}">Mis actividades <span aria-hidden="true">›</span></a>
+        </div>
+        {% else %}
+        <div class="col-sm-6 col-lg-3">
+            <a class="portada-acceso" href="{% url 'seguridad:login' %}">Intranet de funcionarios <span aria-hidden="true">›</span></a>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <a class="portada-acceso" href="{% url 'seguridad:password_reset' %}">Recuperar contraseña <span aria-hidden="true">›</span></a>
+        </div>
+        {% endif %}
+        <div class="col-sm-6 col-lg-3">
+            <a class="portada-acceso" href="#delegaciones">Delegaciones territoriales <span aria-hidden="true">›</span></a>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <a class="portada-acceso portada-acceso-claro" href="https://www.laserena.cl" target="_blank" rel="noopener noreferrer">
+                Sitio oficial laserena.cl <span aria-hidden="true">↗</span>
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- DELEGACIONES -->
+<section id="delegaciones" class="mb-5" aria-labelledby="titulo-delegaciones">
+    <h2 id="titulo-delegaciones" class="portada-seccion">Nuestras delegaciones territoriales</h2>
+    <p class="text-muted mb-4 portada-texto">
         Las delegaciones municipales operan como oficinas descentralizadas que acercan los servicios
         municipales a los vecinos, atendiendo requerimientos que van desde seguridad y áreas verdes
         hasta asistencia social en cada sector de la comuna.
     </p>
-    <div class="row">
+    <div class="row g-3">
         {% for delegacion in delegaciones %}
-        <div class="col-md-4 mb-3">
-            <div class="card shadow-sm h-100">
-                <div class="card-body">
-                    <div class="d-flex align-items-center mb-2">
-                        <span class="badge bg-primary me-2">{{ forloop.counter }}</span>
-                        <span class="fw-semibold">{{ delegacion.nombre }}</span>
+        <div class="col-md-6 col-lg-4">
+            <article class="portada-delegacion h-100">
+                <div class="d-flex align-items-start gap-3">
+                    <span class="portada-icono" aria-hidden="true">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg>
+                    </span>
+                    <div>
+                        <h3 class="h6 fw-bold mb-1">{{ delegacion.nombre }}</h3>
+                        <p class="small text-muted mb-1">{{ delegacion.direccion }}</p>
+                        <p class="small mb-0"><span class="text-muted">Encargado:</span> {{ delegacion.encargado }}</p>
                     </div>
-                    <p class="card-text small text-muted mb-1">Encargado: {{ delegacion.encargado }}</p>
-                    <p class="card-text small text-muted mb-0">{{ delegacion.direccion }}</p>
                 </div>
-            </div>
+            </article>
         </div>
+        {% empty %}
+        <div class="col-12"><p class="text-muted">Pronto publicaremos la información de las delegaciones.</p></div>
         {% endfor %}
     </div>
     {% if user.is_authenticated %}
-    <div class="text-center mt-3">
+    <div class="text-center mt-4">
         <a href="{% url 'lista' %}" class="btn btn-outline-primary">Ver detalle de las delegaciones</a>
     </div>
     {% endif %}
 </section>
 
-<section class="mt-5 mb-4">
-    <h2 class="h4 text-primary mb-3">Sistema de Gestión de Resultados (SGR)</h2>
-    <div class="row g-3">
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm h-100"><div class="card-body">
-                <h3 class="h6 fw-bold">Registro diario</h3>
-                <p class="small text-muted mb-0">Cada funcionario registra las gestiones realizadas con los vecinos, verificadas por el delegado de su territorio.</p>
-            </div></div>
+<!-- SISTEMA SGR -->
+<section class="portada-sgr mb-4" aria-labelledby="titulo-sgr">
+    <div class="row align-items-center g-4">
+        <div class="col-lg-4">
+            <p class="portada-etiqueta portada-etiqueta-roja mb-2">Para funcionarios municipales</p>
+            <h2 id="titulo-sgr" class="h3 fw-bold mb-3">Sistema de Gestión de Resultados</h2>
+            <p class="text-muted mb-0">
+                Plataforma interna con la que cada delegación registra su trabajo con los vecinos
+                y mide el cumplimiento de sus metas.
+            </p>
         </div>
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm h-100"><div class="card-body">
-                <h3 class="h6 fw-bold">Seguimiento de solicitudes</h3>
-                <p class="small text-muted mb-0">Las solicitudes que requieren solución se siguen en el tubo de la delegación hasta cerrarse.</p>
-            </div></div>
-        </div>
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm h-100"><div class="card-body">
-                <h3 class="h6 fw-bold">Metas y semáforo</h3>
-                <p class="small text-muted mb-0">El avance de cada equipo se mide contra las metas trimestrales por cargo con un semáforo de cumplimiento.</p>
-            </div></div>
+        <div class="col-lg-8">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="portada-funcion h-100">
+                        <span class="portada-icono" aria-hidden="true">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                        </span>
+                        <h3 class="h6 fw-bold mt-3">Registro diario</h3>
+                        <p class="small text-muted mb-0">Cada gestión con los vecinos queda registrada y la verifica el delegado del territorio.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="portada-funcion h-100">
+                        <span class="portada-icono" aria-hidden="true">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+                        </span>
+                        <h3 class="h6 fw-bold mt-3">Seguimiento de solicitudes</h3>
+                        <p class="small text-muted mb-0">Las solicitudes que requieren solución se siguen en el tubo de la delegación hasta cerrarse.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="portada-funcion h-100">
+                        <span class="portada-icono" aria-hidden="true">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>
+                        </span>
+                        <h3 class="h6 fw-bold mt-3">Metas y semáforo</h3>
+                        <p class="small text-muted mb-0">El avance de cada equipo se mide contra las metas trimestrales por cargo con un semáforo.</p>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </section>
+
 {% endblock %}

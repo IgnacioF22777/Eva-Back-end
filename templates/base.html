@@ -16,13 +16,13 @@
           href="{% static 'css/bootstrap.min.css' %}">
 
     <link rel="stylesheet"
-          href="{% static 'css/custom.css' %}">
+          href="{% static 'css/custom.css' %}?v={{ version_estaticos }}">
 </head>
 
 <body class="d-flex flex-column min-vh-100">
 
     <!-- BARRA DE NAVEGACIÓN -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+    <nav class="navbar navbar-expand-xxl navbar-dark bg-primary shadow-sm">
 
         <div class="container">
 
@@ -101,35 +101,30 @@
                                     <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item" href="{% url 'actividades:verificacion' %}">Verificación de actividades</a></li>
                                     <li><a class="dropdown-item" href="{% url 'puntaje_equipo:dashboard' %}">Dashboard de la delegación</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'alertas:lista' %}">Alertas de registros sospechosos</a></li>
                                     {% endif %}
                                 </ul>
                             </li>
                         {% endif %}
 
-                        {% if perms.organizacionesAPP.view_organizacioncomunitaria %}
-                            <li class="nav-item">
-                                <a class="nav-link"
-                                   href="{% url 'organizaciones:organizacion_lista' %}">
-                                    Organizaciones
+                        <!-- TERRITORIO: organizaciones, cartas y atención social -->
+                        {% if perms.organizacionesAPP.view_organizacioncomunitaria or perms.oficinaPartesAPP.view_cartaoficinapartes or perms.atencionSocialAPP.view_atencionsocial %}
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="menuTerritorio"
+                                   role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Territorio
                                 </a>
-                            </li>
-                        {% endif %}
-
-                        {% if perms.oficinaPartesAPP.view_cartaoficinapartes %}
-                            <li class="nav-item">
-                                <a class="nav-link"
-                                   href="{% url 'oficina_partes:carta_lista' %}">
-                                    Cartas
-                                </a>
-                            </li>
-                        {% endif %}
-
-                        {% if perms.atencionSocialAPP.view_atencionsocial %}
-                            <li class="nav-item">
-                                <a class="nav-link"
-                                   href="{% url 'atencion_social:atencion_lista' %}">
-                                    Atención social
-                                </a>
+                                <ul class="dropdown-menu" aria-labelledby="menuTerritorio">
+                                    {% if perms.organizacionesAPP.view_organizacioncomunitaria %}
+                                    <li><a class="dropdown-item" href="{% url 'organizaciones:organizacion_lista' %}">Organizaciones</a></li>
+                                    {% endif %}
+                                    {% if perms.oficinaPartesAPP.view_cartaoficinapartes %}
+                                    <li><a class="dropdown-item" href="{% url 'oficina_partes:carta_lista' %}">Cartas</a></li>
+                                    {% endif %}
+                                    {% if perms.atencionSocialAPP.view_atencionsocial %}
+                                    <li><a class="dropdown-item" href="{% url 'atencion_social:atencion_lista' %}">Atención social</a></li>
+                                    {% endif %}
+                                </ul>
                             </li>
                         {% endif %}
                     {% endif %}
@@ -406,12 +401,13 @@
 
                         <li class="nav-item dropdown">
 
-                            <a class="nav-link dropdown-toggle"
+                            <a class="nav-link dropdown-toggle nav-usuario"
                                href="#"
                                id="menuUsuario"
                                role="button"
                                data-bs-toggle="dropdown"
-                               aria-expanded="false">
+                               aria-expanded="false"
+                               title="{{ user.get_full_name|default:user.username }}">
 
                                 {{ user.get_full_name|default:user.username }}
 
@@ -468,7 +464,8 @@
 
     </nav>
 
-    <!-- ENCABEZADO -->
+    <!-- ENCABEZADO (la portada lo reemplaza por su propia presentación) -->
+    {% block encabezado %}
     <header class="bg-white border-bottom py-3">
 
         <div class="container">
@@ -484,9 +481,13 @@
         </div>
 
     </header>
+    {% endblock %}
 
     <!-- CONTENIDO PRINCIPAL -->
     <main class="flex-grow-1">
+
+        {# Secciones de ancho completo (solo la portada las usa) #}
+        {% block ancho_completo %}{% endblock %}
 
         <div class="container py-4">
 

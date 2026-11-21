@@ -75,6 +75,20 @@ class PruebasDatosDemo(TestCase):
         self.assertEqual(Ausencia.objects.count(), 3)
         self.assertGreater(RegistroActividad.objects.count(), 200)
 
+    def test_CP_DEM_004_requisitos_con_mensaje_claro(self):
+        """CP-DEM-004 (borde): sin superusuario, o sin las delegaciones de import_data, falla con un mensaje claro y sin crear nada."""
+        User.objects.filter(is_superuser=True).update(is_active=False)
+        with self.assertRaisesMessage(CommandError, "createsuperuser"):
+            self.cargar()
+        self.assertFalse(User.objects.filter(email__endswith="@demo.laserena.cl").exists())
+
+        User.objects.filter(is_superuser=True).update(is_active=True)
+        from delegacionesAPP.models import Delegacion
+        Delegacion.objects.filter(nombre="Delegación Las Compañías").update(nombre="Otra delegación")
+        with self.assertRaisesMessage(CommandError, "import_data"):
+            self.cargar()
+        self.assertFalse(RegistroActividad.objects.exists())
+
     def test_CP_DEM_003_exige_clave(self):
         """CP-DEM-003 (seguridad): sin --clave no crea cuentas."""
         with self.assertRaises(CommandError):

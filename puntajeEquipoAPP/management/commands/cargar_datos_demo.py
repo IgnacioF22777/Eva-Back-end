@@ -141,9 +141,30 @@ class Command(BaseCommand):
         parser.add_argument("--reiniciar", action="store_true",
                             help="Borra y vuelve a generar los registros de las cuentas demo.")
 
+    def verificar_requisitos(self):
+        """
+        Falla con un mensaje claro (y antes de escribir nada) si faltan los
+        datos base: las delegaciones de import_data y alguien que registre
+        las ausencias y ajustes (un Supervisor de la delegación o un
+        superusuario).
+        """
+        faltantes = sorted({d for d, *_ in EQUIPOS} - set(
+            Delegacion.objects.filter(nombre__in={d for d, *_ in EQUIPOS}).values_list("nombre", flat=True)
+        ))
+        if faltantes:
+            raise CommandError(
+                f"Faltan las delegaciones {', '.join(faltantes)}. Ejecute primero: python manage.py import_data"
+            )
+        if not User.objects.filter(is_superuser=True, is_active=True).exists():
+            raise CommandError(
+                "No hay un superusuario activo que registre las ausencias y ajustes de la demo. "
+                "Ejecute primero: python manage.py createsuperuser"
+            )
+
     def handle(self, *args, **opciones):
         self.azar = random.Random(2026)
         self.hoy = timezone.localdate(timezone.now(), timezone=ZONA_CHILE)
+        self.verificar_requisitos()
 
         with transaction.atomic():
             periodo = self.preparar_periodo()
