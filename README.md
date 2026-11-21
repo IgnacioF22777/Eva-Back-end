@@ -109,7 +109,27 @@ cargo de la matriz), el período 2026-T4 con sus metas, actividades de
 octubre y noviembre con verificación y tubo, ausencias, felicitaciones,
 reclamos, cartas, atenciones sociales, zonas de riesgo y reportes. La clave
 nunca queda en el repositorio; una cuenta queda con contraseña temporal para
-demostrar el cambio obligatorio.
+demostrar el cambio obligatorio. Requiere `import_data`, `cargar_cargos_metas`
+y un superusuario; si falta alguno, el comando lo indica sin crear nada.
+
+### Evaluación 3: alertas de registros sospechosos (R6)
+
+R6 pide que la matriz distinga el trabajo real del registro hecho solo para
+sumar puntaje. `alertasAPP` (sin tablas propias) calcula al consultar cuatro
+indicadores por funcionario con los datos de las actividades:
+
+| Indicador | Se activa cuando… | Variable (valor por defecto) |
+|---|---|---|
+| Contacto repetido | el mismo vecino (RUT o teléfono) aparece en registros que suman puntaje en una semana | `SGR_ALERTA_CONTACTO` (3) |
+| Ráfaga de ingresos | muchos registros se ingresan en pocos minutos | `SGR_ALERTA_RAFAGA` (5) en `SGR_ALERTA_RAFAGA_MINUTOS` (10) |
+| Detalle copiado | el mismo texto de detalle se repite en registros que suman en una semana | `SGR_ALERTA_DETALLE` (3) |
+| Cupo diario al máximo | varios días de una semana con los 7 ingresos permitidos | `SGR_ALERTA_CUPO_DIAS` (3) |
+
+Una alerta no cambia el puntaje ni rechaza nada: cada registro enlaza a la
+verificación para que el delegado decida. No cuenta anulados ni rechazados.
+Pantalla: **Actividades → Alertas de registros sospechosos** (`/alertas/`),
+para el Administrador (todas las delegaciones) y el delegado (la suya).
+Pruebas CP-ALE-001 a 020.
 
 ### Fase 4: asignación y avance de compromisos
 
@@ -500,6 +520,11 @@ sube a **637 pruebas OK** junto con los cambios de seguridad de `main` (archivos
 y `puntajeEquipoAPP/test_datos_demo.py`). El detalle por archivo de la tabla
 siguiente corresponde a `main` antes de la integración.
 
+Con las alertas R6 (`alertasAPP/tests.py`, 20 pruebas) y los arreglos de
+despliegue, al 21-11-2026 se ejecutan **691 pruebas OK** con
+`--settings=config.settings_pruebas`; antes del despliegue del 20-11-2026 se
+ejecutaron 690 pruebas OK sobre MariaDB en la EC2.
+
 La suite cubre autenticación, recuperación de contraseña, permisos por perfil,
 CRUD de los mantenedores, búsqueda, duplicados, baja lógica, reactivación,
 semáforo, cierre de `/admin/`, las dos transacciones atómicas de la Fase 4
@@ -581,8 +606,8 @@ Evaluación 3, la API RESTful y la exportación a Excel y PDF. En total son
 |---|---|---|
 | Camilo Villalobos | Seguridad y líder | Ausencias (R9), felicitaciones y reclamos (R8), regalos para niños, semáforo por funcionario, permisos, revisión de Pull Requests |
 | José Ignacio Villalobos | Desarrollo | Actividades diarias (R1–R4), puntaje «Mi matriz» (R7), tubo de trabajo, resumen de ingresos |
-| Orlando Iribarren | Infraestructura | Organizaciones comunitarias y juntas de vecinos, tubo de cartas, alertas de registros sospechosos (R6), despliegue, respaldo y prueba de estrés |
-| Ignacio Figueroa | Documentación | Tipo de gestión (R5), metas por cargo, tipos de atención social, carga de cargos y metas reales, puntaje del equipo (R10), informe |
+| Orlando Iribarren | Infraestructura | Informe de la Evaluación 3 (por intercambio de tareas con Ignacio) |
+| Ignacio Figueroa | Documentación | Tipo de gestión (R5), metas por cargo, tipos de atención social, carga de cargos y metas reales, puntaje del equipo (R10); por intercambio con Orlando: organizaciones y juntas de vecinos, tubo de cartas, guía de instalación, alertas de registros sospechosos (R6), despliegue, respaldo y prueba de estrés |
 
 Todo cambio entra a `main` por rama y Pull Request revisado por el líder.
 

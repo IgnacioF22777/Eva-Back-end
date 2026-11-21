@@ -3,6 +3,9 @@
 Guía paso a paso para instalar el Sistema de Gestión de Resultados (SGR) en un
 equipo local y en un servidor AWS EC2, actualizarlo, respaldarlo y verificarlo.
 
+Última actualización: 21-11-2026 (incluye `.env.example`, pruebas sin MariaDB,
+datos de demostración y alertas de registros sospechosos R6).
+
 > **Nunca** escribas contraseñas reales en este documento, en el repositorio ni
 > en el informe. Donde aparece `<…>` va un valor que defines tú.
 
@@ -50,7 +53,14 @@ pip install -r requirements.txt
 
 ### A4. Archivo `.env`
 
-Crea un archivo `.env` junto a `manage.py`:
+Copia la plantilla y completa los valores marcados como «reemplazar»:
+
+```bash
+copy .env.example .env           # Windows
+cp .env.example .env             # Linux / macOS
+```
+
+Como mínimo:
 
 ```
 SECRET_KEY=<cadena larga y aleatoria>
@@ -61,6 +71,11 @@ DB_HOST=127.0.0.1
 DB_PORT=3306
 DEBUG=True
 ```
+
+`.env.example` documenta además las variables opcionales con su valor por
+defecto: adjuntos (`ADJUNTOS_*`), reglas de la matriz (`SGR_BONO_FELICITACION`,
+`SGR_DESCUENTO_RECLAMO`, `SGR_TOPE_CUMPLIMIENTO`) y umbrales de las alertas R6
+(`SGR_ALERTA_*`). Si no se definen, se usan esos valores.
 
 - En local va `DEBUG=True`: con `False`, `runserver` no entrega los archivos
   estáticos y la página se ve sin estilos.
@@ -99,6 +114,18 @@ Los tres comandos se pueden ejecutar varias veces sin duplicar datos.
 `import_data` debe ir **antes** de `importar_organizaciones`, porque las
 organizaciones se asocian a las delegaciones.
 
+Datos de demostración (equipos ficticios en Centro y Las Compañías, con
+actividades, verificación, tubo, ausencias, felicitaciones, cartas y reportes):
+
+```bash
+python manage.py cargar_datos_demo --clave "<clave de las cuentas demo>"
+python manage.py cargar_datos_demo --clave "<clave>" --reiniciar   # regenera
+```
+
+Requiere haber ejecutado antes `import_data`, `cargar_cargos_metas` y
+`createsuperuser`; si falta alguno, el comando lo indica sin crear nada. La
+clave se escribe en la consola y no queda en el repositorio.
+
 ### A7. Ejecutar y probar
 
 ```bash
@@ -109,8 +136,11 @@ Abre `http://127.0.0.1:8000/seguridad/login/` y entra con el superusuario.
 
 ```bash
 python manage.py check
-python manage.py test
+python manage.py test                                  # sobre MariaDB (usa el .env)
+python manage.py test --settings=config.settings_pruebas   # sin MariaDB ni .env (SQLite en memoria)
 ```
+
+Resultado esperado al 21-11-2026: **691 pruebas OK**.
 
 `check` no debe mostrar advertencias `sgr.W001`/`sgr.W002`; si aparecen, las
 versiones instaladas no coinciden con `requirements.txt`
@@ -272,6 +302,8 @@ sudo nginx -t && sudo systemctl reload nginx
 | Iniciar sesión con el superusuario | Panel del Administrador |
 | 5 contraseñas erróneas seguidas | El 6.º intento responde 429 |
 | `systemctl is-active nginx gunicorn mariadb` | `active` × 3 |
+| `http://<IP>/api/swagger/` | 200, documentación de la API |
+| `http://<IP>/alertas/` sin sesión | 302 hacia el login |
 
 ---
 
@@ -289,6 +321,7 @@ mariadb-dump -u <usuario> -p --single-transaction --quick --hex-blob evaluacion_
 # 2. Código y dependencias
 git pull --ff-only origin main
 venv313/bin/pip install -r requirements.txt
+#    Si la versión trae variables nuevas, agrégalas al .env (compara con .env.example)
 # 3. Base de datos y estáticos
 venv313/bin/python manage.py migrate
 venv313/bin/python manage.py crear_roles
