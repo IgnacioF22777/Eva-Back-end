@@ -341,6 +341,7 @@ protegida con **JWT** y documentada con **Swagger / ReDoc**
 | Zonas de riesgo | `/api/zonas-riesgo/` | `/api/zonas-riesgo/<id>/` | `/api/zonas-riesgo/<id>/reactivar/` |
 | Contactos de emergencia | `/api/contactos-emergencia/` | `/api/contactos-emergencia/<id>/` | `/api/contactos-emergencia/<id>/reactivar/` |
 | Reportes ciudadanos | `/api/reportes/` | `/api/reportes/<id>/` | `/api/reportes/<id>/reactivar/` |
+| Asignaciones (transacción T1) | `/api/asignaciones/` (GET historial, POST asignar o reasignar) | `/api/asignaciones/<id>/` (PUT corregir observación, DELETE anular con motivo) | — |
 | Avances (transacción T2) | `/api/avances/` (GET historial, POST registrar) | `/api/avances/<id>/` (PUT corregir evidencia, DELETE anular con motivo) | — |
 | Derivaciones (transacción) | `/api/derivaciones/` (GET historial, POST derivar) | `/api/derivaciones/<id>/` (PUT modificar, DELETE anular) | `POST /api/reportes/<id>/resolver/` |
 
@@ -371,6 +372,29 @@ La API no tiene reglas propias: aplica las mismas que la aplicación web.
 - **Reglas de negocio** que impiden una operación válida (ej. dar de baja una
   delegación con servicios activos o modificar un período cerrado) responden
   `409` con el motivo.
+- **Datos sensibles por perfil** (`CamposSensiblesMixin`): el perfil
+  Administrador recibe todos los campos; Supervisor y Administrativo no
+  reciben correos, teléfonos, coordenadas exactas, datos de vecinos ni
+  nombres de funcionarios (los campos se quitan de la respuesta). Swagger
+  marca cada uno como "solo lo recibe el perfil Administrador".
+- **Errores siempre en JSON** (`apiAPP/errores.py`): un error no controlado
+  responde `500` con un mensaje genérico (la traza queda en el log del
+  servidor, nunca en la respuesta) y una ruta inexistente bajo `/api/`
+  responde `404` en JSON. Fuera de `/api/` se mantienen las páginas HTML.
+
+### Transacción T1 por API (`/api/asignaciones/`)
+
+Usa las mismas funciones que la web (`tubo_gestionAPP/transacciones.py`):
+bloqueo `select_for_update()`, ámbito por delegación, revalidación del
+servicio y la asignación anterior conservada como historial.
+
+- **POST** asigna o reasigna (Supervisor o Administrador; el Supervisor solo
+  a servicios de su delegación).
+- **PUT/PATCH** corrige la observación de la asignación vigente; la
+  delegación y el servicio se cambian reasignando.
+- **DELETE** anula la asignación vigente hecha por error (baja lógica, con
+  motivo): el compromiso vuelve a la asignación anterior o queda sin
+  asignar. Se rechaza (`409`) si ya tiene avances: primero se anulan (T2).
 
 ### Transacción T2 por API (`/api/avances/`)
 
@@ -567,10 +591,12 @@ python manage.py test --settings=config.settings_pruebas
 
 ### Último resultado registrado
 
-**775 pruebas OK** (21-11-2026, SQLite con `config.settings_pruebas`), con
-`main` más las ramas `ci/github-actions`, `feature/eva3-alertas-r6`,
-`docs/mejoras-readme` y `feature/eva3-faltantes-pauta` integradas.
+**807 pruebas OK** (21-11-2026, SQLite con `config.settings_pruebas`), en
+orden normal, inverso y aleatorio. Incluye T1 por API (CP-ASG-001 a 024),
+datos sensibles y errores JSON (CP-SEG-001 a 008).
 
+- 775 pruebas OK al integrar `ci/github-actions`, `feature/eva3-alertas-r6`,
+  `docs/mejoras-readme` y `feature/eva3-faltantes-pauta`.
 - Antes de esas ramas: 691 pruebas OK en `feature/eva3-alertas-r6` y
   637 OK en `main` (20-11-2026, también sobre MariaDB en la EC2).
 - Desde que se integra `ci/github-actions`, GitHub Actions ejecuta la
@@ -775,6 +801,21 @@ nativos de Django (autenticación, permisos, formularios, ORM y migraciones).
 | Fase 4 | "Implementa dos transacciones atómicas con `select_for_update` sobre `Compromiso`" | `compromiso_asignar` y `compromiso_avance`, con reversión total ante fallo |
 | Pruebas | "Escribe pruebas de atomicidad que fallen después de la primera escritura" | 167 pruebas, incluidas las de rollback de T1 y T2 |
 | API RESTful | "Crea una app Django con la API RESTful del proyecto, con DRF por funciones, JWT y Swagger, respetando permisos y reglas de la web" | `apiAPP`: 6 recursos más autenticación, validación con los formularios web, bloqueo de login compartido y 47 pruebas |
+
+#### Recomendaciones de seguridad de la IA aplicadas en la API (Evaluación 4)
+
+Análisis de la pauta con Claude Code; cada recomendación se aplicó en el
+código y tiene pruebas que la verifican.
+
+| Aspecto de la pauta | Recomendación | Aplicación | Pruebas |
+|---|---|---|---|
+| Protección de endpoints | Exigir token en toda la API, salvo la obtención del token | `IsAuthenticated` por defecto en `REST_FRAMEWORK` | CP-API-001, CP-ASG-001, CP-AVA-001 |
+| Restricción de permisos | Reutilizar los permisos de Django de cada perfil y el ámbito por delegación, revalidado con la fila bloqueada | `apiAPP/permisos.py`, `ambito.py`, `transacciones.py` | CP-ASG-005/011/014, CP-AVA-009/011 |
+| Validación de datos | Validar con los mismos formularios web; separar `400` (datos) de `409` (reglas de negocio) | `ValidacionWebMixin`, serializadores de entrada | CP-ASG-006/010, CP-AVA-004/006/013 |
+| Manejo seguro de errores | No exponer trazas; responder `500` genérico en JSON y registrar el detalle en el log | `apiAPP/errores.py` (`EXCEPTION_HANDLER`, `handler404`, `handler500`) | CP-SEG-004 a 008 |
+| Configuración de JWT | Access corto (30 min), refresh de 8 h, revocar al desactivar la cuenta o cambiar la contraseña, bloqueo tras 5 intentos | `SIMPLE_JWT` y `ObtenerTokenView` | CP-API-005 a 010 |
+| Datos sensibles | Ocultar correos, teléfonos, coordenadas, datos de vecinos y nombres de funcionarios al perfil Usuario | `CamposSensiblesMixin` | CP-SEG-001/002, CP-EMG-018/019, CP-REP-019 |
+| Buenas prácticas | Baja lógica con historial (nunca borrar), transacciones atómicas, una sola lógica para web y API | `transacciones.py`, anulación de asignaciones y avances | CP-ASG-012/018, CP-AVA-014/022 |
 
 > En el documento técnico se incluyen los prompts completos, extractos de las
 > respuestas y las capturas de la aplicación resultante.

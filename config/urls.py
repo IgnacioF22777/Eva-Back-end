@@ -59,3 +59,8 @@ urlpatterns = [
     # juntas de vecinos e hitos
     path("comunidad/", include("comunidadAPP.urls")),
 ]
+
+# Bajo /api/ los errores 404 y 500 responden en JSON; en el resto del
+# sitio se mantienen las páginas normales (apiAPP/errores.py).
+handler404 = "apiAPP.errores.pagina_no_encontrada"
+handler500 = "apiAPP.errores.error_servidor"

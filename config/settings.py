@@ -285,6 +285,9 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.IsAuthenticated",
     ),
+    # Errores no controlados responden 500 en JSON sin exponer detalles
+    # internos (la traza queda en el log del servidor).
+    "EXCEPTION_HANDLER": "apiAPP.errores.manejador_excepciones",
 }
 
 # https://django-rest-framework-simplejwt.readthedocs.io/en/latest/settings.html
@@ -323,6 +326,7 @@ SPECTACULAR_SETTINGS = {
         {"name": "Catálogo de actividades", "description": "Actividades de Ejecución o Preparatoria (R5)."},
         {"name": "Períodos", "description": "Períodos de medición."},
         {"name": "Metas", "description": "Metas por período y cargo."},
+        {"name": "Asignaciones (transacción T1)", "description": "Asignar, consultar, corregir y anular asignaciones de compromisos."},
         {"name": "Avances (transacción T2)", "description": "Registrar, consultar, corregir y anular avances de compromisos."},
         {"name": "Zonas de riesgo", "description": "Mantenedor de zonas de riesgo por delegación."},
         {"name": "Contactos de emergencia", "description": "Mantenedor de contactos; teléfono y correo solo para el Administrador."},
