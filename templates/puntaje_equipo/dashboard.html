@@ -15,7 +15,10 @@
     .graf-dona span { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 1; font-weight: 700; font-size: 1.4rem; }
     .graf-punto { display: inline-block; width: .8rem; height: .8rem; border-radius: 2px; margin-right: .35rem; vertical-align: middle; }
     .graf-columnas { display: flex; align-items: flex-end; gap: .5rem; height: 180px; border-bottom: 1px solid #ced4da; }
-    .graf-columna { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%; position: relative; }
+    .graf-columna { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%; position: relative; }
+    /* Etiquetas de semana: se encogen con su columna para no ensanchar la página en el celular. */
+    .graf-etiquetas > div { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; }
+    @media (max-width: 575.98px) { .graf-etiquetas > div { font-size: .6rem; } }
     .graf-columna .total { background: #f3b6c0; width: 100%; border-radius: .25rem .25rem 0 0; position: relative; }
     .graf-columna .aprobados { background: #C41230; width: 100%; position: absolute; bottom: 0; border-radius: .25rem .25rem 0 0; }
     .graf-tramos { display: flex; height: 1.4rem; border-radius: .375rem; overflow: hidden; background: #f1f3f5; }
@@ -178,7 +181,7 @@
                     </div>
                     {% endfor %}
                 </div>
-                <div class="d-flex gap-2 mt-1">
+                <div class="d-flex gap-2 mt-1 graf-etiquetas">
                     {% for c in tendencia %}<div class="flex-fill text-center small text-muted">{{ c.lunes|date:"d/m" }}</div>{% endfor %}
                 </div>
             </div>
