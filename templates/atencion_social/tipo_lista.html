@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+
+{% block title %}Tipos de atención social - SGR{% endblock %}
+
+{% block header %}
+Tipos de Atención Social
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+    <div>
+        <h2 class="h4 mb-1">Tipos y subtipos de atención social</h2>
+        <p class="text-muted mb-0">
+            Catálogo que se ofrece al registrar una atención. Un tipo o subtipo dado de baja
+            deja de ofrecerse, pero las atenciones antiguas lo conservan.
+        </p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <a href="{% url 'atencion_social:atencion_lista' %}" class="btn btn-outline-secondary">Volver a atenciones</a>
+        {% if perms.atencionSocialAPP.add_subtipoatencion %}
+            <a href="{% url 'atencion_social:subtipo_crear' %}" class="btn btn-outline-primary">+ Nuevo subtipo</a>
+        {% endif %}
+        {% if perms.atencionSocialAPP.add_tipoatencion %}
+            <a href="{% url 'atencion_social:tipo_crear' %}" class="btn btn-primary">+ Nuevo tipo</a>
+        {% endif %}
+    </div>
+</div>
+
+{% include 'seguridad/_mensajes.html' %}
+
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-2 align-items-end">
+            <div class="col-lg-6">
+                <label class="form-label small fw-semibold" for="q">Buscar</label>
+                <input type="search" id="q" name="q" value="{{ busqueda }}" class="form-control"
+                       placeholder="Nombre o código del tipo o subtipo">
+            </div>
+            <div class="col-lg-3">
+                <label class="form-label small fw-semibold" for="estado">Estado</label>
+                <select id="estado" name="estado" class="form-select">
+                    <option value="activos" {% if estado == 'activos' %}selected{% endif %}>Vigentes</option>
+                    <option value="inactivos" {% if estado == 'inactivos' %}selected{% endif %}>De baja</option>
+                    <option value="todos" {% if estado == 'todos' %}selected{% endif %}>Todos</option>
+                </select>
+            </div>
+            <div class="col-lg-1 d-grid">
+                <button type="submit" class="btn btn-primary">Buscar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% for fila in filas %}
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-primary text-white d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <div>
+                <h5 class="mb-0 d-inline">{{ fila.tipo.nombre }}</h5>
+                <span class="small ms-2">{{ fila.tipo.codigo }} · {{ fila.usos }} atencion{{ fila.usos|pluralize:"es" }}</span>
+                {% if fila.tipo.exige_destino %}<span class="badge bg-light text-dark ms-1">Exige destino</span>{% endif %}
+                {% if not fila.tipo.activo %}<span class="badge bg-secondary ms-1">De baja</span>{% endif %}
+            </div>
+            <div class="d-flex gap-1">
+                {% if perms.atencionSocialAPP.add_subtipoatencion and fila.tipo.activo %}
+                    <a href="{% url 'atencion_social:subtipo_crear' %}?tipo={{ fila.tipo.pk }}" class="btn btn-light btn-sm">+ Subtipo</a>
+                {% endif %}
+                {% if perms.atencionSocialAPP.change_tipoatencion %}
+                    <a href="{% url 'atencion_social:tipo_editar' fila.tipo.pk %}" class="btn btn-warning btn-sm">Editar</a>
+                {% endif %}
+                {% if perms.atencionSocialAPP.delete_tipoatencion %}
+                    <form method="POST" action="{% url 'atencion_social:tipo_cambiar_estado' fila.tipo.pk %}"
+                          onsubmit="return confirm('{% if fila.tipo.activo %}¿Dar de baja este tipo?{% else %}¿Reactivar este tipo?{% endif %}');">
+                        {% csrf_token %}
+                        {% if fila.tipo.activo %}
+                            <button type="submit" class="btn btn-outline-light btn-sm">Dar de baja</button>
+                        {% else %}
+                            <button type="submit" class="btn btn-success btn-sm">Reactivar</button>
+                        {% endif %}
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+        <ul class="list-group list-group-flush">
+            {% for item in fila.subtipos %}
+                <li class="list-group-item d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <span>
+                        {{ item.subtipo.nombre }}
+                        <span class="small text-muted">{{ item.subtipo.codigo }} · {{ item.usos }} atencion{{ item.usos|pluralize:"es" }}</span>
+                        {% if not item.subtipo.activo %}<span class="badge bg-secondary">De baja</span>{% endif %}
+                    </span>
+                    <span class="d-flex gap-1">
+                        {% if perms.atencionSocialAPP.change_subtipoatencion %}
+                            <a href="{% url 'atencion_social:subtipo_editar' item.subtipo.pk %}" class="btn btn-warning btn-sm">Editar</a>
+                        {% endif %}
+                        {% if perms.atencionSocialAPP.delete_subtipoatencion %}
+                            <form method="POST" action="{% url 'atencion_social:subtipo_cambiar_estado' item.subtipo.pk %}">
+                                {% csrf_token %}
+                                {% if item.subtipo.activo %}
+                                    <button type="submit" class="btn btn-outline-danger btn-sm">Dar de baja</button>
+                                {% else %}
+                                    <button type="submit" class="btn btn-outline-success btn-sm">Reactivar</button>
+                                {% endif %}
+                            </form>
+                        {% endif %}
+                    </span>
+                </li>
+            {% empty %}
+                <li class="list-group-item text-muted small">Este tipo no tiene subtipos.</li>
+            {% endfor %}
+        </ul>
+    </div>
+{% empty %}
+    <div class="card border-0 shadow-sm"><div class="card-body text-center text-muted py-5">No hay tipos que coincidan con los filtros.</div></div>
+{% endfor %}
+
+{% endblock %}

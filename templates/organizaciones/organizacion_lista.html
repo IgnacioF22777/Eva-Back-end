@@ -162,6 +162,10 @@ Organizaciones Comunitarias
                         </td>
                         <td>
                             <div class="d-flex flex-wrap gap-1">
+                                {% if perms.comunidadAPP.view_membresiajunta %}
+                                    <a href="{% url 'comunidad:membresia_lista' org.pk %}"
+                                       class="btn btn-outline-primary btn-sm">Socios y directiva</a>
+                                {% endif %}
                                 {% if perms.organizacionesAPP.change_organizacioncomunitaria %}
                                     <a href="{% url 'organizaciones:organizacion_editar' org.pk %}"
                                        class="btn btn-warning btn-sm">Editar</a>

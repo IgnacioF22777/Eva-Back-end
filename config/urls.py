@@ -54,4 +54,8 @@ urlpatterns = [
 
     # Proyecto Integrado EVA 3 - Alertas de registros sospechosos (R6)
     path("alertas/", include("alertasAPP.urls")),
+
+    # Proyecto Integrado EVA 3 - Territorios, vecinos, membresías en
+    # juntas de vecinos e hitos
+    path("comunidad/", include("comunidadAPP.urls")),
 ]

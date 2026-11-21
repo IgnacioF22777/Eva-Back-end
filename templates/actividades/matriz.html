@@ -183,6 +183,9 @@
 
                                     <td>
                                         {{ item.actividad.nombre }}
+                                        {% if item.individual %}
+                                            <span class="badge bg-secondary" title="Cantidad y ponderación asignadas a este funcionario">Meta individual</span>
+                                        {% endif %}
                                         {% if item.automatica %}
                                             <span class="badge bg-info text-dark">Automática</span>
                                             {% if item.ingresos_tubo is not None %}

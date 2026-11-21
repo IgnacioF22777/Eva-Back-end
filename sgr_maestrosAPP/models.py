@@ -574,3 +574,169 @@ class Meta(models.Model):
 
         if errores:
             raise ValidationError(errores)
+
+
+# ============================================================
+# MODELO 6: ASIGNACIÓN DE METAS POR FUNCIONARIO Y TRIMESTRE
+# ============================================================
+# Separa el catálogo de metas (Meta: período, actividad, cargo, valor y
+# ponderación de referencia) de su asignación a cada funcionario, con
+# cantidad exigida y ponderación individuales (pauta Eva 3, Actividad 2).
+#
+# Sin asignación, el funcionario sigue usando la meta de su cargo tal como
+# antes: el cálculo de «Mi matriz» solo cambia para quien tenga una
+# asignación vigente.
+
+class AsignacionMeta(models.Model):
+
+    meta = models.ForeignKey(
+        "sgr_maestrosAPP.Meta",
+        on_delete=models.PROTECT,
+        related_name="asignaciones",
+        verbose_name="Meta del catálogo",
+    )
+
+    funcionario = models.ForeignKey(
+        "seguridadAPP.PerfilUsuario",
+        on_delete=models.PROTECT,
+        related_name="metas_asignadas",
+        verbose_name="Funcionario",
+    )
+
+    cantidad_exigida = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal("0.01"))],
+        verbose_name="Cantidad exigida",
+        help_text="Cantidad que se le exige a este funcionario en el trimestre.",
+    )
+
+    ponderacion = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        validators=[
+            MinValueValidator(Decimal("0.00")),
+            MaxValueValidator(Decimal("100.00")),
+        ],
+        verbose_name="Ponderación individual (%)",
+        help_text="Las metas del funcionario en el trimestre no pueden superar el 100%.",
+    )
+
+    observacion = models.TextField(
+        blank=True,
+        max_length=MAX_OBSERVACIONES,
+        validators=[MaxLengthValidator(MAX_OBSERVACIONES)],
+        verbose_name="Observación",
+    )
+
+    activo = models.BooleanField(default=True, verbose_name="Asignación vigente")
+
+    class Meta:
+        verbose_name = "Asignación de meta"
+        verbose_name_plural = "Asignaciones de metas"
+        ordering = ["meta__periodo__codigo", "funcionario__usuario__first_name", "meta__codigo"]
+        # Una sola asignación vigente por meta y funcionario: se valida en
+        # clean() (MariaDB no admite índices únicos condicionales).
+        indexes = [
+            models.Index(fields=["funcionario", "activo"], name="asig_funcionario_activo_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.meta.codigo} - {self.funcionario}"
+
+    @property
+    def periodo(self):
+        return self.meta.periodo
+
+    def clean(self):
+        super().clean()
+        errores = {}
+
+        if not self.meta_id or not self.funcionario_id:
+            return
+
+        meta = self.meta
+
+        # Se consulta en la base: el período pudo cerrarse mientras el
+        # formulario estaba abierto.
+        if Periodo.objects.filter(pk=meta.periodo_id, cerrado=True).exists():
+            errores["meta"] = "El período de la meta está cerrado: no admite asignaciones."
+        elif not meta.activo:
+            errores["meta"] = "La meta está dada de baja."
+
+        if meta.cargo_id and self.funcionario.cargo_id != meta.cargo_id:
+            errores["funcionario"] = (
+                f"La meta es del cargo «{meta.cargo.nombre}» y el funcionario "
+                "tiene otro cargo (o ninguno)."
+            )
+
+        if self.activo and AsignacionMeta.objects.filter(
+            meta_id=self.meta_id, funcionario_id=self.funcionario_id, activo=True
+        ).exclude(pk=self.pk).exists():
+            errores["meta"] = "El funcionario ya tiene esta meta asignada."
+
+        if self.activo and self.ponderacion is not None and "funcionario" not in errores:
+            otras = sum(
+                (item.ponderacion for item in metas_del_funcionario(self.funcionario, meta.periodo)
+                 if item.meta.pk != meta.pk),
+                Decimal("0"),
+            )
+            disponible = Decimal("100") - otras
+            if self.ponderacion > disponible:
+                errores["ponderacion"] = (
+                    "Las metas del funcionario en el trimestre superarían el 100%. "
+                    f"Ponderación disponible: {disponible}%."
+                )
+
+        if errores:
+            raise ValidationError(errores)
+
+
+class MetaDelFuncionario:
+    """Meta que se le aplica a un funcionario, con su objetivo y ponderación."""
+
+    __slots__ = ("meta", "objetivo", "ponderacion", "asignacion")
+
+    def __init__(self, meta, asignacion=None):
+        self.meta = meta
+        self.asignacion = asignacion
+        self.objetivo = asignacion.cantidad_exigida if asignacion else meta.valor_objetivo
+        self.ponderacion = asignacion.ponderacion if asignacion else meta.ponderacion
+
+    @property
+    def individual(self):
+        return self.asignacion is not None
+
+
+def metas_del_funcionario(funcionario, periodo):
+    """
+    Metas que se le aplican al funcionario en el período:
+
+    - Las metas activas de su cargo, con la cantidad y ponderación de la
+      asignación individual cuando existe.
+    - Las metas asignadas individualmente que no son de su cargo (metas
+      generales).
+    """
+    asignaciones = {
+        asignacion.meta_id: asignacion
+        for asignacion in AsignacionMeta.objects.filter(
+            funcionario=funcionario,
+            activo=True,
+            meta__periodo=periodo,
+            meta__activo=True,
+        ).select_related("meta__actividad", "meta__cargo")
+    }
+
+    metas = []
+    if funcionario.cargo_id:
+        metas = list(
+            Meta.objects.filter(
+                periodo=periodo, cargo_id=funcionario.cargo_id, activo=True,
+            ).select_related("actividad", "cargo")
+        )
+
+    incluidas = {meta.pk for meta in metas}
+    metas += [a.meta for meta_id, a in asignaciones.items() if meta_id not in incluidas]
+    metas.sort(key=lambda meta: meta.codigo)
+
+    return [MetaDelFuncionario(meta, asignaciones.get(meta.pk)) for meta in metas]

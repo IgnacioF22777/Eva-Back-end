@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'actividadesAPP',  # EVA 3: registro diario de actividades (R1-R4).
     'puntajeEquipoAPP',  # EVA 3: pantalla de puntaje del equipo (R10).
     'alertasAPP',  # EVA 3: alertas de registros sospechosos (R6).
+    'comunidadAPP',  # EVA 3: territorios, vecinos, membresías en JJVV e hitos.
 
     # API RESTful (Programación Back End): Django REST Framework,
     # autenticación JWT y documentación OpenAPI (Swagger / ReDoc).

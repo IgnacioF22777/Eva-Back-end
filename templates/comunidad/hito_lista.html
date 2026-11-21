@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+
+{% block title %}Hitos - SGR{% endblock %}
+
+{% block header %}
+Hitos
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+    <div>
+        <h2 class="h4 mb-1">Hitos de la gestión territorial</h2>
+        <p class="text-muted mb-0">Operativos, reuniones y entregas con su funcionario responsable.</p>
+    </div>
+    {% if perms.comunidadAPP.add_hito %}
+        <a href="{% url 'comunidad:hito_crear' %}" class="btn btn-primary">+ Nuevo hito</a>
+    {% endif %}
+</div>
+
+{% include 'seguridad/_mensajes.html' %}
+
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-2 align-items-end">
+            <div class="col-lg-3">
+                <label class="form-label small fw-semibold" for="q">Buscar</label>
+                <input type="search" id="q" name="q" value="{{ busqueda }}" class="form-control"
+                       placeholder="Hito, responsable u organización">
+            </div>
+            <div class="col-lg-2">
+                <label class="form-label small fw-semibold" for="situacion">Situación</label>
+                <select id="situacion" name="situacion" class="form-select">
+                    <option value="">Todas</option>
+                    {% for valor, etiqueta in estados %}
+                        <option value="{{ valor }}" {% if situacion == valor %}selected{% endif %}>{{ etiqueta }}</option>
+                    {% endfor %}
+                    <option value="atrasados" {% if situacion == 'atrasados' %}selected{% endif %}>Atrasados</option>
+                </select>
+            </div>
+            <div class="col-lg-2">
+                <label class="form-label small fw-semibold" for="responsable">Responsable</label>
+                <select id="responsable" name="responsable" class="form-select">
+                    <option value="">Todos</option>
+                    <option value="yo" {% if responsable == 'yo' %}selected{% endif %}>A mi cargo</option>
+                </select>
+            </div>
+            <div class="col-lg-2">
+                <label class="form-label small fw-semibold" for="desde">Desde</label>
+                <input type="date" id="desde" name="desde" value="{{ desde }}" class="form-control">
+            </div>
+            <div class="col-lg-2">
+                <label class="form-label small fw-semibold" for="hasta">Hasta</label>
+                <input type="date" id="hasta" name="hasta" value="{{ hasta }}" class="form-control">
+            </div>
+            {% include 'comunidad/_filtro_comun.html' %}
+            <div class="col-lg-1 d-grid">
+                <button type="submit" class="btn btn-primary">Buscar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-primary text-white d-flex justify-content-between">
+        <h5 class="mb-0">Listado</h5>
+        <span>{{ pagina.paginator.count }} resultado{{ pagina.paginator.count|pluralize }}</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-striped table-hover align-middle mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th>Hito</th>
+                    <th>Fecha</th>
+                    <th>Responsable</th>
+                    <th>Territorio / organización</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for h in pagina %}
+                    <tr>
+                        <td>
+                            <span class="fw-semibold">{{ h.nombre }}</span>
+                            <div class="small text-muted">{{ h.delegacion.nombre }}</div>
+                        </td>
+                        <td class="small text-nowrap">
+                            {{ h.fecha_programada|date:"d-m-Y" }}
+                            {% if h.fecha_cumplimiento %}<div class="text-success">Cumplido {{ h.fecha_cumplimiento|date:"d-m-Y" }}</div>{% endif %}
+                        </td>
+                        <td class="small">{{ h.responsable.get_full_name|default:h.responsable.username }}</td>
+                        <td class="small">
+                            {{ h.territorio.nombre|default:"—" }}
+                            {% if h.organizacion %}<div class="text-muted">{{ h.organizacion.nombre }}</div>{% endif %}
+                        </td>
+                        <td>
+                            {% if h.estado == 'CUMPLIDO' %}<span class="badge bg-success">{{ h.get_estado_display }}</span>
+                            {% elif h.estado == 'CANCELADO' %}<span class="badge bg-secondary">{{ h.get_estado_display }}</span>
+                            {% elif h.atrasado %}<span class="badge bg-danger">Atrasado</span>
+                            {% else %}<span class="badge bg-warning text-dark">{{ h.get_estado_display }}</span>{% endif %}
+                            {% if not h.activo %}<span class="badge bg-secondary">De baja</span>{% endif %}
+                        </td>
+                        <td>
+                            <div class="d-flex flex-wrap gap-1">
+                                {% if perms.comunidadAPP.change_hito %}
+                                    <a href="{% url 'comunidad:hito_editar' h.pk %}" class="btn btn-warning btn-sm">Editar</a>
+                                {% endif %}
+                                {% if perms.comunidadAPP.delete_hito %}
+                                    <form method="POST" action="{% url 'comunidad:hito_cambiar_estado' h.pk %}"
+                                          onsubmit="return confirm('{% if h.activo %}¿Dar de baja este hito?{% else %}¿Reactivar este hito?{% endif %}');">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="volver" value="{{ request.get_full_path }}">
+                                        {% if h.activo %}
+                                            <button type="submit" class="btn btn-outline-danger btn-sm">Dar de baja</button>
+                                        {% else %}
+                                            <button type="submit" class="btn btn-outline-success btn-sm">Reactivar</button>
+                                        {% endif %}
+                                    </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="6" class="text-center text-muted py-5">No hay hitos que coincidan con los filtros.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include 'comunidad/_paginacion.html' %}
+</div>
+
+{% endblock %}

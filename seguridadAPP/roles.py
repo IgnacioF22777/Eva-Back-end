@@ -25,6 +25,7 @@ APPS_CON_PERMISOS = [
     "oficinaPartesAPP",
     "atencionSocialAPP",
     "actividadesAPP",
+    "comunidadAPP",
 ]
 
 
@@ -42,6 +43,12 @@ VER_OPERACION = [
     "organizacionesAPP.view_organizacioncomunitaria",
     "oficinaPartesAPP.view_cartaoficinapartes",
     "atencionSocialAPP.view_atencionsocial",
+
+    # EVA 3: territorios, vecinos, membresías en JJVV e hitos.
+    "comunidadAPP.view_territorio",
+    "comunidadAPP.view_vecino",
+    "comunidadAPP.view_membresiajunta",
+    "comunidadAPP.view_hito",
 
     # EVA 3: actividades diarias.
     "actividadesAPP.view_registroactividad",
@@ -70,6 +77,24 @@ ROLES = {
         "atencionSocialAPP.add_atencionsocial",
         "atencionSocialAPP.change_atencionsocial",
         "atencionSocialAPP.delete_atencionsocial",
+        # EVA 3: consulta el catálogo de tipos y subtipos (lo administra
+        # el Administrador).
+        "atencionSocialAPP.view_tipoatencion",
+        "atencionSocialAPP.view_subtipoatencion",
+
+        # EVA 3: el delegado administra territorios, vecinos, la
+        # directiva y socios de las juntas, y los hitos de su delegación.
+        "comunidadAPP.add_territorio",
+        "comunidadAPP.change_territorio",
+        "comunidadAPP.delete_territorio",
+        "comunidadAPP.add_vecino",
+        "comunidadAPP.change_vecino",
+        "comunidadAPP.delete_vecino",
+        "comunidadAPP.add_membresiajunta",
+        "comunidadAPP.change_membresiajunta",
+        "comunidadAPP.add_hito",
+        "comunidadAPP.change_hito",
+        "comunidadAPP.delete_hito",
 
         "delegacionesAPP.add_servicio",
         "delegacionesAPP.change_servicio",
@@ -96,6 +121,13 @@ ROLES = {
 
         "sgr_maestrosAPP.add_meta",
         "sgr_maestrosAPP.change_meta",
+
+        # EVA 3: el delegado asigna metas a los funcionarios de su
+        # delegación (cantidad exigida y ponderación individual).
+        "sgr_maestrosAPP.view_asignacionmeta",
+        "sgr_maestrosAPP.add_asignacionmeta",
+        "sgr_maestrosAPP.change_asignacionmeta",
+        "sgr_maestrosAPP.delete_asignacionmeta",
 
         # EVA 3: actividades.
         "actividadesAPP.add_registroactividad",
@@ -168,6 +200,11 @@ ROLES = {
 
         # Back End: registra los reportes que informan los vecinos.
         "reportesCiudadanosAPP.add_reporteciudadano",
+
+        # EVA 3: registra y corrige los datos de los vecinos que atiende
+        # (sin darlos de baja).
+        "comunidadAPP.add_vecino",
+        "comunidadAPP.change_vecino",
     ],
 }
 

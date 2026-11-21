@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+
+{% block title %}Vecinos - SGR{% endblock %}
+
+{% block header %}
+Vecinos
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+    <div>
+        <h2 class="h4 mb-1">Registro de vecinos y vecinas</h2>
+        <p class="text-muted mb-0">
+            Sus datos se autocompletan por RUT en las actividades y en la atención social.
+        </p>
+    </div>
+    {% if perms.comunidadAPP.add_vecino %}
+        <a href="{% url 'comunidad:vecino_crear' %}" class="btn btn-primary">+ Nuevo vecino/a</a>
+    {% endif %}
+</div>
+
+{% include 'seguridad/_mensajes.html' %}
+
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-2 align-items-end">
+            <div class="col-lg-3">
+                <label class="form-label small fw-semibold" for="q">Buscar</label>
+                <input type="search" id="q" name="q" value="{{ busqueda }}" class="form-control"
+                       placeholder="RUT, nombre, teléfono o dirección">
+            </div>
+            <div class="col-lg-2">
+                <label class="form-label small fw-semibold" for="territorio">Territorio</label>
+                <select id="territorio" name="territorio" class="form-select">
+                    <option value="">Todos</option>
+                    {% for t in territorios %}
+                        <option value="{{ t.pk }}" {% if territorio == t.pk|stringformat:"s" %}selected{% endif %}>{{ t.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% include 'comunidad/_filtro_comun.html' %}
+            <div class="col-lg-1 d-grid">
+                <button type="submit" class="btn btn-primary">Buscar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-primary text-white d-flex justify-content-between">
+        <h5 class="mb-0">Listado</h5>
+        <span>{{ pagina.paginator.count }} resultado{{ pagina.paginator.count|pluralize }}</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-striped table-hover align-middle mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th>Vecino/a</th>
+                    <th>RUT</th>
+                    <th>Contacto</th>
+                    <th>Territorio</th>
+                    <th class="text-center">Organizaciones</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for v in pagina %}
+                    <tr>
+                        <td>
+                            <span class="fw-semibold">{{ v.nombre }}</span>
+                            <div class="small text-muted">{{ v.direccion|default:"Sin dirección" }}</div>
+                        </td>
+                        <td class="text-nowrap">{{ v.rut_formateado }}</td>
+                        <td class="small">
+                            {{ v.telefono }}
+                            {% if v.correo %}<div class="text-muted">{{ v.correo }}</div>{% endif %}
+                        </td>
+                        <td class="small">
+                            {{ v.territorio.nombre|default:"Sin territorio" }}
+                            <div class="text-muted">{{ v.delegacion.nombre }}</div>
+                        </td>
+                        <td class="text-center">{{ v.total_membresias }}</td>
+                        <td>
+                            {% if v.activo %}<span class="badge bg-success">Vigente</span>
+                            {% else %}<span class="badge bg-secondary">De baja</span>{% endif %}
+                        </td>
+                        <td>
+                            <div class="d-flex flex-wrap gap-1">
+                                {% if perms.comunidadAPP.change_vecino %}
+                                    <a href="{% url 'comunidad:vecino_editar' v.pk %}" class="btn btn-warning btn-sm">Editar</a>
+                                {% endif %}
+                                {% if perms.comunidadAPP.delete_vecino %}
+                                    <form method="POST" action="{% url 'comunidad:vecino_cambiar_estado' v.pk %}"
+                                          onsubmit="return confirm('{% if v.activo %}¿Dar de baja a este vecino/a?{% else %}¿Reactivar a este vecino/a?{% endif %}');">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="volver" value="{{ request.get_full_path }}">
+                                        {% if v.activo %}
+                                            <button type="submit" class="btn btn-outline-danger btn-sm">Dar de baja</button>
+                                        {% else %}
+                                            <button type="submit" class="btn btn-outline-success btn-sm">Reactivar</button>
+                                        {% endif %}
+                                    </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="7" class="text-center text-muted py-5">No hay vecinos que coincidan con los filtros.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include 'comunidad/_paginacion.html' %}
+</div>
+
+{% endblock %}

@@ -160,7 +160,7 @@ Tubo de Cartas de Oficina de Partes
                         </td>
                         <td>
                             <div class="d-flex flex-wrap gap-1">
-                                {% if perms.oficinaPartesAPP.change_cartaoficinapartes %}
+                                {% if perms.oficinaPartesAPP.change_cartaoficinapartes and carta.editable %}
                                     <a href="{% url 'oficina_partes:carta_editar' carta.pk %}" class="btn btn-warning btn-sm">Seguimiento</a>
                                 {% endif %}
                                 {% if perms.oficinaPartesAPP.delete_cartaoficinapartes %}

@@ -13,7 +13,7 @@ from decimal import Decimal, ROUND_HALF_UP
 
 from django.db.models import Count
 
-from sgr_maestrosAPP.models import Meta
+from sgr_maestrosAPP.models import metas_del_funcionario
 from sgr_maestrosAPP.feriados import feriados_entre
 from tubo_gestionAPP.validadores import calcular_dias_computables
 
@@ -325,19 +325,14 @@ def obtener_mi_matriz(
         "puntaje_final": Decimal("0.00"),
     }
 
-    if funcionario.cargo_id is None:
-        return resultado
+    # Metas del cargo y asignaciones individuales del funcionario (cantidad
+    # exigida y ponderación propias). Sin asignaciones, son las metas del
+    # cargo con sus valores de siempre.
+    metas = metas_del_funcionario(funcionario, periodo)
 
-    metas = Meta.objects.filter(
-        periodo=periodo,
-        cargo_id=funcionario.cargo_id,
-        activo=True,
-    ).select_related(
-        "actividad",
-        "cargo",
-    ).order_by(
-        "codigo",
-    )
+    # Igual que antes: sin cargo (ni metas asignadas) no hay matriz.
+    if funcionario.cargo_id is None and not metas:
+        return resultado
 
     conteos = contar_actividades_por_catalogo(
         funcionario,
@@ -348,17 +343,20 @@ def obtener_mi_matriz(
     puntaje_total = Decimal("0")
     ponderacion_total = Decimal("0")
 
-    for meta in metas:
+    for meta_funcionario in metas:
 
+        meta = meta_funcionario.meta
+        objetivo = meta_funcionario.objetivo
+        ponderacion = meta_funcionario.ponderacion
         codigo = meta.actividad.codigo
         automatica = codigo in CODIGOS_AUTOMATICOS
 
         if codigo == CODIGO_SOLUCIONES_TUBO:
             # Porcentaje de ingresos al tubo con solución.
             avance = soluciones_tubo
-            objetivo_ajustado = Decimal(str(meta.valor_objetivo))
+            objetivo_ajustado = Decimal(str(objetivo))
             cumplimiento = cumplimiento_soluciones_tubo(
-                ingresos_tubo, soluciones_tubo, meta.valor_objetivo,
+                ingresos_tubo, soluciones_tubo, objetivo,
             )
         elif codigo == CODIGO_EMERGENCIA:
             # Matriz: "meta igual al avance", se cumple al 100 %.
@@ -372,7 +370,7 @@ def obtener_mi_matriz(
             )
 
             objetivo_ajustado = calcular_meta_ajustada(
-                meta.valor_objetivo,
+                objetivo,
                 dias_periodo,
                 dias_ausencia,
             )
@@ -384,26 +382,27 @@ def obtener_mi_matriz(
 
         puntaje = calcular_puntaje_ponderado(
             cumplimiento,
-            meta.ponderacion,
+            ponderacion,
         )
 
         resultado["items"].append({
             "meta": meta,
             "actividad": meta.actividad,
-            "objetivo_original": meta.valor_objetivo,
+            "objetivo_original": objetivo,
             "objetivo_ajustado": redondear(
                 objetivo_ajustado
             ),
             "avance": avance,
             "cumplimiento": cumplimiento,
-            "ponderacion": meta.ponderacion,
+            "ponderacion": ponderacion,
             "puntaje": puntaje,
             "automatica": automatica,
+            "individual": meta_funcionario.individual,
             "ingresos_tubo": ingresos_tubo if codigo == CODIGO_SOLUCIONES_TUBO else None,
         })
 
         puntaje_total += puntaje
-        ponderacion_total += meta.ponderacion
+        ponderacion_total += ponderacion
 
     resultado["puntaje_total"] = redondear(
         puntaje_total

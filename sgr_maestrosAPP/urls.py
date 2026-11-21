@@ -1,6 +1,7 @@
 
 from django.urls import path
 from . import views
+from . import views_asignaciones
 
 
 app_name = "sgr_maestros"
@@ -139,4 +140,13 @@ urlpatterns = [
     path("metas/exportar/pdf/", views.exportar_metas_pdf,
          name="exportar_metas_pdf"),
 
+
+    # ========================================================
+    # EVA 3: ASIGNACIÓN DE METAS POR FUNCIONARIO Y TRIMESTRE
+    # ========================================================
+    path("asignaciones/", views_asignaciones.asignacion_lista, name="asignacion_lista"),
+    path("asignaciones/nueva/", views_asignaciones.asignacion_crear, name="asignacion_crear"),
+    path("asignaciones/<int:pk>/editar/", views_asignaciones.asignacion_editar, name="asignacion_editar"),
+    path("asignaciones/<int:pk>/estado/", views_asignaciones.asignacion_cambiar_estado,
+         name="asignacion_cambiar_estado"),
 ]

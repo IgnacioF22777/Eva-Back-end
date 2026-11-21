@@ -1,0 +1,18 @@
+            <div class="col-lg-2">
+                <label class="form-label small fw-semibold" for="delegacion">Delegación</label>
+                <select id="delegacion" name="delegacion" class="form-select">
+                    {% if vision_global %}<option value="">Todas</option>{% endif %}
+                    {% for d in delegaciones %}
+                        <option value="{{ d.pk }}" {% if delegacion == d.pk|stringformat:"s" %}selected{% endif %}>{{ d.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-lg-2">
+                <label class="form-label small fw-semibold" for="estado">Estado</label>
+                <select id="estado" name="estado" class="form-select">
+                    <option value="activos" {% if estado == 'activos' %}selected{% endif %}>Vigentes</option>
+                    <option value="inactivos" {% if estado == 'inactivos' %}selected{% endif %}>De baja</option>
+                    <option value="todos" {% if estado == 'todos' %}selected{% endif %}>Todos</option>
+                </select>
+            </div>

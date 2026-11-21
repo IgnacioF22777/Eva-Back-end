@@ -1,0 +1,19 @@
+{% if pagina.paginator.num_pages > 1 %}
+    <div class="card-footer bg-white d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <span class="small text-muted">
+            Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}
+        </span>
+        <nav aria-label="Páginas">
+            <ul class="pagination pagination-sm mb-0">
+                {% if pagina.has_previous %}
+                    <li class="page-item"><a class="page-link" href="?{{ parametros }}&pagina=1">« Primera</a></li>
+                    <li class="page-item"><a class="page-link" href="?{{ parametros }}&pagina={{ pagina.previous_page_number }}">Anterior</a></li>
+                {% endif %}
+                {% if pagina.has_next %}
+                    <li class="page-item"><a class="page-link" href="?{{ parametros }}&pagina={{ pagina.next_page_number }}">Siguiente</a></li>
+                    <li class="page-item"><a class="page-link" href="?{{ parametros }}&pagina={{ pagina.paginator.num_pages }}">Última »</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+{% endif %}
