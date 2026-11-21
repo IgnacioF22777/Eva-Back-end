@@ -88,6 +88,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'seguridadAPP.context_processors.perfil_actual',
                 'matrizAPP.context_processors.configuracion_matriz',
+                'config.context_processors.version_estaticos',
             ],
         },
     },
@@ -214,6 +215,22 @@ SGR_ALERTA_CUPO_DIAS = int(os.getenv("SGR_ALERTA_CUPO_DIAS", "3"))
 # Los archivos quedan legibles solo por el usuario del servicio.
 FILE_UPLOAD_PERMISSIONS = 0o640
 FILE_UPLOAD_DIRECTORY_PERMISSIONS = 0o750
+
+# Los archivos estáticos (CSS, JS, imágenes del sitio) son públicos y los
+# entrega Nginx: collectstatic debe dejarlos legibles (644/755). Sin esto
+# heredan los permisos 640 de las evidencias y Nginx responde 403.
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        "OPTIONS": {
+            "file_permissions_mode": 0o644,
+            "directory_permissions_mode": 0o755,
+        },
+    },
+}
 
 # Email
 # https://docs.djangoproject.com/en/4.2/topics/email/

@@ -57,3 +57,172 @@
 .shadow-brand {
     box-shadow: 0 4px 12px rgba(196, 18, 48, 0.15);
 }
+/* ============================================================
+   PORTADA PÚBLICA (solo la usa delegaciones/inicio.html)
+   ============================================================ */
+.portada-hero {
+    background:
+        radial-gradient(circle at 85% 20%, rgba(255, 255, 255, 0.10) 0, rgba(255, 255, 255, 0) 45%),
+        linear-gradient(135deg, #C41230 0%, #9E0F27 55%, #6E0B1C 100%);
+    padding: 4.5rem 0 6.5rem;
+    overflow: hidden;
+}
+.portada-hero::after {
+    /* Franja diagonal sutil para dar profundidad */
+    content: "";
+    position: absolute;
+    inset: auto -10% -60% 40%;
+    height: 120%;
+    background: rgba(255, 255, 255, 0.04);
+    transform: rotate(-12deg);
+    pointer-events: none;
+}
+.portada-hero { position: relative; }
+.portada-etiqueta {
+    display: inline-block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 0.35rem 0.8rem;
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    border-radius: 999px;
+}
+.portada-etiqueta-roja {
+    color: #C41230;
+    border-color: rgba(196, 18, 48, 0.35);
+}
+.portada-titulo {
+    font-size: clamp(2rem, 4.5vw, 3.4rem);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+}
+.portada-bajada {
+    font-size: 1.1rem;
+    max-width: 38rem;
+    color: rgba(255, 255, 255, 0.88);
+}
+.portada-boton {
+    border-radius: 999px;
+    padding-left: 1.6rem;
+    padding-right: 1.6rem;
+    font-weight: 600;
+}
+.portada-hero .btn-light { color: #9E0F27; }
+.portada-foto {
+    position: relative;
+    border-radius: 1rem;
+    overflow: hidden;
+    box-shadow: 0 1.25rem 2.5rem rgba(0, 0, 0, 0.35);
+    border: 6px solid rgba(255, 255, 255, 0.9);
+    transform: rotate(1.5deg);
+}
+.portada-foto img { display: block; width: 100%; height: 320px; object-fit: cover; }
+.portada-foto figcaption {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    padding: 0.5rem 0.9rem;
+    font-size: 0.8rem;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.65));
+}
+
+/* Cifras que se montan sobre el borde inferior del hero */
+.portada-cifras { margin-top: -3.5rem; position: relative; z-index: 2; }
+.portada-cifra {
+    background: #fff;
+    border-radius: 0.9rem;
+    box-shadow: 0 0.75rem 1.75rem rgba(33, 37, 41, 0.12);
+    padding: 1.25rem 1.5rem;
+    border-left: 5px solid #C41230;
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    height: 100%;
+}
+.portada-cifra-numero { font-size: 2.1rem; font-weight: 800; color: #C41230; line-height: 1; }
+.portada-cifra-texto { color: #495057; font-weight: 500; }
+
+/* Títulos de sección con acento rojo */
+.portada-seccion {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: #212529;
+    padding-left: 0.9rem;
+    border-left: 5px solid #C41230;
+    margin-bottom: 1.25rem;
+}
+.portada-texto { max-width: 52rem; }
+
+/* Accesos directos tipo píldora */
+.portada-acceso {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 100%;
+    padding: 0.9rem 1.4rem;
+    border-radius: 999px;
+    background: #212529;
+    color: #fff;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+}
+.portada-acceso:hover, .portada-acceso:focus-visible {
+    background: #C41230;
+    color: #fff;
+    transform: translateY(-2px);
+}
+.portada-acceso-claro { background: #fff; color: #212529; border: 2px solid #212529; }
+.portada-acceso-claro:hover { border-color: #C41230; }
+
+/* Tarjetas de delegaciones y funciones del SGR */
+.portada-delegacion, .portada-funcion {
+    background: #fff;
+    border: 1px solid #e9ecef;
+    border-radius: 0.9rem;
+    padding: 1.25rem;
+    transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+}
+.portada-delegacion:hover, .portada-funcion:hover {
+    border-color: rgba(196, 18, 48, 0.35);
+    box-shadow: 0 0.75rem 1.5rem rgba(33, 37, 41, 0.08);
+    transform: translateY(-3px);
+}
+.portada-icono {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.6rem;
+    height: 2.6rem;
+    border-radius: 0.75rem;
+    background: rgba(196, 18, 48, 0.1);
+    color: #C41230;
+}
+.portada-sgr {
+    background: #f8f9fa;
+    border-radius: 1.25rem;
+    padding: 2rem;
+}
+
+@media (max-width: 767.98px) {
+    .portada-hero { padding: 3rem 0 5.5rem; }
+    .portada-cifra { padding: 1rem 1.25rem; }
+    .portada-sgr { padding: 1.25rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .portada-acceso, .portada-delegacion, .portada-funcion { transition: none; }
+    .portada-acceso:hover, .portada-delegacion:hover, .portada-funcion:hover { transform: none; }
+}
+
+/* Menú superior: etiquetas en una sola línea y espaciado compacto */
+.navbar-dark .navbar-nav .nav-link { white-space: nowrap; }
+@media (min-width: 1400px) {
+    .navbar-expand-xxl .navbar-nav .nav-link { padding-left: 0.45rem; padding-right: 0.45rem; font-size: 0.93rem; }
+}
+/* Nombres largos en el menú de usuario: se recortan con «…» (el nombre completo queda en el title) */
+@media (min-width: 1400px) {
+    .nav-usuario { display: inline-block; max-width: 9rem; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
+}
