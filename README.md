@@ -7,6 +7,30 @@ Proyecto desarrollado para las asignaturas **Programación Back End (TI3041)**
 El caso de la Municipalidad de La Serena se usa como contexto académico: la
 solución se plantea para su posterior presentación como propuesta de práctica.
 
+> **Proyecto universitario.** No es un sistema oficial de la Municipalidad de
+> La Serena ni está en uso por ella. Los datos de demostración son ficticios
+> (salvo los nombres de las delegaciones, que son públicos) y el servidor AWS
+> es un entorno académico de pruebas.
+
+## Índice
+
+- [Descripción del Proyecto](#descripción-del-proyecto)
+- [Funcionalidades](#funcionalidades)
+- [API RESTful (`apiAPP`)](#api-restful-apiapp)
+- [Emergencias territoriales y reportes ciudadanos](#emergencias-territoriales-y-reportes-ciudadanos)
+- [Exportación a Excel y PDF](#exportación-a-excel-y-pdf)
+- [Stack Tecnológico](#stack-tecnológico)
+- [Instalación y Despliegue Local](#instalación-y-despliegue-local)
+- [Pruebas Automatizadas](#pruebas-automatizadas)
+- [Seguridad](#seguridad)
+- [Limitaciones conocidas](#limitaciones-conocidas)
+- [Despliegue en AWS](#despliegue-en-aws)
+- [Estructura del Proyecto](#estructura-del-proyecto)
+- [Equipo (Proyecto Integrado)](#equipo-proyecto-integrado)
+- [Autoría por Módulo (Programación Back End)](#autoría-por-módulo-programación-back-end)
+- [Cuentas de Demostración](#cuentas-de-demostración)
+- [Evidencia de IA](#evidencia-de-ia)
+
 ## Descripción del Proyecto
 
 El **SGR (Sistema de Gestión de Resultados)** es una plataforma web modular para
@@ -445,6 +469,10 @@ y el mismo ámbito por delegación que el listado.
 instalado y en ejecución (por ejemplo, MariaDB Community Server o XAMPP en
 Windows).
 
+> La guía detallada (instalación local, servidor EC2, actualización, respaldo
+> y verificación) está en [`docs/GUIA_INSTALACION.md`](docs/GUIA_INSTALACION.md).
+> Aquí va el resumen.
+
 0. Crear la base de datos y su usuario (en la consola de MySQL/MariaDB):
    ```sql
    CREATE DATABASE evaluacion_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -537,14 +565,18 @@ la batería completa se ejecuta con SQLite en memoria:
 python manage.py test --settings=config.settings_pruebas
 ```
 
-Con todas las ramas de la Evaluación 3 integradas (rama
-`integracion/eva3`, 20-11-2026) se ejecutaron **586 pruebas con resultado
-OK** de esta forma y también sobre MariaDB en la EC2. Con la verificación,
-el tubo, el dashboard, la contraseña temporal y los datos demo la batería
-sube a **637 pruebas OK** junto con los cambios de seguridad de `main` (archivos nuevos: `actividadesAPP/test_verificacion_tubo.py`,
-`seguridadAPP/test_password_temporal.py`, `puntajeEquipoAPP/test_dashboard.py`
-y `puntajeEquipoAPP/test_datos_demo.py`). El detalle por archivo de la tabla
-siguiente corresponde a `main` antes de la integración.
+### Último resultado registrado
+
+**775 pruebas OK** (21-11-2026, SQLite con `config.settings_pruebas`), con
+`main` más las ramas `ci/github-actions`, `feature/eva3-alertas-r6`,
+`docs/mejoras-readme` y `feature/eva3-faltantes-pauta` integradas.
+
+- Antes de esas ramas: 691 pruebas OK en `feature/eva3-alertas-r6` y
+  637 OK en `main` (20-11-2026, también sobre MariaDB en la EC2).
+- Desde que se integra `ci/github-actions`, GitHub Actions ejecuta la
+  batería en cada Pull Request y en cada push a `main`.
+
+> Falta repetir la batería sobre MariaDB en la EC2 después del despliegue.
 
 Con las alertas R6 (`alertasAPP/tests.py`, 20 pruebas) y los arreglos de
 despliegue, al 21-11-2026 se ejecutan **691 pruebas OK** con
@@ -555,8 +587,16 @@ La suite cubre autenticación, recuperación de contraseña, permisos por perfil
 CRUD de los mantenedores, búsqueda, duplicados, baja lógica, reactivación,
 semáforo, cierre de `/admin/`, las dos transacciones atómicas de la Fase 4
 (incluida la reversión completa cuando falla un paso), las reglas de la
-Evaluación 3, la API RESTful y la exportación a Excel y PDF. En total son
-**329 pruebas** en 10 archivos:
+Evaluación 3, la API RESTful y la exportación a Excel y PDF.
+
+### Desglose por archivo (al 17-11-2026, antes de la integración Eva 3)
+
+La tabla siguiente corresponde a `main` antes de integrar la Evaluación 3
+(**329 pruebas** en 10 archivos). Las pruebas agregadas después están en
+archivos nuevos como `actividadesAPP/test_verificacion_tubo.py`,
+`seguridadAPP/test_password_temporal.py`, `puntajeEquipoAPP/test_dashboard.py`
+y `puntajeEquipoAPP/test_datos_demo.py`, además de los `tests.py` de cada app
+de la Evaluación 3.
 
 | Archivo | Pruebas | Cubre |
 |---|---|---|
@@ -574,6 +614,11 @@ Evaluación 3, la API RESTful y la exportación a Excel y PDF. En total son
 - Las pruebas usan la base configurada en `.env` (MySQL/MariaDB) y crean una
   base temporal `test_<DB_NAME>`, por eso el usuario necesita el permiso del
   paso 0 de la instalación.
+
+**Historial de ejecuciones anteriores:**
+
+- **586 pruebas OK** el 20-11-2026, en la rama `integracion/eva3`, antes de
+  sumar la verificación, el tubo, el dashboard y la contraseña temporal.
 - **329 pruebas en verde** el 17-11-2026 en un equipo local (Python 3.12,
   Django 5.2.19, base SQLite temporal), tras agregar la exportación a Excel
   y PDF.
@@ -600,6 +645,21 @@ Evaluación 3, la API RESTful y la exportación a Excel y PDF. En total son
 - Los detalles del incidente de la llave SSH y las medidas aplicadas están en
   [`SECURITY.md`](SECURITY.md).
 
+## Limitaciones conocidas
+
+Por tratarse de un entorno académico, estas mejoras quedan fuera del alcance
+actual y se proponen como trabajo futuro:
+
+- **Sin HTTPS**: el servidor de pruebas se atiende por HTTP en una IP sin
+  dominio. En un despliegue real se debe instalar un certificado TLS y activar
+  `SECURE_SSL_REDIRECT`, `SESSION_COOKIE_SECURE`, `CSRF_COOKIE_SECURE` y HSTS.
+- **Historial de Git**: la llave SSH antigua sigue recuperable desde el
+  historial, aunque ya fue revocada (ver [`SECURITY.md`](SECURITY.md)).
+- **Integración continua**: las pruebas se ejecutan manualmente; no hay un
+  flujo automático (por ejemplo, GitHub Actions) en cada Pull Request.
+- **Registro de errores**: no hay una configuración `LOGGING` propia; los
+  errores quedan en la salida de Gunicorn.
+
 ## Despliegue en AWS
 
 - Instancia EC2 con Amazon Linux 2023.
@@ -620,11 +680,19 @@ Evaluación 3, la API RESTful y la exportación a Excel y PDF. En total son
 | `delegacionesAPP` | Delegaciones y servicios; comando `import_data` (datos iniciales de `data/`) |
 | `tubo_gestionAPP` | Compromisos, asignaciones (T1), avances y adjuntos (T2); ámbito por delegación y validadores de reglas de negocio |
 | `sgr_maestrosAPP` | Catálogo de actividades, períodos, detalles de período (feriados y días computables) y metas |
-| `seguridadAPP` | Login con RUT o correo, recuperación de contraseña, perfiles, usuarios, roles y cargos; comando `crear_roles` |
-| `emergenciasTerritorialesAPP` | Modelos de zonas de riesgo, alertas y contactos de emergencia (sin interfaz propia; alcance por definir) |
-| `reportesCiudadanosAPP` | Modelo de reportes ciudadanos (sin interfaz propia; alcance por definir) |
+| `seguridadAPP` | Login con RUT o correo, recuperación de contraseña, contraseña temporal, perfiles, usuarios, roles y cargos; comando `crear_roles` |
+| `emergenciasTerritorialesAPP` | Zonas de riesgo, alertas y contactos de emergencia, con interfaz web (`/emergencias/`) y API |
+| `reportesCiudadanosAPP` | Reportes ciudadanos y transacción de derivación, con interfaz web (`/reportes/`) y API |
+| `actividadesAPP` | Registro diario de actividades (R1–R4), verificación, evidencias, tubo de seguimiento y «Mi matriz» (R7) |
+| `matrizAPP` | Ausencias (R9), felicitaciones y reclamos (R8) y configuración de las reglas de la matriz |
+| `puntajeEquipoAPP` | Puntaje del equipo (R10) y dashboard; comando `cargar_datos_demo` |
+| `beneficiosAPP` | Campañas de regalos para niños e inscripción (`/regalos/`) |
+| `organizacionesAPP` | Organizaciones comunitarias y juntas de vecinos; comando `importar_organizaciones` |
+| `oficinaPartesAPP` | Tubo de cartas de la Oficina de Partes |
+| `atencionSocialAPP` | Tipos de atención social (RC-05) |
 | `templates/`, `static/` | Plantillas Django y Bootstrap |
-| `docs/` | Diagrama de despliegue en AWS y registro de la demostración T1 → T2 |
+| `tools/` | Prueba de estrés (`prueba_estres.py`) |
+| `docs/` | [Guía de instalación](docs/GUIA_INSTALACION.md), [demostración y limpieza](docs/DEMOSTRACION_Y_LIMPIEZA.md) y diagrama de despliegue en AWS |
 
 ## Equipo (Proyecto Integrado)
 
