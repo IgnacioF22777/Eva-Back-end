@@ -418,15 +418,15 @@ class RecuperarPasswordForm(PasswordResetForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.fields["email"].label = "Correo institucional"
+        self.fields["email"].label = "Correo electrónico registrado"
         self.fields["email"].widget = forms.EmailInput(attrs={
             "class": "form-control",
-            "placeholder": "nombre@laserena.cl",
+            "placeholder": "ejemplo@correo.cl",
             "autocomplete": "email",
             "autofocus": True,
         })
         self.fields["email"].help_text = (
-            "Le enviaremos un enlace para definir una nueva contraseña."
+            "Es el correo que aparece en su perfil del sistema."
         )
 
 
