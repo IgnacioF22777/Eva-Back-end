@@ -139,7 +139,13 @@ Historial del compromiso
                             {{ asignacion.observacion|default:"—" }}
                         </td>
                         <td>
-                            {% if asignacion.activo %}
+                            {% if asignacion.anulada %}
+                                <span class="badge bg-danger"
+                                      title="{{ asignacion.motivo_anulacion }}">Anulada</span>
+                                <div class="small text-muted">
+                                    {{ asignacion.motivo_anulacion|truncatechars:60 }}
+                                </div>
+                            {% elif asignacion.activo %}
                                 <span class="badge bg-success">Vigente</span>
                             {% else %}
                                 <span class="badge bg-secondary">Histórica</span>

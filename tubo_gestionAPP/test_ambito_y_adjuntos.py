@@ -631,6 +631,10 @@ class PruebasAdjuntos(BaseAmbito):
         url = reverse("adjunto_descargar", args=[adjunto.pk])
 
         respuesta = self.client.get(url)
+        # FileResponse deja el archivo abierto hasta cerrar la respuesta; en
+        # Windows un archivo abierto no se puede borrar y la limpieza de la
+        # carpeta temporal fallaba en las pruebas siguientes.
+        self.addCleanup(respuesta.close)
 
         self.assertEqual(respuesta.status_code, 200)
         self.assertIn("attachment", respuesta["Content-Disposition"])
@@ -647,7 +651,9 @@ class PruebasAdjuntos(BaseAmbito):
         self.assertEqual(self.client.get(url).status_code, 403)
 
         self.client.force_login(self.admin)
-        self.assertEqual(self.client.get(url).status_code, 200)
+        respuesta = self.client.get(url)
+        self.addCleanup(respuesta.close)  # libera el archivo (ver arriba)
+        self.assertEqual(respuesta.status_code, 200)
 
     def test_descarga_requiere_sesion(self):
         adjunto = self.subir_uno()

@@ -208,10 +208,11 @@ class PruebasAPIAvances(APITestCase):
 
         with mock.patch.object(
             Compromiso, "save", side_effect=RuntimeError("falla simulada")
-        ):
-            with self.assertRaises(RuntimeError):
-                self.registrar(80)
+        ), self.assertLogs("sgr.api", level="ERROR"):
+            respuesta = self.registrar(80)
 
+        # El error inesperado responde 500 en JSON y no deja nada a medias.
+        self.assertEqual(respuesta.status_code, 500)
         self.assertEqual(RegistroAvance.objects.count(), 0)
         self.compromiso.refresh_from_db()
         self.assertEqual(self.compromiso.cumplimiento, 0)
