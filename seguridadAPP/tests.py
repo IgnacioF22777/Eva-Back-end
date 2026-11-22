@@ -660,7 +660,7 @@ class PruebasRecuperacionPassword(TestCase):
     def test_formulario_de_recuperacion_se_muestra(self):
         respuesta = self.client.get(reverse("seguridad:password_reset"))
         self.assertEqual(respuesta.status_code, 200)
-        self.assertContains(respuesta, "Correo institucional")
+        self.assertContains(respuesta, "Correo electrónico registrado")
 
     # --- ENVÍO DEL CORREO ---
     def test_envia_correo_con_enlace_a_usuario_existente(self):
