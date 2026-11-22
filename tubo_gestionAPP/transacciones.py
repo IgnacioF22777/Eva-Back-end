@@ -186,6 +186,13 @@ def anular_asignacion(usuario, asignacion_id, motivo):
                 "avances antes de anular la asignación."
             )
 
+        anterior = compromiso.asignaciones.filter(anulada=False).exclude(
+            pk=asignacion.pk
+        ).order_by("-fecha_asignacion", "-pk").first()
+
+        if anterior is not None:
+            verificar_delegacion_destino(usuario, anterior.delegacion_id)
+
         asignacion.activo = False
         asignacion.anulada = True
         asignacion.motivo_anulacion = motivo
@@ -201,10 +208,6 @@ def anular_asignacion(usuario, asignacion_id, motivo):
                 "fecha_anulacion",
             ]
         )
-
-        anterior = compromiso.asignaciones.filter(anulada=False).exclude(
-            pk=asignacion.pk
-        ).order_by("-fecha_asignacion", "-pk").first()
 
         if anterior is not None:
             anterior.activo = True
