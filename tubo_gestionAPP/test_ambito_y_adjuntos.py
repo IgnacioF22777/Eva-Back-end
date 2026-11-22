@@ -6,6 +6,8 @@ from unittest.mock import patch
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core.signals import request_finished
+from django.db import close_old_connections
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
@@ -31,6 +33,24 @@ from .tests import crear_usuario
 
 
 MEDIA_TEMPORAL = tempfile.mkdtemp(prefix="sgr_media_test_")
+
+
+def cerrar_descarga(respuesta):
+    """
+    Cierra una FileResponse para liberar el archivo (en Windows un archivo
+    abierto no se puede borrar y la limpieza de la carpeta temporal fallaba).
+
+    respuesta.close() envía request_finished, que por defecto ejecuta
+    close_old_connections: dentro de la transacción de la prueba eso deja
+    la conexión inutilizable en MariaDB y rompe las pruebas siguientes. Se
+    desconecta mientras se cierra, igual que hace el cliente de pruebas de
+    Django durante cada petición.
+    """
+    request_finished.disconnect(close_old_connections)
+    try:
+        respuesta.close()
+    finally:
+        request_finished.connect(close_old_connections)
 
 
 def crear_delegacion(nombre):
@@ -631,10 +651,7 @@ class PruebasAdjuntos(BaseAmbito):
         url = reverse("adjunto_descargar", args=[adjunto.pk])
 
         respuesta = self.client.get(url)
-        # FileResponse deja el archivo abierto hasta cerrar la respuesta; en
-        # Windows un archivo abierto no se puede borrar y la limpieza de la
-        # carpeta temporal fallaba en las pruebas siguientes.
-        self.addCleanup(respuesta.close)
+        self.addCleanup(cerrar_descarga, respuesta)
 
         self.assertEqual(respuesta.status_code, 200)
         self.assertIn("attachment", respuesta["Content-Disposition"])
@@ -652,7 +669,7 @@ class PruebasAdjuntos(BaseAmbito):
 
         self.client.force_login(self.admin)
         respuesta = self.client.get(url)
-        self.addCleanup(respuesta.close)  # libera el archivo (ver arriba)
+        self.addCleanup(cerrar_descarga, respuesta)
         self.assertEqual(respuesta.status_code, 200)
 
     def test_descarga_requiere_sesion(self):
