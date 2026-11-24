@@ -17,7 +17,7 @@ from delegacionesAPP.models import Delegacion
 from organizacionesAPP.models import OrganizacionComunitaria
 from seguridadAPP.perfiles import ADMINISTRADOR, ADMINISTRATIVO, SUPERVISOR
 from seguridadAPP.roles import sincronizar_roles
-from tubo_gestionAPP.tests import CLAVE, crear_usuario
+from tubo_gestionAPP.tests import crear_usuario
 
 from .models import Hito, MembresiaJunta, Territorio, Vecino
 

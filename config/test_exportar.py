@@ -18,7 +18,7 @@ from reportlab.lib.pagesizes import letter
 
 from actividadesAPP.models import RegistroActividad, ZONA_CHILE
 from delegacionesAPP.models import Servicio
-from seguridadAPP.models import Cargo, PerfilUsuario
+from seguridadAPP.models import Cargo
 from seguridadAPP.perfiles import ADMINISTRADOR, ADMINISTRATIVO
 from seguridadAPP.roles import sincronizar_roles
 from sgr_maestrosAPP.models import CatalogoActividad, Meta, Periodo

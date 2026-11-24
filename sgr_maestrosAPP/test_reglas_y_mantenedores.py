@@ -1,13 +1,12 @@
 from datetime import date
 from decimal import Decimal
 
-from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.urls import reverse
 
 from seguridadAPP.models import Cargo, PerfilUsuario
-from seguridadAPP.perfiles import ADMINISTRADOR, ADMINISTRATIVO, SUPERVISOR
+from seguridadAPP.perfiles import ADMINISTRADOR, SUPERVISOR
 from seguridadAPP.roles import sincronizar_roles
 
 from .feriados import domingo_de_resurreccion, feriados_entre

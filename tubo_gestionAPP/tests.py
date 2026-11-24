@@ -1,7 +1,6 @@
 from datetime import date
 from unittest.mock import patch
 
-from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError, PermissionDenied
 from django.db.models import ProtectedError

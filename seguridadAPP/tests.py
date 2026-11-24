@@ -376,7 +376,10 @@ class PruebasSeguridad(TestCase):
         self.assertFalse(Group.objects.filter(pk=rol.pk).exists())
         self.assertContains(respuesta, "eliminado correctamente")
 
-    def test_no_elimina_rol_con_usuarios(self):
+    def test_no_elimina_rol_personalizado_con_usuarios(self):
+        # DEF-13: antes se llamaba igual que la prueba anterior
+        # (test_no_elimina_rol_con_usuarios) y Python solo conservaba esta,
+        # así que la otra nunca se ejecutaba.
         self.client.force_login(self.admin)
         rol = Group.objects.create(name="Rol con usuarios")
         self.funcionario.groups.add(rol)

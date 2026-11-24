@@ -295,6 +295,50 @@ PASSWORD_RESET_TIMEOUT = int(os.getenv("PASSWORD_RESET_TIMEOUT", "3600"))
 # EVA 3: límite diario de registros por funcionario (R3).
 MAX_INGRESOS_DIARIOS = 7
 
+# Registro de errores (logging).
+# Con DEBUG=False la configuración por defecto de Django solo envía los
+# errores 500 por correo a ADMINS (vacío en el SGR), así que se perdían.
+# Aquí se escriben en la consola (stderr): en el servidor los recoge
+# systemd y se consultan con `sudo journalctl -u gunicorn`. También quedan
+# las trazas de la API (logger "sgr.api") y los avisos de la exportación.
+# SGR_LOG_LEVEL controla el detalle (DEBUG, INFO, WARNING, ERROR, CRITICAL).
+SGR_LOG_LEVEL = os.getenv("SGR_LOG_LEVEL", "INFO").strip().upper()
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "sgr": {
+            "format": "{asctime} {levelname} {name}: {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "consola": {
+            "class": "logging.StreamHandler",
+            "formatter": "sgr",
+            "level": SGR_LOG_LEVEL,
+        },
+    },
+    "loggers": {
+        # Errores 500 de las vistas web.
+        "django.request": {
+            "handlers": ["consola"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+        # CSRF rechazado, host no permitido y otras operaciones sospechosas.
+        "django.security": {
+            "handlers": ["consola"],
+            "level": "WARNING",
+            "propagate": False,
+        },
+        # Código propio del SGR (sgr.api y los módulos de config).
+        "sgr": {"handlers": ["consola"], "level": "INFO", "propagate": False},
+        "config": {"handlers": ["consola"], "level": "INFO", "propagate": False},
+    },
+}
+
 # ============================================================
 # API RESTFUL (apiAPP)
 # ============================================================

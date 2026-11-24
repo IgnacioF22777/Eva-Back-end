@@ -129,6 +129,35 @@ def nombre_subtipo(codigo):
     return subtipo or dict(SUBTIPOS).get(codigo, codigo)
 
 
+def precargar_nombres(atenciones):
+    """Resuelve los nombres de tipo y subtipo de varias atenciones con dos
+    consultas en total (antes era una consulta por fila y por columna).
+
+    Devuelve la lista de atenciones con los nombres ya cargados; el
+    resultado es el mismo que dan nombre_tipo() y nombre_subtipo().
+    """
+    atenciones = list(atenciones)
+    tipos = dict(
+        TipoAtencion.objects.filter(codigo__in={a.tipo for a in atenciones})
+        .values_list("codigo", "nombre")
+    )
+    subtipos = dict(
+        SubtipoAtencion.objects.filter(codigo__in={a.subtipo for a in atenciones if a.subtipo})
+        .values_list("codigo", "nombre")
+    )
+    tipos_fijos, subtipos_fijos = dict(TIPOS), dict(SUBTIPOS)
+    for atencion in atenciones:
+        atencion._nombre_tipo = tipos.get(atencion.tipo) or tipos_fijos.get(atencion.tipo, atencion.tipo)
+        if atencion.subtipo:
+            atencion._nombre_subtipo = (
+                subtipos.get(atencion.subtipo)
+                or subtipos_fijos.get(atencion.subtipo, atencion.subtipo)
+            )
+        else:
+            atencion._nombre_subtipo = ""
+    return atenciones
+
+
 def validar_tipo_subtipo(tipo, subtipo, tipo_anterior=None, subtipo_anterior=None):
     """
     Regla de HU-34: el subtipo debe ser coherente con el tipo.
@@ -211,11 +240,15 @@ class AtencionSocial(models.Model):
 
     # Antes los entregaba Django desde las listas fijas (choices); ahora
     # el nombre viene del mantenedor.
+    # En los listados, precargar_nombres() deja los nombres ya resueltos
+    # para no hacer una consulta por cada fila.
     def get_tipo_display(self):
-        return nombre_tipo(self.tipo)
+        nombre = getattr(self, "_nombre_tipo", None)
+        return nombre if nombre is not None else nombre_tipo(self.tipo)
 
     def get_subtipo_display(self):
-        return nombre_subtipo(self.subtipo)
+        nombre = getattr(self, "_nombre_subtipo", None)
+        return nombre if nombre is not None else nombre_subtipo(self.subtipo)
 
     def clean(self):
         super().clean()
