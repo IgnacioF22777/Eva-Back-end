@@ -9,7 +9,7 @@ from django.views.decorators.http import require_POST
 from tubo_gestionAPP.ambito import SIN_DELEGACION, delegacion_id_de, es_global
 
 from .forms import AtencionSocialForm
-from .models import AtencionSocial, TipoAtencion
+from .models import AtencionSocial, TipoAtencion, precargar_nombres
 
 
 POR_PAGINA = 25
@@ -82,6 +82,7 @@ def atencion_lista(request):
     ]
 
     pagina = Paginator(atenciones, POR_PAGINA).get_page(request.GET.get("pagina"))
+    pagina.object_list = precargar_nombres(pagina.object_list)
     parametros = request.GET.copy()
     parametros.pop("pagina", None)
 

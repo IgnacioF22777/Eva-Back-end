@@ -18,6 +18,10 @@ os.environ.setdefault(
     "clave-exclusiva-para-pruebas-automatizadas-no-usar-en-produccion",
 )
 
+# Las pruebas provocan errores a propósito (500 de la API, 403, CSRF):
+# no se imprimen en la consola para que la salida muestre solo el resultado.
+os.environ.setdefault("SGR_LOG_LEVEL", "CRITICAL")
+
 from config.settings import *  # noqa: E402,F401,F403
 
 DATABASES = {

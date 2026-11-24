@@ -195,3 +195,32 @@ class PruebasVistas(BaseAtencion):
         self.client.force_login(sin_delegacion)
         self.assertEqual(self.client.get(url).context["total_filtradas"], 0)
         self.assertEqual(self.client.get(reverse("atencion_social:atencion_crear")).status_code, 403)
+
+    def test_CP_ATS_014_listado_sin_consultas_por_fila(self):
+        """CP-ATS-014 (rendimiento): el listado hace las mismas consultas con 2 o 12 atenciones y muestra los nombres de tipo y subtipo."""
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        from .models import nombre_subtipo, nombre_tipo
+
+        url = reverse("atencion_social:atencion_lista")
+        self.client.force_login(self.supervisor)
+
+        def consultas_del_listado():
+            with CaptureQueriesContext(connection) as consultas:
+                respuesta = self.client.get(url)
+            self.assertEqual(respuesta.status_code, 200)
+            return respuesta, len(consultas.captured_queries)
+
+        for _ in range(2):
+            self.atencion().save()
+        _, con_pocas = consultas_del_listado()
+
+        for _ in range(10):
+            self.atencion(tipo=INFORME, subtipo="APORTE_MATERIAL").save()
+        respuesta, con_muchas = consultas_del_listado()
+
+        self.assertEqual(con_pocas, con_muchas)
+        self.assertContains(respuesta, nombre_tipo(SUBSIDIO))
+        self.assertContains(respuesta, nombre_subtipo("PGU"))
+        self.assertContains(respuesta, nombre_subtipo("APORTE_MATERIAL"))
