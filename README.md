@@ -591,23 +591,21 @@ python manage.py test --settings=config.settings_pruebas
 
 ### Último resultado registrado
 
-**807 pruebas OK** (21-11-2026, SQLite con `config.settings_pruebas`), en
-orden normal, inverso y aleatorio. Incluye T1 por API (CP-ASG-001 a 024),
-datos sensibles y errores JSON (CP-SEG-001 a 008).
+**814 pruebas OK** en `main` (commit `5e0059a`, PR #35):
 
-- 775 pruebas OK al integrar `ci/github-actions`, `feature/eva3-alertas-r6`,
-  `docs/mejoras-readme` y `feature/eva3-faltantes-pauta`.
-- Antes de esas ramas: 691 pruebas OK en `feature/eva3-alertas-r6` y
-  637 OK en `main` (20-11-2026, también sobre MariaDB en la EC2).
-- Desde que se integra `ci/github-actions`, GitHub Actions ejecuta la
-  batería en cada Pull Request y en cada push a `main`.
+| Fecha | Entorno | Resultado |
+|---|---|---|
+| 24-11-2026 | Servidor AWS EC2: MariaDB 10.5, Python 3.13 (`python manage.py test`) | 814 OK en 240 s, sin pruebas omitidas |
+| 25-11-2026 | Equipo local: SQLite en memoria, Python 3.12 (`--settings=config.settings_pruebas`) | 814 OK en 41 s |
+| Cada Pull Request y cada push a `main` | GitHub Actions: SQLite, Python 3.13 | `manage.py check`, verificación de migraciones y batería completa |
 
-> Falta repetir la batería sobre MariaDB en la EC2 después del despliegue.
-
-Con las alertas R6 (`alertasAPP/tests.py`, 20 pruebas) y los arreglos de
-despliegue, al 21-11-2026 se ejecutan **691 pruebas OK** con
-`--settings=config.settings_pruebas`; antes del despliegue del 20-11-2026 se
-ejecutaron 690 pruebas OK sobre MariaDB en la EC2.
+- Respecto de las 775 pruebas del 21-11-2026 se suman T1 por API
+  (CP-ASG-001 a 024), datos sensibles y errores JSON (CP-SEG-001 a 008), la
+  anulación de asignaciones con ámbito, la prueba de rendimiento del listado
+  de atención social (CP-ATS-014) y la prueba de roles que antes no se
+  ejecutaba por tener el mismo nombre que otra (DEF-13).
+- La ejecución sobre MariaDB cubre el caso CM-005 y la reejecución de DEF-06
+  (descargas que cerraban la conexión a MariaDB).
 
 La suite cubre autenticación, recuperación de contraseña, permisos por perfil,
 CRUD de los mantenedores, búsqueda, duplicados, baja lógica, reactivación,
@@ -643,6 +641,14 @@ de la Evaluación 3.
 
 **Historial de ejecuciones anteriores:**
 
+- **807 pruebas OK** el 21-11-2026 (SQLite), en orden normal, inverso y
+  aleatorio, tras integrar la T1 por API.
+- **775 pruebas OK** el 21-11-2026 al integrar `ci/github-actions`,
+  `feature/eva3-alertas-r6`, `docs/mejoras-readme` y
+  `feature/eva3-faltantes-pauta` (commit `4bed447`).
+- **691 pruebas OK** en `feature/eva3-alertas-r6` y **637 OK** en `main` el
+  20-11-2026; ese día también se ejecutaron 690 pruebas OK sobre MariaDB en
+  la EC2.
 - **586 pruebas OK** el 20-11-2026, en la rama `integracion/eva3`, antes de
   sumar la verificación, el tubo, el dashboard y la contraseña temporal.
 - **329 pruebas en verde** el 17-11-2026 en un equipo local (Python 3.12,
@@ -668,6 +674,14 @@ de la Evaluación 3.
 - API con tokens JWT de corta duración (30 minutos). El token deja de servir
   si la cuenta se desactiva o si cambia la contraseña, y `/api/token/`
   comparte el bloqueo de 15 minutos tras 5 intentos fallidos del login web.
+- **HTTPS activo** (RNF-06) con certificado de Let's Encrypt: HTTP redirige
+  a HTTPS, las cookies de sesión y CSRF son `Secure` y `HttpOnly`, y se envía
+  HSTS (`max-age=3600`). Detalle en la
+  [guía de instalación, B9](docs/GUIA_INSTALACION.md#b9-https-con-lets-encrypt).
+- **Registro de errores** (`LOGGING`): los errores 500, las trazas de la API
+  (`sgr.api`) y los avisos de seguridad de Django (CSRF rechazado, host no
+  permitido) se escriben en la consola y en el servidor se consultan con
+  `sudo journalctl -u gunicorn`. El nivel se ajusta con `SGR_LOG_LEVEL`.
 - Los detalles del incidente de la llave SSH y las medidas aplicadas están en
   [`SECURITY.md`](SECURITY.md).
 
@@ -676,15 +690,20 @@ de la Evaluación 3.
 Por tratarse de un entorno académico, estas mejoras quedan fuera del alcance
 actual y se proponen como trabajo futuro:
 
-- **Sin HTTPS**: el servidor de pruebas se atiende por HTTP en una IP sin
-  dominio. En un despliegue real se debe instalar un certificado TLS y activar
-  `SECURE_SSL_REDIRECT`, `SESSION_COOKIE_SECURE`, `CSRF_COOKIE_SECURE` y HSTS.
+- **Dominio**: HTTPS usa `44-217-180-71.sslip.io`, un nombre gratuito que
+  apunta a la IP elástica. Un despliegue real usaría un dominio institucional
+  y un HSTS más largo.
+- **Servidor de laboratorio**: la instancia de AWS Academy se detiene sola al
+  terminar la sesión del laboratorio; antes de una demostración hay que
+  encenderla desde la consola de AWS.
 - **Historial de Git**: la llave SSH antigua sigue recuperable desde el
   historial, aunque ya fue revocada (ver [`SECURITY.md`](SECURITY.md)).
-- **Integración continua**: las pruebas se ejecutan manualmente; no hay un
-  flujo automático (por ejemplo, GitHub Actions) en cada Pull Request.
-- **Registro de errores**: no hay una configuración `LOGGING` propia; los
-  errores quedan en la salida de Gunicorn.
+- **Reglas por confirmar con la contraparte**: Gestión y Planificación suma
+  85 % de ponderación (no permite cerrar el período), el tope de 150 % por
+  colaborador de la matriz no está implementado y el máximo de 3
+  felicitaciones se cubre con el tope de 120 %.
+- **Respaldos**: se respalda la base antes de cada despliegue, pero el
+  respaldo periódico no está automatizado.
 
 ## Despliegue en AWS
 
@@ -694,8 +713,16 @@ actual y se proponen como trabajo futuro:
 - Gunicorn como servidor de aplicación sobre socket Unix.
 - Nginx como proxy inverso, con `X-Real-IP` para el control de solicitudes.
 - MariaDB escuchando solo en `127.0.0.1`.
+- HTTPS con Let's Encrypt en **https://44-217-180-71.sslip.io/**; la dirección
+  `http://44.217.180.71/` redirige allí. El certificado se renueva solo
+  (`certbot-renew.timer`).
+- Puertos abiertos hacia internet: **22** (SSH con llave), **80** (solo
+  redirige a HTTPS y valida la renovación) y **443** (el sistema). MariaDB
+  (3306) y Gunicorn (socket Unix) no se exponen.
 - Despliegue validado con respaldo previo de la base, migraciones, recolección
   de estáticos y reinicio de Gunicorn.
+- Último despliegue: 24-11-2026, `main` en el commit `5e0059a`, con la
+  batería completa sobre MariaDB (814 pruebas OK).
 
 ## Estructura del Proyecto
 
@@ -729,7 +756,8 @@ actual y se proponen como trabajo futuro:
 | Orlando Iribarren | Infraestructura | Informe de la Evaluación 3 (por intercambio de tareas con Ignacio) |
 | Ignacio Figueroa | Documentación | Tipo de gestión (R5), metas por cargo, tipos de atención social, carga de cargos y metas reales, puntaje del equipo (R10); por intercambio con Orlando: organizaciones y juntas de vecinos, tubo de cartas, guía de instalación, alertas de registros sospechosos (R6), despliegue, respaldo y prueba de estrés |
 
-Todo cambio entra a `main` por rama y Pull Request revisado por el líder.
+Todo cambio entra a `main` por rama y Pull Request, y GitHub Actions ejecuta
+la batería completa antes de integrarlo.
 
 ## Autoría por Módulo (Programación Back End)
 
@@ -814,7 +842,7 @@ código y tiene pruebas que la verifican.
 | Validación de datos | Validar con los mismos formularios web; separar `400` (datos) de `409` (reglas de negocio) | `ValidacionWebMixin`, serializadores de entrada | CP-ASG-006/010, CP-AVA-004/006/013 |
 | Manejo seguro de errores | No exponer trazas; responder `500` genérico en JSON y registrar el detalle en el log | `apiAPP/errores.py` (`EXCEPTION_HANDLER`, `handler404`, `handler500`) | CP-SEG-004 a 008 |
 | Configuración de JWT | Access corto (30 min), refresh de 8 h, revocar al desactivar la cuenta o cambiar la contraseña, bloqueo tras 5 intentos | `SIMPLE_JWT` y `ObtenerTokenView` | CP-API-005 a 010 |
-| Datos sensibles | Ocultar correos, teléfonos, coordenadas, datos de vecinos y nombres de funcionarios al perfil Usuario | `CamposSensiblesMixin` | CP-SEG-001/002, CP-EMG-018/019, CP-REP-019 |
+| Datos sensibles | Ocultar correos, teléfonos, coordenadas, datos de vecinos y nombres de funcionarios a los perfiles Supervisor y Administrativo | `CamposSensiblesMixin` | CP-SEG-001/002, CP-EMG-018/019, CP-REP-019 |
 | Buenas prácticas | Baja lógica con historial (nunca borrar), transacciones atómicas, una sola lógica para web y API | `transacciones.py`, anulación de asignaciones y avances | CP-ASG-012/018, CP-AVA-014/022 |
 
 > En el documento técnico se incluyen los prompts completos, extractos de las
