@@ -724,9 +724,10 @@ actual y se proponen como trabajo futuro:
   (3306) y Gunicorn (socket Unix) no se exponen.
 - Despliegue validado con respaldo previo de la base, migraciones, recolección
   de estáticos y reinicio de Gunicorn.
-- Último despliegue: 24-11-2026, `main` en el commit `5e0059a`, con la
-  batería completa sobre MariaDB (814 pruebas OK). Falta desplegar el PR #30
-  (CSS y plantillas del diseño responsivo) siguiendo la Parte C de la guía.
+- Último despliegue: 25-11-2026, `main` en el commit `1a9b883` (incluye el
+  PR #30 de diseño responsivo y contraste), con respaldo previo de la base.
+  El 24-11-2026 se ejecutó la batería completa sobre MariaDB en la EC2
+  (814 pruebas OK, commit `5e0059a`).
 
 ## Estructura del Proyecto
 
