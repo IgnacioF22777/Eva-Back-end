@@ -591,14 +591,17 @@ python manage.py test --settings=config.settings_pruebas
 
 ### Último resultado registrado
 
-**814 pruebas OK** en `main` (commit `5e0059a`, PR #35):
+**818 pruebas OK** en `main` (commit `1a9b883`, tras los PR #30 y #36):
 
 | Fecha | Entorno | Resultado |
 |---|---|---|
-| 24-11-2026 | Servidor AWS EC2: MariaDB 10.5, Python 3.13 (`python manage.py test`) | 814 OK en 240 s, sin pruebas omitidas |
-| 25-11-2026 | Equipo local: SQLite en memoria, Python 3.12 (`--settings=config.settings_pruebas`) | 814 OK en 41 s |
+| 25-11-2026 | Equipo local: SQLite en memoria, Python 3.12 (`--settings=config.settings_pruebas`) | 818 OK en 41 s |
+| 24-11-2026 | Servidor AWS EC2: MariaDB 10.5, Python 3.13 (`python manage.py test`), commit `5e0059a` | 814 OK en 240 s, sin pruebas omitidas (antes del PR #30) |
 | Cada Pull Request y cada push a `main` | GitHub Actions: SQLite, Python 3.13 | `manage.py check`, verificación de migraciones y batería completa |
 
+- El PR #30 suma 4 pruebas del diseño responsivo y el contraste
+  (CP-UI-001 a 004, para los casos CM-001 y CM-002): tablas que no ensanchan la página en el celular y texto
+  legible sobre el color amarillo.
 - Respecto de las 775 pruebas del 21-11-2026 se suman T1 por API
   (CP-ASG-001 a 024), datos sensibles y errores JSON (CP-SEG-001 a 008), la
   anulación de asignaciones con ámbito, la prueba de rendimiento del listado
@@ -722,7 +725,8 @@ actual y se proponen como trabajo futuro:
 - Despliegue validado con respaldo previo de la base, migraciones, recolección
   de estáticos y reinicio de Gunicorn.
 - Último despliegue: 24-11-2026, `main` en el commit `5e0059a`, con la
-  batería completa sobre MariaDB (814 pruebas OK).
+  batería completa sobre MariaDB (814 pruebas OK). Falta desplegar el PR #30
+  (CSS y plantillas del diseño responsivo) siguiendo la Parte C de la guía.
 
 ## Estructura del Proyecto
 
