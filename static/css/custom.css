@@ -226,3 +226,10 @@
 @media (min-width: 1400px) {
     .nav-usuario { display: inline-block; max-width: 9rem; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
 }
+
+/* Tablas con desplazamiento propio: las etiquetas .visually-hidden (position:
+   absolute) de cada fila se ubicaban respecto de la tarjeta y no del
+   contenedor con scroll, y ensanchaban toda la página en el celular (tubo
+   de seguimiento: 685 px en una pantalla de 375 px). Con position: relative
+   quedan dentro del contenedor y la tabla se desplaza sola. */
+.table-responsive { position: relative; }
