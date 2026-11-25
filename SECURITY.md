@@ -251,8 +251,9 @@ con bloqueo pesimista de la fila del compromiso:
   con `activo=True`. Al ser MariaDB, esta invariante se garantiza con el bloqueo
   y la transacción, no con un índice único parcial.
 - La evidencia del avance se guarda como texto (`TextField`) con una referencia
-  verificable, en lugar de archivos: el servidor todavía no tiene HTTPS y no se
-  quiere exponer `MEDIA_ROOT`.
+  verificable, en lugar de archivos: en ese momento el servidor no tenía HTTPS
+  y no se quería exponer `MEDIA_ROOT`. Desde la Fase 5 los avances aceptan
+  adjuntos con descarga protegida, y desde el 24-11-2026 el sitio usa HTTPS.
 
 ### Separación de funciones
 
@@ -266,7 +267,8 @@ con bloqueo pesimista de la fila del compromiso:
 | Servicio | Estado inicial | Medida |
 |---|---|---|
 | SSH (22) | Acceso con llave | Rotada y revocada la anterior |
-| HTTP (80) | Nginx + Gunicorn | Se mantiene; HTTPS pendiente (sin dominio) |
+| HTTP (80) | Nginx + Gunicorn | Solo redirige a HTTPS y valida la renovación del certificado |
+| HTTPS (443) | No existía | Activo desde el 24-11-2026: Let's Encrypt para `44-217-180-71.sslip.io`, cookies `Secure` y HSTS |
 | MariaDB (3306) | `0.0.0.0` (todas las interfaces) | Restringido a `127.0.0.1` |
 | phpMyAdmin | Público en `/phpmyadmin` | Restringido a acceso local (túnel SSH) |
 
@@ -286,8 +288,11 @@ ss -tln | grep 3306                             # 127.0.0.1:3306
 git ls-files | grep -E '\.(pem|key)$'           # sin resultados
 
 # Django Admin no debe estar expuesto
-curl -o /dev/null -s -w "%{http_code}\n" http://44.217.180.71/admin/   # 404
+curl -o /dev/null -s -w "%{http_code}\n" https://44-217-180-71.sslip.io/admin/   # 404
+
+# HTTP debe redirigir a HTTPS
+curl -o /dev/null -s -w "%{http_code}\n" http://44.217.180.71/   # 301
 
 # La suite completa debe pasar
-cd ~/Eva-Back-end && ./venv/bin/python manage.py test
+cd ~/Eva-Back-end && venv313/bin/python manage.py test
 ```

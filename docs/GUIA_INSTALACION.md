@@ -358,6 +358,56 @@ registrar nada.
 Si algo falla, volver a `USE_HTTPS=False` y reiniciar Gunicorn: el sitio
 sigue funcionando por HTTP.
 
+#### Cómo quedó aplicado en el servidor (24-11-2026)
+
+HTTPS se activó siguiendo los pasos anteriores, con estos ajustes para no
+dejar el sitio inaccesible en ningún momento:
+
+1. **Respaldo previo** de `/etc/nginx/conf.d/eva.conf` (en `/root/`) y del
+   `.env` (en `~/backups/`).
+2. **Certificado sin que Certbot edite Nginx**:
+
+   ```bash
+   sudo certbot certonly --nginx -d 44-217-180-71.sslip.io \
+        --agree-tos --register-unsafely-without-email -n
+   ```
+
+   Así el bloque `listen 443 ssl` se escribe a mano en `eva.conf` y el puerto
+   80 sigue atendiendo el sitio hasta comprobar que el 443 responde.
+3. **Bloque 443** en `eva.conf`: `listen 443 ssl`, `http2 on`, el certificado
+   de `/etc/letsencrypt/live/44-217-180-71.sslip.io/`,
+   `include /etc/letsencrypt/options-ssl-nginx.conf`, `client_max_body_size
+   30M` y las mismas `location /static/` y `location /` del puerto 80.
+4. **Comprobación desde fuera** (el Security Group `launch-wizard-1` debe
+   tener el 443 abierto). Recién entonces el bloque del puerto 80 se cambia a:
+
+   ```nginx
+   location / {
+       return 301 https://44-217-180-71.sslip.io$request_uri;
+   }
+   ```
+
+   Se conserva `location /phpmyadmin` en el puerto 80 para que el túnel SSH
+   siga funcionando.
+5. **`.env`** con las variables del paso 4 y reinicio de Gunicorn.
+6. **Renovación**: `sudo systemctl enable --now certbot-renew.timer` y un
+   script que recarga Nginx con el certificado nuevo:
+
+   ```bash
+   printf '#!/bin/sh\nsystemctl reload nginx\n' | \
+       sudo tee /etc/letsencrypt/renewal-hooks/deploy/recargar-nginx.sh
+   sudo chmod 755 /etc/letsencrypt/renewal-hooks/deploy/recargar-nginx.sh
+   sudo certbot renew --dry-run
+   ```
+
+Resultado verificado: certificado válido hasta el 22-02-2027, HTTP → 301 a
+HTTPS, cookies `Secure`, HSTS de 3600 s, login con CSRF sin errores y
+renovación simulada correcta.
+
+> En la red del laboratorio, `http://44-217-180-71.sslip.io` (sin la «s»)
+> puede aparecer bloqueado por el filtro de la red del instituto; por
+> `https://` funciona. Desde fuera del instituto la redirección funciona normal.
+
 ---
 
 ## Parte C. Actualizar el servidor (despliegue de una versión nueva)
