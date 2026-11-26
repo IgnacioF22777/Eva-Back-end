@@ -236,6 +236,46 @@ class PruebasDiasComputables(Base):
         detalle.refresh_from_db()
         self.assertEqual(detalle.dias_computables, 3)
 
+    # --- PU-04 / CP-PER-004: el detalle debe caer dentro del período ---
+    def test_detalle_fuera_del_periodo_se_rechaza(self):
+        """CP-PER-004 (borde): un detalle no empieza antes ni termina después de su período."""
+        dentro = DetallePeriodo(
+            periodo=self.periodo, nombre="Año completo",
+            fecha_inicio=date(2026, 1, 1), fecha_fin=date(2026, 12, 31),
+        )
+        dentro.full_clean()  # los límites exactos se aceptan
+
+        antes = DetallePeriodo(
+            periodo=self.periodo, nombre="Empieza antes",
+            fecha_inicio=date(2025, 12, 31), fecha_fin=date(2026, 1, 31),
+        )
+        with self.assertRaises(ValidationError) as error:
+            antes.full_clean()
+        self.assertIn("fecha_inicio", error.exception.message_dict)
+
+        despues = DetallePeriodo(
+            periodo=self.periodo, nombre="Termina después",
+            fecha_inicio=date(2026, 12, 1), fecha_fin=date(2027, 1, 1),
+        )
+        with self.assertRaises(ValidationError) as error:
+            despues.full_clean()
+        self.assertIn("fecha_fin", error.exception.message_dict)
+
+    def test_formulario_rechaza_detalle_fuera_del_periodo(self):
+        """CP-PER-004: la pantalla informa el error y no guarda el detalle."""
+        self.client.force_login(self.admin)
+        respuesta = self.client.post(
+            reverse("sgr_maestros:detalle_periodo_crear"),
+            {
+                "periodo": self.periodo.pk, "nombre": "Fuera de rango",
+                "fecha_inicio": "2026-12-15", "fecha_fin": "2027-01-15",
+            },
+        )
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, "no puede superar la fecha de término del período principal")
+        self.assertFalse(DetallePeriodo.objects.filter(nombre="Fuera de rango").exists())
+
 
 # ============================================================
 # MANTENEDOR DE PERÍODOS: BÚSQUEDA Y ELIMINACIÓN
