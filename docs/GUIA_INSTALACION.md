@@ -140,7 +140,7 @@ python manage.py test                                  # sobre MariaDB (usa el .
 python manage.py test --settings=config.settings_pruebas   # sin MariaDB ni .env (SQLite en memoria)
 ```
 
-Resultado esperado al 21-11-2026: **691 pruebas OK**.
+Resultado esperado al 26-11-2026: **818 pruebas OK**.
 
 `check` no debe mostrar advertencias `sgr.W001`/`sgr.W002`; si aparecen, las
 versiones instaladas no coinciden con `requirements.txt`
@@ -503,7 +503,7 @@ La guía debe probarla una persona distinta de quien la escribió.
 
 | Parte | Probada por | Fecha | Resultado / observaciones |
 |---|---|---|---|
-| A. Local (Windows) | | | |
+| A. Local | Ignacio Figueroa (caso CM-007, siguiendo la guía al pie de la letra) | 26-11-2026 | Aprobada en Linux (EC2, carpeta, entorno y base nuevos): `pip install`, `migrate`, `crear_roles`, `createsuperuser`, datos de ejemplo y demo, `check` sin advertencias, ingreso con el superusuario y 818 pruebas OK en 34 s. Incidencia: esta sección decía 691 pruebas (DEF-19, corregido). `importar_organizaciones` no se ejecutó porque la planilla no está en el repositorio. Pendiente: que la pruebe una persona distinta del autor y en Windows. |
 | B. Servidor nuevo | | | |
-| C. Actualización | | | |
-| D. Respaldo y restauración | | | |
+| C. Actualización | Ignacio Figueroa | 25-11-2026 | Despliegue del commit `1a9b883` (PR #30) con respaldo previo `evaluacion_db_pre_pr30_20261125_130201.sql`. |
+| D. Respaldo y restauración | Ignacio Figueroa (caso CM-008) | 26-11-2026 | Aprobada: «Dump completed», restauración sin errores en `restauracion_prueba`, 44 tablas y 4.319 registros idénticos a la base original; base de prueba eliminada. |

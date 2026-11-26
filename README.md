@@ -595,6 +595,7 @@ python manage.py test --settings=config.settings_pruebas
 
 | Fecha | Entorno | Resultado |
 |---|---|---|
+| 26-11-2026 | Servidor AWS EC2: MariaDB 10.5, Python 3.13 (`python manage.py test`), commit `1a9b883` | 818 OK en 241 s, sin pruebas omitidas |
 | 25-11-2026 | Equipo local: SQLite en memoria, Python 3.12 (`--settings=config.settings_pruebas`) | 818 OK en 41 s |
 | 24-11-2026 | Servidor AWS EC2: MariaDB 10.5, Python 3.13 (`python manage.py test`), commit `5e0059a` | 814 OK en 240 s, sin pruebas omitidas (antes del PR #30) |
 | Cada Pull Request y cada push a `main` | GitHub Actions: SQLite, Python 3.13 | `manage.py check`, verificación de migraciones y batería completa |
@@ -726,8 +727,8 @@ actual y se proponen como trabajo futuro:
   de estáticos y reinicio de Gunicorn.
 - Último despliegue: 25-11-2026, `main` en el commit `1a9b883` (incluye el
   PR #30 de diseño responsivo y contraste), con respaldo previo de la base.
-  El 24-11-2026 se ejecutó la batería completa sobre MariaDB en la EC2
-  (814 pruebas OK, commit `5e0059a`).
+  El 26-11-2026 se ejecutó la batería completa sobre MariaDB en la EC2
+  (818 pruebas OK, commit `1a9b883`).
 
 ## Estructura del Proyecto
 
