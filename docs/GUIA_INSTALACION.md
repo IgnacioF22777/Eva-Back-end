@@ -140,7 +140,7 @@ python manage.py test                                  # sobre MariaDB (usa el .
 python manage.py test --settings=config.settings_pruebas   # sin MariaDB ni .env (SQLite en memoria)
 ```
 
-Resultado esperado al 26-11-2026: **818 pruebas OK**.
+Resultado esperado al 26-11-2026: **820 pruebas OK** (818 hasta el commit `1a9b883`; el PR #37 suma las 2 de CP-PER-004).
 
 `check` no debe mostrar advertencias `sgr.W001`/`sgr.W002`; si aparecen, las
 versiones instaladas no coinciden con `requirements.txt`
