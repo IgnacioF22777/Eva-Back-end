@@ -51,3 +51,48 @@ class PruebasInterfaz(SimpleTestCase):
 
         razon = (1 + 0.05) / (luminancia("664d03") + 0.05)
         self.assertGreaterEqual(razon, 4.5)
+
+    def test_CP_UI_005_tipografias_locales_sin_servicios_externos(self):
+        """CP-UI-005 (rediseño): las tipografías se sirven desde static/fonts
+        (sin Google Fonts ni otros servicios externos) y los archivos existen."""
+        css = CSS.read_text(encoding="utf-8")
+        self.assertNotIn("fonts.googleapis", css)
+        self.assertNotRegex(css, r"url\(\s*[\"']?https?://")
+        fuentes = re.findall(r"url\(\"\.\./fonts/([^\"]+)\"\)", css)
+        self.assertGreaterEqual(len(fuentes), 6)
+        for archivo in fuentes:
+            self.assertTrue((CSS.parent.parent / "fonts" / archivo).is_file(), archivo)
+
+    def test_CP_UI_006_menu_lateral_accesible_en_celular(self):
+        """CP-UI-006 (rediseño): el menú lateral es deslizable bajo 1200 px y el
+        botón que lo abre está rotulado para lectores de pantalla."""
+        html = (PLANTILLAS / "base.html").read_text(encoding="utf-8")
+        self.assertIn('class="offcanvas-xl offcanvas-start sgr-menu"', html)
+        self.assertIn('aria-controls="menuLateral"', html)
+        self.assertIn('aria-label="Abrir menú"', html)
+        self.assertIn('aria-label="Menú principal"', html)
+        self.assertIn('href="#contenido"', html)
+
+    def test_CP_UI_007_botones_y_textos_de_estado_cumplen_aa_sobre_gris(self):
+        """CP-UI-007 (rediseño, DEF-17): los botones de contorno rojos, verdes y
+        celestes («Rechazar», «Anular», «Dar de baja», «Aprobar», «Reactivar») y
+        los textos de estado tienen contraste >= 4,5:1 sobre el fondo gris
+        #F4F5F7 del rediseño, que es el fondo más oscuro en que aparecen."""
+        def luminancia(hexa):
+            canales = [int(hexa[i:i + 2], 16) / 255 for i in (1, 3, 5)]
+            lineal = [c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4 for c in canales]
+            return 0.2126 * lineal[0] + 0.7152 * lineal[1] + 0.0722 * lineal[2]
+
+        def contraste(a, b):
+            claro, oscuro = sorted((luminancia(a), luminancia(b)), reverse=True)
+            return (claro + 0.05) / (oscuro + 0.05)
+
+        css = CSS.read_text(encoding="utf-8")
+        for regla in (".btn-outline-danger", ".btn-outline-success", ".btn-outline-info"):
+            bloques = re.findall(re.escape(regla) + r"\s*\{([^}]*)\}", css)
+            self.assertTrue(bloques, regla)
+            color = re.search(r"--bs-btn-color:\s*(#[0-9A-Fa-f]{6})", bloques[-1]).group(1)
+            self.assertGreaterEqual(contraste(color, "#F4F5F7"), 4.5, f"{regla} {color}")
+        for regla in (".text-danger", ".text-success", ".text-info"):
+            color = re.findall(re.escape(regla) + r"\s*\{\s*color:\s*(#[0-9A-Fa-f]{6})", css)[-1]
+            self.assertGreaterEqual(contraste(color, "#F4F5F7"), 4.5, f"{regla} {color}")

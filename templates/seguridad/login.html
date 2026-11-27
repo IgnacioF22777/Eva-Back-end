@@ -6,100 +6,131 @@
 Sistema de Gestión de Resultados
 {% endblock %}
 
-{% block content %}
+{# El inicio de sesión usa su propia presentación en dos columnas #}
+{% block encabezado %}{% endblock %}
 
-<div class="row justify-content-center">
+{% block ancho_completo %}
 
-    <div class="col-md-7 col-lg-5">
+<div class="sgr-login">
 
-        <div class="card shadow-sm border-0">
+    <!-- PRESENTACIÓN DEL SISTEMA -->
+    <section class="sgr-login-lado" aria-label="Presentación del sistema">
 
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">Iniciar sesión</h5>
-            </div>
+        <div class="sgr-marca">
+            <span class="sgr-marca-icono" aria-hidden="true">SGR</span>
+            <span class="sgr-marca-texto">
+                <span class="sgr-marca-nombre text-white">Sistema de Gestión de Resultados</span>
+                <span class="small text-white-50">Delegaciones municipales · La Serena</span>
+            </span>
+        </div>
 
-            <div class="card-body p-4">
+        <div>
+            <h2>El trabajo de cada delegación, medido y a la vista.</h2>
+            <p>
+                Registre sus actividades del día, revise su matriz de cumplimiento
+                y siga el avance de su equipo en un solo lugar.
+            </p>
+            <ul class="sgr-login-puntos">
+                <li><span aria-hidden="true">1</span> Actividades diarias con sus reglas de puntaje</li>
+                <li><span aria-hidden="true">2</span> Semáforo de cumplimiento por funcionario</li>
+                <li><span aria-hidden="true">3</span> Acceso por perfil y por delegación</li>
+            </ul>
+        </div>
 
-                <p class="text-muted">
-                    Ingrese con su RUT o correo institucional y su contraseña.
-                </p>
+        <span class="sgr-login-pie">Ilustre Municipalidad de La Serena</span>
 
-                {% include 'seguridad/_mensajes.html' %}
+    </section>
 
-                {% if error_bloqueo %}
-                    <div class="alert alert-danger">
-                        {{ error_bloqueo }}
-                    </div>
-                {% endif %}
+    <!-- FORMULARIO -->
+    <section class="sgr-login-form">
 
-                {% if form.non_field_errors %}
-                    <div class="alert alert-danger">
-                        {% for error in form.non_field_errors %}
-                            {{ error }}
-                        {% endfor %}
-                    </div>
-                {% endif %}
+        <div class="sgr-login-caja">
 
-                <form method="POST" novalidate>
-                    {% csrf_token %}
+            <h2>Iniciar sesión</h2>
 
-                    <input type="hidden" name="next" value="{{ next }}">
+            <p class="text-muted mb-4">
+                Ingrese con su RUT o correo institucional y su contraseña.
+            </p>
 
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold"
-                               for="{{ form.username.id_for_label }}">
-                            {{ form.username.label }}
-                        </label>
+            {% include 'seguridad/_mensajes.html' %}
 
-                        {{ form.username }}
+            {% if error_bloqueo %}
+                <div class="alert alert-danger" role="alert">
+                    {{ error_bloqueo }}
+                </div>
+            {% endif %}
 
-                        {% for error in form.username.errors %}
-                            <div class="text-danger small">{{ error }}</div>
-                        {% endfor %}
-                    </div>
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger" role="alert">
+                    {% for error in form.non_field_errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+            {% endif %}
 
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold"
+            <form method="POST" novalidate>
+                {% csrf_token %}
+
+                <input type="hidden" name="next" value="{{ next }}">
+
+                <div class="mb-3">
+                    <label class="form-label"
+                           for="{{ form.username.id_for_label }}">
+                        {{ form.username.label }}
+                    </label>
+
+                    {{ form.username }}
+
+                    {% for error in form.username.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-baseline">
+                        <label class="form-label"
                                for="{{ form.password.id_for_label }}">
                             {{ form.password.label }}
                         </label>
-
-                        {{ form.password }}
-
-                        {% for error in form.password.errors %}
-                            <div class="text-danger small">{{ error }}</div>
-                        {% endfor %}
+                        <a href="{% url 'seguridad:password_reset' %}"
+                           class="small fw-semibold text-decoration-none">
+                            ¿Olvidó su contraseña?
+                        </a>
                     </div>
 
-                    <div class="form-check mb-4">
-                        {{ form.recordar }}
+                    {{ form.password }}
 
-                        <label class="form-check-label"
-                               for="{{ form.recordar.id_for_label }}">
-                            {{ form.recordar.label }}
-                        </label>
-                    </div>
-
-                    <div class="d-grid">
-                        <button type="submit"
-                                class="btn btn-primary">
-                            Ingresar
-                        </button>
-                    </div>
-
-                </form>
-
-                <div class="text-center mt-3">
-                    <a href="{% url 'seguridad:password_reset' %}"
-                       class="text-decoration-none small">
-                        ¿Olvidó su contraseña?
-                    </a>
+                    {% for error in form.password.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                    {% endfor %}
                 </div>
 
+                <div class="form-check mb-4">
+                    {{ form.recordar }}
+
+                    <label class="form-check-label"
+                           for="{{ form.recordar.id_for_label }}">
+                        {{ form.recordar.label }}
+                    </label>
+                </div>
+
+                <div class="d-grid mb-4">
+                    <button type="submit"
+                            class="btn btn-primary">
+                        Ingresar
+                    </button>
+                </div>
+
+            </form>
+
+            <div class="sgr-login-aviso">
+                <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+                <span>Conexión protegida. Tras 5 intentos fallidos la cuenta se bloquea temporalmente.</span>
             </div>
+
         </div>
 
-    </div>
+    </section>
 
 </div>
 
