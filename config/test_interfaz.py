@@ -51,3 +51,24 @@ class PruebasInterfaz(SimpleTestCase):
 
         razon = (1 + 0.05) / (luminancia("664d03") + 0.05)
         self.assertGreaterEqual(razon, 4.5)
+
+    def test_CP_UI_005_tipografias_locales_sin_servicios_externos(self):
+        """CP-UI-005 (rediseño): las tipografías se sirven desde static/fonts
+        (sin Google Fonts ni otros servicios externos) y los archivos existen."""
+        css = CSS.read_text(encoding="utf-8")
+        self.assertNotIn("fonts.googleapis", css)
+        self.assertNotRegex(css, r"url\(\s*[\"']?https?://")
+        fuentes = re.findall(r"url\(\"\.\./fonts/([^\"]+)\"\)", css)
+        self.assertGreaterEqual(len(fuentes), 6)
+        for archivo in fuentes:
+            self.assertTrue((CSS.parent.parent / "fonts" / archivo).is_file(), archivo)
+
+    def test_CP_UI_006_menu_lateral_accesible_en_celular(self):
+        """CP-UI-006 (rediseño): el menú lateral es deslizable bajo 1200 px y el
+        botón que lo abre está rotulado para lectores de pantalla."""
+        html = (PLANTILLAS / "base.html").read_text(encoding="utf-8")
+        self.assertIn('class="offcanvas-xl offcanvas-start sgr-menu"', html)
+        self.assertIn('aria-controls="menuLateral"', html)
+        self.assertIn('aria-label="Abrir menú"', html)
+        self.assertIn('aria-label="Menú principal"', html)
+        self.assertIn('href="#contenido"', html)
