@@ -497,3 +497,48 @@ textarea.form-control { min-height: 88px; }
     .d-flex.justify-content-between > div:has(> .btn) { flex-shrink: 1; min-width: 0; }
     .d-flex.justify-content-between > div.d-flex:has(> .btn) { flex-wrap: wrap; }
 }
+
+/* ---------- Contraste AA sobre el fondo gris del rediseño (#F4F5F7) ----------
+   Los rojos, verdes y celestes de Bootstrap dan 4,15:1 (o menos) sobre el gris
+   y en las filas resaltadas de las tablas; WCAG AA exige 4,5:1 para texto normal.
+   Se usan tonos más oscuros en botones de contorno, botones sólidos y textos:
+     rojo   #B02A37 -> 5,96:1 sobre #F4F5F7 (6,5:1 sobre blanco)
+     verde  #146C43 -> 5,91:1 sobre #F4F5F7
+     celeste #0A6C80 -> 5,55:1 sobre #F4F5F7
+   Mantiene vigente CM-002 / DEF-17 (contraste mínimo 4,5:1). */
+:root {
+    --bs-danger: #B02A37;
+    --bs-danger-rgb: 176, 42, 55;
+    --bs-success: #146C43;
+    --bs-success-rgb: 20, 108, 67;
+    --bs-info: #0A6C80;
+    --bs-info-rgb: 10, 108, 128;
+}
+.btn-outline-danger {
+    --bs-btn-color: #B02A37; --bs-btn-border-color: #B02A37;
+    --bs-btn-hover-bg: #B02A37; --bs-btn-hover-border-color: #B02A37; --bs-btn-hover-color: #fff;
+    --bs-btn-active-bg: #8E1F2A; --bs-btn-active-border-color: #8E1F2A; --bs-btn-active-color: #fff;
+}
+.btn-danger {
+    --bs-btn-bg: #B02A37; --bs-btn-border-color: #B02A37;
+    --bs-btn-hover-bg: #8E1F2A; --bs-btn-hover-border-color: #8E1F2A;
+    --bs-btn-active-bg: #8E1F2A; --bs-btn-active-border-color: #8E1F2A;
+}
+.btn-outline-success {
+    --bs-btn-color: #146C43; --bs-btn-border-color: #146C43;
+    --bs-btn-hover-bg: #146C43; --bs-btn-hover-border-color: #146C43; --bs-btn-hover-color: #fff;
+    --bs-btn-active-bg: #0F5132; --bs-btn-active-border-color: #0F5132; --bs-btn-active-color: #fff;
+}
+.btn-success {
+    --bs-btn-bg: #146C43; --bs-btn-border-color: #146C43;
+    --bs-btn-hover-bg: #0F5132; --bs-btn-hover-border-color: #0F5132;
+    --bs-btn-active-bg: #0F5132; --bs-btn-active-border-color: #0F5132;
+}
+.btn-outline-info {
+    --bs-btn-color: #0A6C80; --bs-btn-border-color: #0A6C80;
+    --bs-btn-hover-bg: #0A6C80; --bs-btn-hover-border-color: #0A6C80; --bs-btn-hover-color: #fff;
+    --bs-btn-active-bg: #08566A; --bs-btn-active-border-color: #08566A; --bs-btn-active-color: #fff;
+}
+.text-danger { color: #B02A37 !important; }
+.text-success { color: #146C43 !important; }
+.text-info { color: #0A6C80 !important; }
